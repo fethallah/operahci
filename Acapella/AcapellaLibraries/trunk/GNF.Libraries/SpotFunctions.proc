@@ -1,0 +1,596 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of procedures used to generate and work with Spot objectlist.
+//*
+//*********************************************************************************************
+
+proc Spot_Detection_Select(
+	image SpotImage in "Input image with intensity information. Spots are detected by this image.",
+	string SearchRegion="Body" in "Name of the attribute in input list WholeCells, which specifies the regions where spots are searched. In case of the empty string \"\" spots are searched over the whole SpotImage and the input object list is ignored.",
+	bool ShowIllustrations=YES in "YES- Output illustrations are depicted. No- Output illustrations are not shown.",
+	bool ShowSearchRegionBorder=NO in "YES- Output illustration with SearchRegion borders is depicted. No- Output illustration with SearchRegion borders is not shown.",
+	bool ShowOutputParameters=YES in "YES- Output parameters are reported. No- Output Parameters are not reported.",
+
+	objectlist WholeCells=none inout "Optional input object list, which defines the objects (e.g. ~cells) where the spots are searched. Output list contains numerical and geometrical spot attributes. Input list should involve the stencil-type attribute specified by the input SearchRegion. If the object list is not provided spots are searched over the whole image.",
+	objectlist SpotCandidates out "Output object list of spot candidates with calculated numerical and geometrical attributes.",
+	objectlist Spots out "Output object list of classified spots with calculated numerical and geometrical attributes.",
+
+	double NumberOfSpotCandidates out "Number of spot candidates.",
+	double NumberOfSpots out "Number of detected spots.",
+	double SpotsPerObject out "Number of spots per object (i.e. number of spots per ~cell).",
+	double SpotsPerArea out "Number of spots per SearchRegion area (i.e. number of spots per visible ~cell area).",
+	double IntegratedSpotSignalPerCellularSignal out "Integrated spot signal over all spots normalized by integrated ~cellular signal (total signal over all SearchRegion area).",
+	double IntegratedSpotSignalPerCellularSignal_BackgroundSubtracted out "Integrated spot signal over all spots background subtracted and normalized by integrated ~cellular signal (total signal over all SearchRegion area).",
+
+	double IntegratedSpotSignalPerArea out "Integrated spot signal per SearchRegion area (per visible ~cell area).",
+	double IntegratedSpotSignalPerArea_BackgroundSubtracted out "Integrated spot signal BackgroundSubtracted per SearchRegion area (per visible ~cell area)."
+
+) object recognition, spot detection "Spot detection proc edure, which allows to scan the input parameters. The player inputs created by the proc edure are in the sub-section \"Spot Detection\". The detection algorithm (e.g. A, B, C, D) can be determined with the player input \"Spot Detection Algorithm\". Write to the input window just a single letter, e.g. A or SET for comparing results of all routines. The algorithms are identical to ones called by Spot_Detection_A(), Spot_Detection_B() and the output results are the same. If the nuclei detection output contains errors one can apply the parameter scan with an aim to find the input parameter values, which provide the most appropriate nuclei recognition. The parameter scan can be controlled with the player input \"Parameter SCAN\". With the default value \"None\" the parameter scan is not applied. Select from \"Parameter SCAN\" menu the parameter you would like to scan and click to Run. The proc edure scans the parameter over the whole range and depicts the corresponding detection results. The label of the output illustration corresponds to the parameter value, e.g. the label \"3.0\" in case of the \"SpotMinimumDistance\" scan marks the result obtained with SpotMinimumDistance=3.0. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. If needed apply the scan step-wise for all input parameters starting from \"SpotMinimumDistance\". Afterwards test the selected set of input parameters with the different images. Please note, that it is possible to scan only one parameter at time and that if \"SET\" or multiple algorithms are already selected for the input \"Spot Detection Algorithm\" the parameter scan is not supported."
+{
+	if( SearchRegion!="" and defined("WholeCells"))
+		if(!defined("WholeCells." & SearchRegion))
+			error("proc edure Spots_Detection_A() input attribute SearchRegion " & SearchRegion & " does not exist. The input SearchRegion should correspond to the stencyl-type attribute in the input object list or to be an empty string \"\". The empty string means that spots are searched over the whole image and the input object list is ignored.")
+		else()
+			eval("set(SearchMask=WholeCells." & SearchRegion & ")")
+			if (SearchMask.class!="intervalvector")
+				error("proc edure Spots_Detection_A() input attribute SearchRegion " & SearchRegion & " is not a stencil. The input SearchRegion should correspond to the stencyl-type attribute in the input object list or to be an empty string \"\". The empty string means that spots are searched over the whole image and the input object list is ignored.")
+			end()
+		end()
+		set(SearchObjects=WholeCells)
+	end()
+
+	if (ShowIllustrations)
+		spot_illustrations_1()
+	end()
+
+	set(SpotMinimumDistanceVec=tabulate("x*2+1",10).result)
+	set(SpotPeakRadiusVec=tabulate("x",11).result)
+	set(SpotReferenceRadiusVec=tabulate("(x+1)",10).result)
+	set(SpotMinimumContrastVec=tabulate("x*0.1",11).result)
+	set(SpotMinimumToCellIntensityVec=tabulate("(2.236068^(x-5))",15).result)
+	set(algorithmsVec=vec("A","B","C","D"))
+
+	input(SpotAlgorithm,"A","Spot Detection Algorithm: Spot Detection",type="s",description="Specifies the cytoplasm detection algorithm from the OCDL. Allowed values:\"A\",\"B\",\"C\",\"D\".")
+
+	input(SpotMinimumDistance,3.0 , "SpotMinimumDistance: Spot Detection","d", "Minimum allowed distance between two spot centers. Unit image pixel. Adjust by Illustration SpotSelection and Spots. Allowed range: 1..20, step 1.")
+
+	input(SpotPeakRadius, 0.0, "SpotPeakRadius: Spot Detection","d", "Radius of the disk, where the spot peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Allowed range: 0..10, step 1.")
+
+	input(SpotReferenceRadius, 3.0,  "SpotReferenceRadius: Spot Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around spot center. Allowed range: 1..10, step 1.")
+
+	input(SpotMinimumContrast,0.3, "SpotMinimumContrast: Spot Detection", "d","Minimum allowed contrast between spot peak intensity and the reference intensity. The main spot selection parameter. Adjust parameter by illustrations SpotSelection and Spots. If the parameter value is lowered the number of classified spots increases and vice versa. Allowed range: 0..1, step 0.01.")
+
+	input(SpotMinimumToCellIntensity, 1.0, "SpotMinimumToCellIntensity: Spot Detection","d","Minimum allowed intensity ratio between Spot Peak Intensnity and the Average Intensity of the cell/object to which the spot is belongs. Has smaller influence on the outputs than the main selection parameter SpotMinimumContrast. Adjust parameter by illustrations SpotSelection and Spots. If the parameter value is lowered the number of classified spots increases and vice versa. Allowed range: 0..20, step 0.01.")
+
+	input(ScanParameter, "None", "Parameter SCAN: Spot Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The proc edure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. Possible values: \"None\", \"SpotMinimumDistance\",\"SpotPeakRadius\",\"SpotReferenceRadius\",\"SpotMinimumContrast\",\"SpotMinimumToCellIntensity\",\"Algorithm\"")
+
+
+	//ensures that you use the actuall parameters with RMCA or Linux
+	EnvInfo()
+	Set(ScanParameter=iif(env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview,ScanParameter,"None"))
+
+	FindElem(SpotAlgorithm,algorithmsVec)
+	if(pos==-1)
+		Error("The algorithm selected for the cytoplasmic detection is invalid. Supported algorithms are \"A\",\"B\",\"C\",\"D\" and \"E\".")
+	end()
+	if(ScanParameter=="none")
+		set(scanVec=vec(0))
+	else()
+		Set(ShowOutputParameters=true)
+	end()
+
+	if(ScanParameter=="SpotMinimumDistance")
+		set(scanVec=SpotMinimumDistanceVec)
+	end()
+	if(ScanParameter=="SpotPeakRadius")
+		set(scanVec=SpotPeakRadiusVec)
+	end()
+	if(ScanParameter=="SpotReferenceRadius")
+		set(scanVec=SpotReferenceRadiusVec)
+	end()
+	if(ScanParameter=="SpotMinimumContrast")
+		set(scanVec=SpotMinimumContrastVec)
+	end()
+	if(ScanParameter=="SpotMinimumToCellIntensity")
+		set(scanVec=SpotMinimumToCellIntensityVec)
+	end()
+	if(ScanParameter=="Algorithm")
+		set(scanVec=algorithmsVec)
+	end()
+
+
+	if (ShowIllustrations)
+		spot_illustrations_1()
+	end()
+
+
+	foreach(scanVec)
+		if(ScanParameter=="SpotMinimumDistance")
+			set(SpotMinimumDistance =i)
+		end()
+		if(ScanParameter=="SpotPeakRadius")
+			set(SpotPeakRadius =i)
+		end()
+		if(ScanParameter=="SpotReferenceRadius")
+			set(SpotReferenceRadius =i)
+		end()
+		if(ScanParameter=="SpotMinimumContrast")
+			set(SpotMinimumContrast =i)
+		end()
+		if(ScanParameter=="SpotMinimumToCellIntensity")
+			set(SpotMinimumToCellIntensity =i)
+		end()
+		if(ScanParameter=="Algorithm")
+			set(CytoAlgorithm=i)
+		end()
+
+		Eval("Spot_Detection_"&SpotAlgorithm&"_inner()",ForwardGrantLicense=true)
+
+		if(errorcode!=0)
+			Error(errors)
+		end()
+
+		set(NumberOfSpotCandidates=SpotCandidates.count)
+		set(NumberOfSpots=Spots.count)
+
+		if(ScanParameter!="None")
+			set(NamePrefix=ScanParameter&"="&i&" - ")
+			create_spot_outputs()
+			if(showIllustrations)
+				set(label=":"&i)
+				gamma(2.6,image=SpotImage)
+				set(g_image=image)
+				carrypixels(image=g_image, mask=SpotCandidates.ReferenceRegions.mask, data=g_image.max)
+				set(IM_SpotSelection=image)
+				carrypixels(image=g_image, mask=SpotCandidates.SpotCenters.mask, data=g_image.max)
+				set(IM_SpotSelection2=image)
+
+				objectfilter(ContrastOK==0,objects=SpotCandidates)
+				set(NumberDiscradedByContrast=objects.count)
+				carrypixels(image=IM_SpotSelection, mask=Objects.ReferenceRegions.mask, data="green")
+				set(IM_SpotSelection=image)
+				carrypixels(image=IM_SpotSelection2.image, mask=Objects.SpotCenters.mask, data="green")
+				set(IM_SpotSelection2=image)
+
+				objectfilter(SpotToCellIntensityOK==0,objects=SpotCandidates)
+				set(NumberDiscradedBySpotToCellIntensity=objects.count)
+				carrypixels(image=IM_SpotSelection, mask=Objects.ReferenceRegions.mask, data="yellow")
+				set(IM_SpotSelection=image)
+				carrypixels(image=IM_SpotSelection2, mask=Objects.SpotCenters.mask, data="yellow")
+				set(IM_SpotSelection2=image)
+
+				objectfilter(SpotToCellIntensityOK==0 and ContrastOK==0,objects=SpotCandidates)
+				carrypixels(image=IM_SpotSelection, mask=Objects.ReferenceRegions.mask, data="red")
+				set(IM_SpotSelection=image)
+				carrypixels(image=IM_SpotSelection2, mask=Objects.SpotCenters.mask, data="red")
+				set(IM_SpotSelection2=image)
+				set(Description="White: Classified Spots<p></p>Green: discarded by Contrast<p></p>Yellow: discarded SpotToCellIntensity<p></p>Red: Discarded by both attributes.<p></p><p></p>Pixel values are not true, see illustration Spots for pixel intensities.")
+				set(title=NamePrefix&"Number Classified Spots: "&NumberOfSpotCandidates)
+				set(titletext1="Spot Borders: " & title, titletext2="Spot Centers: " & title)
+				imageview(IM_SpotSelection, "SpotSelection"&label, image=IM_SpotSelection,  gamma=2.6, title=titletext1, description=Description)
+				//imageview(IM_SpotSelection2, "SpotSelection2"&label, image=IM_SpotSelection2,  gamma=2.6, title=titletext2, description=Description)
+				set(title=NamePrefix&"Number spots: "&NumberOfSpots)
+				imageview(Spots.ReferenceRegions, "Spots"&label, image=SpotImage, gamma=2.6, title="Classified Spots"&title)
+			end()
+		end()
+	end()
+
+	if(ScanParameter!="none")
+		stop()
+	end()
+
+	if(ShowIllustrations)
+		spot_illustrations_2()
+	end()
+
+	if(ShowOutputParameters)
+		create_spot_outputs()
+	end()
+}
+
+proc SpotAccurateRepresentation(
+memblock spots in "Object list containing the spots and the attribute spotCenters.",
+Image image in "Image containing the intensity information to modify the spots.",
+boolean highBckGnd=false in "Optional. Indicate whether the spot to detect is surrounded by some background.",
+memblock spots out "New spot object containing two new attributes accurateSpots and accurateSpots_border",
+boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected."
+) object recognition "Refine the spots to better fit the image"
+{
+	SpotAccurateRepresentation_parameters()
+	SpotAccurateRepresentation_inner()
+}
+
+proc SpotAccurateRepresentation_parameters(
+double minSpotsIntensity out "Controls the spot that remain selected. Higher values reduce the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
+double minSpotsArea out "Provides Cutt-off for spots to keep. Keep only spots which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
+double minSpotsRoundness=0.1 out "Provides Cutt-off for spots to keep. Keep only spots have a roundness above the provdide value. Range: >=0. With higher values fewer spots are retained.",
+double spotsIndividualThresholdAdjustment out "Controls the spot shape around the spot center. Range: [0..1]. Higher values decrease spot size.Accurate spot Borders.",
+)
+{
+	input(minSpotsIntensity, 0, "Min Spot Intensity: Accurate Spot Detection", "i", "Spot: Controls the spot that remain selected. Higher values reduce the number of spots retained. Adjust with \"Accurate spot Borders\" preview.")
+	input(minSpotsArea,20,"Minimum spot Area: Accurate Spot Detection","i","Spot: Keep only spots which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Accurate spot Borders\" preview.")
+	input(minSpotsRoundness,0.1,"Minimum spot Roundness: Accurate Spot Detection","i","Spot: Keep only spots have a roundness above the provdide value. With higher values fewer spots are retained. Allowed range: 0..oo.")
+	input(spotsIndividualThresholdAdjustment, 0.3, "Spot Individual Threshold Adjustment: Accurate Spot Detection", "d", "Spot: Controls the spot shape around the spot center. Higher values decrease spot size.Accurate spot Borders. Allowed range: 0..1.")
+}
+
+proc SpotAccurateRepresentation_inner(
+memblock spots in "Object list containing the spots and the attribute spotCenters.",
+Image image in "Image containing the intensity information to modify the spots.",
+boolean highBckGnd=false in "Optional. Indicate whether the spot to detect is surrounded by some background.",
+memblock spots out "New spot object containing two new attributes accurateSpots and accurateSpots_border",
+double minSpotsIntensity= 0 in "Controls the spot that remain selected. Higher values reduce the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
+double minSpotsArea=10 in "Provides Cutt-off for spots to keep. Keep only spots which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
+double minSpotsRoundness=0.1 in "Provides Cutt-off for spots to keep. Keep only spots have a roundness above the provdide value. With higher values fewer spots are retained.Adjust with \"Accurate spot Borders\" preview. Allowed range: 0..oo.",
+double spotsIndividualThresholdAdjustment=0.3 in "Controls the spot shape around the spot center. Higher values decrease spot size.Adjust with \"Accurate spot Borders\" preview. Allowed range: 0..1.",
+boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected.",
+bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+) object recognition "Refine the spots to better fit the image"
+{
+	set(imageIni=image)
+	Stencil2Objects(spots.spotCenters)
+	if(highBckGnd)
+		set(image=Bright_Mask(image, Radius=minSpotsArea*2).result)
+	end()
+	if(lowBitAnalysis)
+		convert(1)
+	end()
+	cytoplasm_detection_A_inner(nuclei=objects,Cytoplasm=image,CytoplasmIndividualThresholdAdjustment=SpotsIndividualThresholdAdjustment)
+	CalcAttr(Roundness, objects=WholeCells)
+	rename(WholeCells=objects)
+
+	setAttr(accurateSpots,wholeCells.body,objects=spots)
+	setAttr(accurateSpots_roundness,wholeCells.roundness)
+	CalcBorder(accurateSpots)
+	CalcArea(accurateSpots,AutoRecalc=false)
+	objectFilter(accurateSpots_area>minSpotsArea)
+	CalcIntensity(accurateSpots, Image=imageIni,AutoRecalc=false)
+	objectFilter(accurateSpots_intensity>minSpotsIntensity)
+	objectFilter(accurateSpots_Roundness>minSpotsRoundness)
+
+
+	if(showIllustrations)
+		ImageView(objects.accurateSpots_border, label="Accurate spot Borders",title="Adjust per Spot Threshold Adjustment and Spot Individual Threshold Adjustmen",image=image, gamma=2.0, )
+	end()
+	Rename(spots=objects)
+	keep(spots)
+}
+
+proc VacuoleDetection(
+objectlist WholeCells inout "Object list containing Cells for which vacuoles should be localized.",
+objectlist Vacuoles out "New object list containing the info about the vacuoles",
+Image image in "Image containing the intensity information about the vacuoles. The vacuoles should appear dark in a light background (fluorescence is excluded from them).",
+boolean showIllustrations=true in "Optional. Used to indicate if you want to see the vacuoles detected.",
+bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+) object recognition "Detects the vacuole from a cytoplasmic image where fluorescence is excluded from the vacuoles"
+{
+	input(SpotMinimumDistance,7.0 , "VacuoleMinimumDistance: Vacuole Detection","d", "Minimum allowed distance between two Vacuole centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration VacuoleSelection and Vacuoles.")
+	input(SpotPeakRadius, 2.0, "VacuolePeakRadius: Vacuole Detection","d", "Radius of the disk, where the Vacuole peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Typically 0 or 1.")
+
+	input(SpotReferenceRadius, 8.0,  "VacuoleReferenceRadius: Vacuole Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Vacuole center. Typical range  2.0 .. 5.0.")
+	input(SpotMinimumContrast,0.1, "VacuoleMinimumContrast: Vacuole Detection", "d","Minimum allowed contrast between Vacuole peak intensity and the reference intensity. The main Vacuole selection parameter. Adjust parameter by illustrations VacuoleSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..1.")
+	input(SpotMinimumToCellIntensity, 4.0, "VacuoleMinimumToCellIntensity: Vacuole Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Vacuole belongs and  the Vacuole Intensnity. Has smaller influence on the outputs than the main selection parameter VacuoleMinimumContrast. Adjust parameter by illustrations VacuoleSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..oo.")
+
+	input(minSpotsRoundness,1.3,"Vacuole Roundness: Vacuole Detection","i","Allows to keep only spots that are compatible with being a vacule. Range: >=0. Adjust with \"Vacuoles Borders\" preview.")
+	input(spotsIndividualThresholdAdjustment, 0.4, "Vacuole Individual Threshold Adjustment: Vacuole Detection", "d", "Controls the spot shape around the vacuole center. Higher values decrease vacuole size. Adjust with \"Vacuoles Borders\" preview. Allowed range: 0..1.")
+
+	set(imageIni=image)
+	gamma(3)
+	if(lowBitAnalysis)
+		convert(1)
+	end()
+	set(image=Dark_Mask(image, Radius=SpotReferenceRadius).result)
+
+	if(Not(defined("WholeCells.Cytoplasm")))
+		Warning("MicroNucleiDetection: No attribute Cytoplasm present in the object list WholeCells provided. Try to rebuilt. Note that the number of nuclei per cells may not be accurate any longer!")
+		AddCytoplasmAttributesOneNucleus()
+		rename(objects=WholeCells)
+	end()
+	set(wholeCellstemp=WholeCells)
+
+
+	Spot_Detection_B_inner(image,SpotMinimumToCellIntensity=SpotMinimumToCellIntensity, SearchMask=WholeCells.Cytoplasm)
+
+	if(showIllustrations)
+		ImageView(SpotCandidates.border, label="VacuoleSelection",title="Adjust per VacuoleMinimumDistance and VacuoleMinimumContrast",image=imageIni, gamma=2.0, )
+		ImageView(Spots.border, label="Vacuoles",title="Adjust per VacuoleMinimumDistance and VacuoleMinimumContrast",image=imageIni, gamma=2.0, )
+	end()
+
+	Rename(WholeCells=WholeCellsTemp)
+	spotAccurateRepresentation_inner(Spots,image,highBckGnd=true,showIllustrations=false)
+	Rename(objects=spots)
+	ObjectFilter(accurateSpots_Intensity>objects.accurateSpots_Intensity.max/2)
+	Rename(spots=objects)
+	set(objects=wholeCells)
+	CalcIntensity(cytoplasm,image=imageIni)
+	convert(4)
+	CarryObjects(objects.cytoplasm, objects.cytoplasm_intensity,image=image)
+
+
+	Stencil2Objects(spots.accurateSpots)
+	CalcIntensity(image=image)
+	SetAttr(cellAverageInt,objects.intensity)
+	rename(image=imageIni)
+	CalcIntensity(image=image)
+	SetAttr(Contrast,cellAverageInt/intensity)
+	DeleteAttr(cellAverageInt)
+	CalcStat("Min",AttrName="IntensityMin", image=image)
+	CalcStat("Max",AttrName="IntensityMax", image=image)
+	CalcStat("stddev",AttrName="IntensityStdDev", image=image)
+	CalcMoment(3,central=true)
+	RenameAttr(IntensitySkewness=CentralMoment3)
+	CalcMoment(4,central=true)
+	RenameAttr(IntensityKurtosis=CentralMoment4)
+	CalcAttr(Roundness)
+	CalcMassCentre()
+	CalcArea(border)
+	CalcArea()
+	RenameAttr(perimeter=border_area)
+	SetAttr("perimeter_area",perimeter/area)
+	Rename(Vacuoles=objects,objects=WholeCells)
+	addContainedObjectsInfo(Vacuoles, outputStencil="Vacuoles")
+	Rename(WholeCells=objects)
+	if(showIllustrations)
+		ImageView(vacuoles.border, label="Vacuole Borders",title="Adjust per Vacuole Threshold Adjustment,  Vacuole Individual Threshold Adjustmen, Minimum vacuole Area, Minimum vacuole Roundness",image=image, gamma=3.0, )
+	end()
+	keep(WholeCells, Vacuoles)
+}
+
+
+proc MicroNucleiDetection(
+	objectlist Nuclei inout "Object list containing the unfilterd nuclei list. In particular the area should only be broadly filtered",
+	objectlist WholeCells inout "Object list containing Cells for which microNuclei should be localized.",
+	objectlist microNuclei out "New object list containing the info about the microNuclei",
+	Image image in "Image containing the intensity information about the microNuclei. Usually, this is the same image as that containing fluorescence for the nuclei.",
+	boolean showIllustrations=true in "Optional. Used to indicate if you want to see the microNuclei detected.",
+	bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+) object recognition "Detects the microNuclei in the image, using small objects in the cytoplasm"
+{
+	input(SpotMinimumDistance,7.0 , "microNucleiMinimumDistance: microNuclei Detection","d", "Minimum allowed distance between two micronuclei centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration microNucleiSelection and microNuclei.")
+	input(SpotPeakRadius, 2.0, "microNucleiPeakRadius: microNuclei Detection","d", "Radius of the disk, where the micronuclei peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Typically 0 or 1.")
+
+	//input(micronucleiRelativeSize, 0.2, "Relative size of a micronucleus/nucleus: ",type="d", description="Ratio between the nuclei size and the micronuclei for it to be kept")
+	input(SpotReferenceRadius, 5.0,  "microNucleiReferenceRadius: microNuclei Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around micronuclei center. Typical range  2.0 .. 5.0.")
+	input(SpotMinimumContrast,0.1, "microNucleiMinimumContrast: microNuclei Detection", "d","Minimum allowed contrast between micronuclei peak intensity and the reference intensity. The main micronuclei selection parameter. Adjust parameter by illustrations microNucleiSelection and microNuclei. If the parameter value is lowered the number of classified microNuclei increases and vice versa. Allowed range: 0..1.")
+	input(SpotMinimumToCellIntensity, 0.2, "microNucleiMinimumToNucleintensity: microNuclei Detection","d","Minimum allowed intensity ratio between the Average Nuclei Intensity associated with the Spot. Adjust parameter by illustrations microNucleiSelection Borders. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..4, step 0.01.")
+
+	input(minSpotsRoundness,1.0,"microNuclei Roundness: microNuclei Detection","i","Allows to keep only spots that are compatible with being a vacule. Range: >=0. Adjust with \"microNuclei Borders\" preview.. Allowed range: 0..4.")
+	input(spotsIndividualThresholdAdjustment, 0.8, "microNuclei Individual Threshold Adjustment: microNuclei Detection", "d", "Controls the spot shape around the micronuclei center. Higher values decrease micronuclei size. Adjust with \"micronuclei Borders\" preview. Allowed range: 0..1.")
+	input(minRelativeSize, 5, "min nuclei/microNuclei relative size: microNuclei Detection", "d", "Indicates the relative size between the smallest microNuclei and the smallest nuclei. Lower value decreases the number of nuclei and increases the number of microNuclei")
+
+	set(minSpotsArea=SpotReferenceRadius^2/2)
+	set(imageIni=image)
+
+	if(Not(defined("nuclei.area")))
+		CalcArea(objects=nuclei)
+		rename(nuclei=objects)
+	end()
+	set(originalNucCount=nuclei.count)
+	blank(image.Width,image.Height)
+	convert(4)
+	calcArea(centers, objects=wholeCells)
+	CarryObjects(objects.centers, objects.centers_area/objects.NumberOfNuclei,image=image) //Calc Average Center area
+	calcIntensity(image=image,objects=nuclei)
+	SetAttr(RelativeNucSize, objects.intensity/objects.area,objects=nuclei) //Calc for each Nuclei Object its size relative to a nuclei in a same cell
+	ObjectFilter(RelativeNucSize<minrelativeSize) //Remove nuclei that are relativelly small
+	Rename(nuclei=objects)
+
+	if(originalNucCount>nuclei.count)
+		rename(objects=wholeCells)
+		addContainedObjectsInfo(nuclei,outputStencil="centers")
+		AddCytoplasmAttributesOneNucleus()
+		RenameAttr(NumberOfNuclei=centers_count)
+		ObjectFilter(NumberOfNuclei>0)
+		rename(WholeCells=objects)
+	end()
+
+	if(Not(defined("WholeCells.Cytoplasm")))
+		Warning("MicroNucleiDetection: No attribute Cytoplasm present in the object list WholeCells provided. Try to rebuilt. Note that the number of nuclei per cells may not be accurate any longer!")
+		AddCytoplasmAttributesOneNucleus()
+		rename(objects=WholeCells)
+	end()
+	set(wholeCellstemp=WholeCells)
+
+	Rename(objects=WholeCells)
+	Stencil2Objects(objects.centers)
+	set(distance=-6) //enlarge Nuclei
+	calczone(distance, zonetype="equidistant",objects=objects)
+	zonemask(0, distance)
+	Stencil2Objects(objects.zoneMask)
+	FillObjects()
+	SetAttr(centers,objects.body,objects=WholeCellsTemp)
+	AddCytoplasmAttributesOneNucleus()
+	set(image=objects.Cytoplasm.mask.image*imageIni)
+	if(lowBitAnalysis)
+		convert(1)
+	end()
+
+
+	Spot_Detection_B_inner(image,SpotMinimumToCellIntensity=2, SearchMask=objects.Cytoplasm)
+
+	if(showIllustrations)
+		ImageView(SpotCandidates.border, label="microNucleiSelection",title="Adjust per microNucleiMinimumDistance and microNucleiMinimumContrast",image=imageIni, gamma=2.0, )
+		ImageView(Spots.border, label="microNuclei",title="Adjust per microNucleiMinimumDistance and microNucleiMinimumContrast",image=imageIni, gamma=2.0, )
+	end()
+
+	Rename(WholeCells=WholeCellsTemp)
+	spotAccurateRepresentation_inner(Spots,image,highBckGnd=true,showIllustrations=false)
+
+	CalcIntensity(image=imageIni, Stencil=centers, objects=wholeCells)
+	convert(4)
+	CarryObjects(wholeCells.body, objects.centers_intensity,image=image)
+
+	Stencil2Objects(spots.accurateSpots)
+	calcIntensity(image=nuclei.body.mask.image)
+	ObjectFilter(intensity==0) //keep only micronuclei that do not overlap with the nuclei
+	CalcIntensity(image=image)
+	SetAttr(nucAverageInt,objects.intensity)
+	rename(image=imageIni)
+	CalcIntensity(image=image)
+	SetAttr(microNuc_Nuc_RelatIntensity,intensity/nucAverageInt)
+	DeleteAttr(NucAverageInt)
+	ObjectFilter(microNuc_Nuc_RelatIntensity>SpotMinimumToCellIntensity) //micronuclei should have at least 10% of the intensity of the nuclei to which it is associated
+	CalcStat("Min",AttrName="IntensityMin", image=image)
+	CalcStat("Max",AttrName="IntensityMax", image=image)
+	CalcStat("stddev",AttrName="IntensityStdDev", image=image)
+	CalcMoment(3,central=true)
+	RenameAttr(IntensitySkewness=CentralMoment3)
+	CalcMoment(4,central=true)
+	RenameAttr(IntensityKurtosis=CentralMoment4)
+	CalcAttr(Roundness)
+	CalcMassCentre()
+	CalcArea(border)
+	CalcArea()
+	RenameAttr(perimeter=border_area)
+	SetAttr("perimeter_area",perimeter/area)
+	Rename(microNuclei=objects,objects=WholeCells)
+	addContainedObjectsInfo(microNuclei, outputStencil="microNuclei")
+	Rename(WholeCells=objects)
+	if(showIllustrations)
+		ImageView(microNuclei.border, label="microNuclei Borders",title="Adjust per microNuclei Threshold Adjustment,  microNuclei Individual Threshold Adjustment, Minimum microNuclei Area, Minimum microNuclei Roundness",image=image, gamma=2.0, )
+	end()
+	keep(Nuclei, WholeCells, MicroNuclei)
+}
+
+
+
+
+
+
+
+proc ParasiteDetection(
+Image image in "Image containing the intensity informationabout the parasites.",
+memblock parasites out "New spot object containing two new attributes accurateSpots and accurateSpots_border",
+boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected.",
+bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+) object recognition "Refine the spots to better fit the image"
+{
+	ParasiteDetection_parameters()
+	ParasiteDetection_inner()
+}
+
+proc ParasiteDetection_parameters(
+double SpotMinimumDistance out "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite.",
+double SpotPeakRadius out "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Typically 0 or 1.",
+
+double SpotReferenceRadius out "Radius of Reference Region around the intensity maximum, i.e. around Parasite center. Typical range  2.0 .. 5.0.",
+double SpotMinimumContrast out "Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Range from 0..1. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa.",
+double SpotMinimumToCellIntensity out "Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Range from 0..oo. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa.",
+
+
+
+double minSpotsIntensity out "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite.",
+double minSpotsArea out "Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview.",
+bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+)
+{
+
+	input(SpotMinimumDistance,3.0 , "ParasiteMinimumDistance: Parasite Detection","d", "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite.")
+	input(SpotPeakRadius, 1.0, "ParasitePeakRadius: Parasite Detection","d", "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Typically 0 or 1.")
+
+	input(SpotReferenceRadius, 5.0,  "ParasiteReferenceRadius: Parasite Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Parasite center. Typical range  2.0 .. 5.0.")
+	input(SpotMinimumContrast,0.5, "ParasiteMinimumContrast: Parasite Detection", "d","Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa. Allowed range: 0..1.")
+	input(SpotMinimumToCellIntensity, 10.0, "ParasiteMinimumToCellIntensity: Parasite Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..oo.")
+
+	input(minSpotsIntensity, 100, "Min Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite.")
+	input(minSpotsArea,10,"Minimum Parasite Area: Parasite Detection","i","Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview.")
+}
+
+proc ParasiteDetection_inner(
+Image image in "Image containing the intensity informationabout the parasites.",
+objectList Parasites out "Objectlist containing the parasites body and borders",
+
+double SpotMinimumDistance=3 in "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite.",
+double SpotPeakRadius=1 in "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Typically 0 or 1.",
+
+double SpotReferenceRadius=5 in "Radius of Reference Region around the intensity maximum, i.e. around Parasite center. Typical range  2.0 .. 5.0.",
+double SpotMinimumContrast=0.5 in "Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Range from 0..1. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa.",
+double SpotMinimumToCellIntensity=10 in "Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..oo.",
+
+
+
+double minSpotsIntensity=100 in "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite.",
+double minSpotsArea=10 in "Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview.",
+
+boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected.",
+bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+) object recognition "Detects parasites in the image"
+{
+	set(imageIni=image)
+	if(lowBitAnalysis)
+		convert(1)
+	end()
+	cut(minSpotsIntensity)
+	Spot_Detection_B_inner(image)
+	Mask(minSpotsIntensity)
+	Mask2Stencil()
+
+
+
+	if(showIllustrations)
+		ImageView(SpotCandidates.border, label="ParasiteCentersCandiateSelection",title="Adjust per ParasiteMinimumDistance and  ParasiteMinimumContrast",image=imageIni, gamma=2.0, )
+		ImageView(Spots.border, label="ParasiteCenterEstimates",title="Adjust per ParasiteMinimumDistance and ParasiteMinimumContrast",image=imageIni, gamma=2.0, )
+		Stencil2Objects()
+		ImageView(objects.border, label="InitialParasiteOutline",title="Adjust per MinParasiteIntensity",image=imageIni, gamma=2.0, )
+	end()
+
+	Centers2objects(spots.spotCenters,SpotMinimumDistance*3,image=image,MinArea=minSpotsArea,stencil=stencil)
+	FillObjects()
+	rename(image=imageIni)
+	CalcIntensity(image=image,AutoRecalc=false)
+	objectFilter(area>minSpotsArea*1.5)
+	objectFilter(intensity>minSpotsIntensity*1.5)
+
+
+
+	calcStat("max",AttrName ="IntensityMax")
+	calcStat("stddev",AttrName ="IntensityStdDev")
+
+	CalcStat("sum",image=spots.spotCenters.mask.image,AttrName="NumberBrightSpots")
+
+	objectFilter(NumberBrightSpots>0)
+	CalcAttr(Roundness)
+	CalcArea(border)
+	RenameAttr(perimeter=border_area)
+	Set(Ratio=objects.perimeter/objects.area)
+	SetAttr(Ratio_perimeter_area,ratio)
+	CalcWidthLength()
+	SetAttr(Ratio_width_length,2*objects.half_width/objects.full_length)
+
+
+
+
+
+	if(showIllustrations)
+		ImageView(objects.border, label="Parasites Borders",title="Adjust per Parasite Threshold Adjustment and Parasite Individual Threshold Adjustmen",image=image, gamma=2.0, )
+	end()
+	Rename(parasites=objects)
+	keep(parasites)
+}

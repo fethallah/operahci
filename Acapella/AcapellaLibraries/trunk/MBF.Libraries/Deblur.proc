@@ -1,0 +1,95 @@
+//#############################################################################################
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * T.J.Collins
+//#   * MacBiophotonics, McMaster University, Hamilton, Canada
+//#   * www.macbiophotonics.ca
+//#
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of proc edures used to work with cellular features/textures.
+//*
+//*********************************************************************************************
+
+//Performs an approximation of Nearest Neighbour deblurring
+//try raduis = 5 and sigma =1
+
+//from: http://www.vaytek.com/technical.html
+//Nearest Neighbor deconvolution is useful when the specimen can be imaged along the optical axis and a series of images captured and stored to disk.
+//The resulting data set is a volume representation of the object.
+//The image can be deconvolved using the nearest neighbor method.
+//In this approach, three consecutive images are used to deconvolve the middle image.
+//The image on the top and bottom of the triplet can be thought of as windows in which out-of-focus haze from all the images above and below the proc essed image must pass to reach the middle image.
+//This technique produces excellent results when:
+
+//The images are sampled at the proper frequency along the z axis. For large lens NAs of 1.3
+//or more, sampling should be at 0.25 microns. For a low NA of 0.7, sampling size can be 1.0 microns.
+//The scanned volume is thin (50 microns - larger distance if sample is very transmissive)
+
+
+
+proc MBF_DeBlur(
+	//INPUTS
+	image above in "Slice above the plane of interest",
+	image middle  in "Slice of interest",
+	image below in "Slice below the plane of interest",
+	double gauss_rad in "Gaussian radius",
+	double sigma in "Gaussian sigma",
+	//OUTPUT
+	image  deblurred out "Deblurred image",
+	image blur out "Blur",
+	image gauss out "Gaussian filter",
+)
+{
+	set(blur = (above+below)/2)
+	MBF_MakeGaussianKernel(gauss_rad,sigma)
+	Convolution(ConvolutionKernel=gauss, image=blur)
+	set(blur = image *0.49)
+	minus(middle, blur, neg_method = "zero", result_type="float")
+	rename(deblurred=result)
+
+}
+
+proc MBF_MakeGaussianKernel(
+	//INPUTS
+	double k in "kernelsize. Possible values: 3, 5, 7, 9, 11, 13, 15",
+	double sigma in "Sigma",
+	//OUPTUTS
+	image gauss out "Gaussian Kernel image",
+)
+{
+	blank(k,k,1)
+	convert(4,image=image)
+	convelems(image, "floating", sign="signed")
+	foreach(0..k-1, "x")
+		foreach(0..k-1, "y")
+			set(G1 = 1/(2*3.141593*(sigma*sigma)))
+			set(x2 = x-((k-1)/2))
+			set(y2 = y-((k-1)/2))
+			set(G2 = exp(-(((x2*x2)+(y2*y2))/(2*(sigma*sigma)))))
+			set(image[x,y]= 1000*G1*G2)
+		end()
+	end()
+	rename(gauss = image)
+}

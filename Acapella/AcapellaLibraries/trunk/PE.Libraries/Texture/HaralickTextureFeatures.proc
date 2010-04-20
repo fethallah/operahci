@@ -1,0 +1,261 @@
+/////////////// CalcHaralickFeatures(); Haralick04() and some internal procedures
+/////////////// Created 25.02.2009 by Peet Kask
+/////////////// Prototype: Kaupo Palo's module
+/////////////// Four Haralick features are calculated for pre-given objects
+/////////////// The features are independent of the intensity unit and orientation-independent
+/////////////// Typical calculation time = 0.5 s --- with distance=1 and 659*484 px^2 image)
+/////////////// The procedure has been tested using Acapella 2.2 of June 21, 2009. 
+/////////////// Last inspection June 22, 2009.
+/////////////// Please report bugs back to the author, peet.kask@perkinelmer.com
+// ODe 2009-09-19: Replaced [internal] bei [hidden] for Acap 2.0
+
+package(Texture)
+
+
+//////// An envelope procedure for general Acapella users //////////////////////
+proc CalcHaralickFeatures(
+	image image explicit in "Image to be analysed",
+	int distance=1 explicit in "Distance between Haralick pixel pairs. NB Fractional distance values will be rounded to integers",
+	string stencilname="body" explicit in "Name of the region of interest -- must be present in input objectlist",
+	objectlist objects inout "Objects to be analysed. In output, a set of Haralick texture features appear as attributes",
+	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
+	vector featurenames out "Names of calculated Haralick texture features",
+	image NormalizedImage out "Object-wise normalized image"),
+Texture "Calculation of a set of Haralick texture features of previously defined objects. Numerical values of features are independent of the image intensity scale. The results are averages over different orientations."
+{
+	set(objects_in=objects)
+	if(!defined("objects[stencilname]"))
+		error("Specified stencil is absent in the objectlist")
+	end()
+	Stencil2Objects(objects[stencilname])
+	
+	Haralick04(objects, image, distance)
+	rename(objects=objects_in)
+	
+	set(featurenames = HaralickFeatures.columns)
+	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
+	foreach(featureNames, "featurename")
+		Set(objects[AttrPrefix & featurename]=HaralickFeatures[featurename])
+	end()
+}
+
+
+//////////// A technical procedure designed for the building block Calculate Texture Properties ////////////////////////
+
+proc Haralick04(
+	objectlist objects in "Objects to be analysed",
+	image image explicit in "Image to be analysed",
+	int distance explicit in "Distance between Haralick pixel pairs. NB Fractional distance values will be rounded to integers",
+	image NormalizedImage out "Object-wise normalized image",
+	table HaralickFeatures out "Table with a set of normalized direction-independent Haralick features")
+[hidden] Texture "Calculation of a set of Haralick texture features of previously defined objects. Numerical values of features are independent of the image intensity scale. The results are averages over different orientations. Values of the calculated texture features are packed in a table."
+{
+	if(distance<1 || distance>10)
+		error("Distance value is out of range")
+		stop()
+	end()
+	//set(HaralickInfo=tbl())
+	set(HaralickFeatures=tbl())
+	set(bincount=256)	// This is a technical constant == the number of bins per meanlevel. If it is not too small then it hardly influences the outcome.
+	set(unitcount=16)	// This is in fact a technical tuning parameter == meanlevel in units applied in homogeneity calculation. Unitcount=16 has been optimal in the first test.
+
+	ObjectWiseImageNormalizationForHaralick(objects, image, bincount, unitcount)	//Out: u2level, imageN, imageNN
+
+// Next, we shall calculate Haralick texture features
+	Haralick04inner(objects, imageN, imageNN, distance, u2level)
+
+	///// Copy to output table
+	set(HaralickFeatures["HaralickCorrelation"]=corr)
+	set(HaralickFeatures["HaralickContrast"]=contr)
+	set(HaralickFeatures["HaralickSumVariance"]=svarn)
+	set(HaralickFeatures["HaralickHomogeneity"]=hom)
+	rename(NormalizedImage=imageN)
+}
+
+proc Haralick04inner(
+	objectlist objects in "Objects to be analysed",
+	image imageN explicit in "Image normalized individually, i.e. original intensity has been divided by mean intensity at each object; intensity is irrelevant (zero) outside the objects.",
+	image imageNN explicit in "Square of imageN",
+	int distance explicit in "Distance between Haralick pixel pairs",
+	int u2level=256 explicit in,
+	vector corr out "Haralick correlation feature",
+	vector contr out "Haralick contrast feature",
+	vector svarn out "Haralick sum variance feature",
+	vector hom out "Haralick homogeneity feature, i.e. ")
+[hidden] Texture "Inner procedure called by Haralick04. Calculation of four Haralick texture features of previously defined objects. The results are averages over different orientations."
+{
+	push(attrnames, "area", "sum_s", "sum_ss", "sum_d", "sum_dd", "sum_i", "sum_ii", "sum_j", "sum_jj", "sum_idd")
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	CreateShiftVectors(distance)
+	//Loop over all possible directions
+	foreach(0..shiftvecvec.length-1, "shiftindex")
+		set(shiftvec=shiftvecvec[shiftindex])
+		//Create a shifted image and restrict objects so that original and shifted objects overlap
+		ShiftImage(shiftvec, imageN, objects)	//Out: imageN2, objects12
+		// Calculate sum and difference of the two images. Calculate their squares
+		set(simage=imageN+imageN2)
+		set(dimage=abs(imageN-imageN2))
+		set(ssimage=simage*simage)
+		set(ddimage=dimage*dimage)
+		set(imageNN2=imageN2*imageN2)
+		set(inversedd=u2level/(u2level+ddimage)) //company() can also be used but seems to be a bit slower
+//stop()
+
+		// Calculate attributes of interest
+		CalcArea(objects=objects12)
+		CalcStat("sum", AttrName="sum_s", AutoRecalc=0, Image=simage)
+		CalcStat("sum", AttrName="sum_ss", AutoRecalc=0, Image=ssimage)
+		CalcStat("sum", AttrName="sum_d", AutoRecalc=0, Image=dimage)
+		CalcStat("sum", AttrName="sum_dd", AutoRecalc=0, Image=ddimage)
+		CalcStat("sum", AttrName="sum_i", AutoRecalc=0, Image=imageN)
+		CalcStat("sum", AttrName="sum_ii", AutoRecalc=0, Image=imageNN)
+		CalcStat("sum", AttrName="sum_j", AutoRecalc=0, Image=imageN2)
+		CalcStat("sum", AttrName="sum_jj", AutoRecalc=0, Image=imageNN2)
+		CalcStat("sum", AttrName="sum_idd", AutoRecalc=0, Image=inversedd)
+
+		//Convert objectlist to image
+		CreateScalarAttrTable(objects)
+		Table2Image(AttrTable, attrnames)
+		//Accumulate data
+		if(shiftindex==0)
+			rename(accuimage=image)
+		else()
+			set(accuimage=accuimage+image)
+		end()
+	end()
+	//Convert back to table
+	Image2Table(accuimage, attrnames | accu=table)
+
+	////////////// Calculate Haralick features ///////////////////////
+	///// Preliminary
+	set(sum_ij=(accu.sum_ss-accu.sum_dd)/4)
+	set(sum_i=accu.sum_i)
+	set(sum_j=accu.sum_j)
+	set(area=accu.area)
+	set(sum_ii=accu.sum_ii)
+	set(sum_jj=accu.sum_jj)
+	set(sum_s=accu.sum_s)
+	set(sum_ss=accu.sum_ss)
+	set(sum_d=accu.sum_d)
+	set(sum_dd=accu.sum_dd)
+	set(sum_idd=accu.sum_idd)
+
+	////// Correlation
+	set(cov_ij=(sum_ij-sum_i*sum_j/area)/(area-1))
+	set(var_i=(sum_ii-sum_i*sum_i/area)/(area-1))
+	set(var_j=(sum_jj-sum_j*sum_j/area)/(area-1))
+	set(corr=cov_ij/sqrt(var_i*var_j))
+
+	////// Normalized contrast
+	set(contr=area*accu.sum_dd/(sum_i*sum_j))
+
+	////// Normalized sum variance
+	set(svar=(sum_ss-sum_s*sum_s/area)/(area-1))
+	set(svarn=area*area*svar/(sum_s*sum_s))
+
+	////// Homogeneity
+	set(hom=(sum_idd)/area)
+}
+
+
+proc ShiftImage(
+	vector shiftvec explicit in "Vector of two elements describing the shift in x- and y-coordinates (y>=0)", 
+	image imageN1 explicit in "Original image", 
+	objectlist objects1 explicit in "Original objectlist. Body is the region of interest", 
+	image imageN2 out "Shifted image", 
+	objectlist objects12 out "New objectlist with overlapping region of the original and shifted objects." )
+[hidden] Texture "A sub-procedure called by Haralick04inner. It creates a shifted image and a new list of objects with overlapping region of the original and shifted objects."
+{
+	//Create kernel for convolution
+	set(x=shiftvec[0], y=shiftvec[1])
+	set(xedge=1+2*abs(x))
+	set(yedge=1+2*y)
+	blank(xedge, yedge, 0 | kernel=image)
+	set(kernel[abs(x)+x, 2*y]=1)
+
+	// Convolute imageN
+	Convolution(image=imageN1, ConvolutionKernel=kernel | imageN2=image)
+
+	// Create objects with modified borders
+	set(stencil1=objects1.body.image)
+	ConvElems(stencil1, "integer", 4, "signed" | tmp1=result)
+	Convolution(image=tmp1, ConvolutionKernel=kernel | tmp2=image)
+	
+	set(dstencil=tmp1-tmp2)
+	Mask(1, image=dstencil*dstencil)
+	And(image=objects1.body.image, mask=1-mask)
+	Stencil2Objects(image | objects12=objects)
+//stop()
+}
+
+
+proc CreateShiftVectors(
+	int radius explicit in "Distance between the pair of Haralick pixels", 
+	vector shiftvecvec out "A series shift vectors in different directions with approximately the given radius")
+[hidden] Texture "A sub-procedure called by Haralick04inner. It creates a vector of shift vectors (x,y) with approximately the given radius in the half plane y>=0."
+{
+	set(shiftvecvec=vec())
+	if(radius<1) 
+		set(radius=1) 
+	else()
+		if(radius>4)
+			set(radius=4)
+		end()
+	end()
+	set(xmax=radius)
+	push(shiftvecvec, vec(xmax,0))
+	foreach(xmax..-xmax, "ix")
+		foreach(1..xmax, "iy")
+			set(dr=sqrt(ix*ix+iy*iy)-radius)
+			if(abs(dr)<0.5)
+				push(shiftvecvec, vec(ix,iy))
+			end()
+		end()
+	end()
+//stop()
+}
+
+proc EnsureDifferentIntegerValuesInArray(
+	vector result inout
+)[hidden] "A sub-procedure to ensure that all values in the integer array are different"
+{
+	Convelems(result, "integer", 2, "unsigned")
+	if(result.length<2) return() end()
+	Sort_Prepare(result)
+	Reorder(result)
+	label("restart")
+	if(result.length<2) return() end()
+	foreach(0..result.length-2, "i")
+		if(result[i]==result[i+1])
+			pop(result, "", i+1)
+			goto("restart")
+		end()
+	end()
+}
+
+proc ObjectWiseImageNormalizationForHaralick(
+	objectlist objects in "Objects to be analysed",
+	image orig explicit in "Original image to be analysed",
+	int bincount=256 explicit in "This is a technical constant == the number of bins per meanlevel. If it is not too small then it hardly influences the outcome.",
+	int unitcount=16 explicit in "This is in fact a technical tuning parameter == meanlevel in units applied in homogeneity calculation. Unitcount=16 has been optimal in the first test.",
+	double u2level out "A constant depending on technical input parameters, usually =256",
+	image imageN out "Individually normalized image",
+	image imageNN out "The square of imageN1"
+)[hidden] "A sub-procedure for object-wise normalization of the original image."
+{
+	rename(objects_in=objects, image_in=orig)
+	set(ulevel=bincount/unitcount)
+	set(u2level=ulevel*ulevel)
+
+// First, we divide image at each object by the mean at the objects
+	CalcStat("mean", Stencil=body, Image=image_in, objects=objects_in, AttrName="norm")
+	CalcArea()
+	blank(image_in.width, image_in.height, ceil(image_in.mean) | blank0=image)
+	convelems(blank0, "double", sign = "signed" | blankd=result)
+	carryobjects(objects_in.body, objects.norm, image=blankd | image_norm=image)
+//stop()
+	company("objects.body.mask.image*bincount*image_in/image_norm" | tmpimage=result)
+	ConvElems(tmpimage, "integer", 2, "unsigned", 0, 0, 0, clipoutofrange=1 | imageN=result)
+//stop()
+	set(imageNN=imageN*imageN)
+}

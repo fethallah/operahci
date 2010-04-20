@@ -1,0 +1,225 @@
+/////////////// Calculation of Gabor features using fast Gabor filter (spatial aspect ratio=1)
+////////////// Reference: A. Bernardino, IEEETransactions on Image Processing, 15 (11), 2006.
+////////////// Last inspected by Peet Kask 2009-07-24
+// ODe 2009-09-19: Replaced [internal] bei [hidden] and CalcIntensity by CalcStat for Acap 2.0
+
+package(Texture)
+
+
+/// A procedure for general Acapella users
+proc CalcGaborFeatures(
+	image image explicit in "Image to be analyzed",
+	double MinScale=2.0 explicit in "The lowest scale value used in features calculation",
+	double MinWavelength=2.5 explicit in "The lowest wavelength value used in features calculation",
+	vector ScaleFactors=vec(1) explicit in "Values by which MinScale is multiplied",
+	vector WavelengthFactors=vec(1) explicit in "Values by which MinWavelength is multiplied",
+	int anglecount=8 explicit in "Number of orientations. Reasonable values are between 6 and 16",
+	string stencilname="body" explicit in "Name of the stencil of interest",
+	string normalizationmode="regional" explicit in "Regional - denominator is mean intensity in the region; external - denominator is a precalculated norm-attribute; kernel - denominatior is Gaussian filtered image; unnormalized is also an option",
+	objectlist objects inout "Objectlist that contains the region of interest. In output, Gabor features are added as new attributes",
+	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
+	table GaborInfo out "Table with information about the calculated features",
+	vector GaborIllustrations out "Masked, normalized and scaled Gabor-filtered images"),
+
+Texture "Calculation of Gabor texture features corresponding to circular Gaussian envelope (spatial aspect ratio=1). Internally, Texture::GaborFilter-module is applied. The calculated features correspond to min and max values of Gabor amplitudes at different orientations."
+{
+	//Preparations for calculating Gabor features
+	if(normalizationmode=="external" && !defined("objects.norm"))
+		error("Normalizationmode is external, but norm-attribute is absent in the objectlist")
+	end()
+	
+	set(objects_in=objects)
+	if(!defined("objects[stencilname]"))
+		error("Specified stencil is absent in the objectlist")
+	end()
+	Stencil2Objects(objects[stencilname])
+	if(normalizationmode=="external") 
+		setattr("norm", objects_in.norm) 
+	end()
+
+	CalcGaborParams(MinScale, MinWavelength, ScaleFactors, WavelengthFactors)	//Out: GaborParams (container)
+
+	//Calculation of Gabor features
+	CalcGaborFeaturesInner(image, GaborParams, anglecount, normalizationmode, 256, objects)
+
+	//Copy features into the original objectlist:
+	rename(ObjectsWithFeatures=objects)
+	rename(objects=objects_in)
+	set(featureNames=GaborInfo.FeatureName)
+	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
+	foreach(featureNames, "featurename")
+		Set(objects[AttrPrefix & featurename]=ObjectsWithFeatures[featurename])
+	end()
+}
+
+proc CalcGaborFeaturesInner(
+	image image explicit in "Image to be analyzed",
+	container GaborParams explicit in "Container with scales, wavelengths and flags",
+	int anglecount=8 explicit in "Number of orientations. Reasonable values are between 6 and 16",
+	string normalizationmode="regional" explicit in "Regional - denominator is mean intensity of each object; external - denominator is a precalculated norm-attribute; unnormalized is also an option",
+	int minmaxfactor explicit in "Temporary multiplication factor for Gabor images at different orientations before determining min and max projections",
+	objectlist objects inout "In input: objectlist with body as the region of interest. In output: with Gabor features as attributes.",
+	table GaborInfo out "Information about the calculated features",
+	vector GaborIllustrations out "Masked and normalized Gabor-filtered images")
+[hidden] Texture "Calculation of Gabor Features, isotropic case. Internally, Texture::GaborFilter-module is applied. The calculated features correspond to min and (max-min) values of Gabor amplitudes at different orientations."
+{
+	if(anglecount<6 || anglecount>16) error("Anglecount is out of limit") stop() end()
+	//Unnormalized Gabor filtering with determining min and max-min projections
+	FastGaborFiltering(image, GaborParams, anglecount, minmaxfactor)	//Out:GaborImages, GaborInfo, GaussianImages
+	rename(UnnormalizedGaborImages=GaborImages)
+	if(normalizationmode=="regional")
+		CalcStat("mean",Image=image, AttrName="norm")
+	end()
+
+	//Normalization of Gabor images
+	NormalizeGaborImages(UnnormalizedGaborImages, normalizationmode, GaussianImages, objects, GaborInfo) //Out: GaborImages, GaborIllustrations
+
+	// Calculation of Gabor features
+	set(featurenames=GaborInfo.FeatureName)
+	foreach(0..GaborImages.length-1, "i")
+		CalcStat("mean",Image=GaborImages[i], AttrName=featurenames[i])
+	end()
+	delete(GaborInfo.scaleindex)
+//stop()
+}
+
+
+proc FastGaborFiltering(
+	image image explicit in "Image to be analyzed",
+	container GaborParams explicit in "Container with scales, wavelengths and flags",
+	int anglecount=8 explicit in "Number of orientations. Reasonable values are between 6 and 16",
+	int minmaxfactor=256 explicit in "Temporary multiplication factor for numeric values of Gabor images at different orientations before converting to integers",
+	vector GaborImages out "Gabor-filtered images",
+	vector GaussianImages out "Gaussian-filtered images",
+	table GaborInfo out "Table with information about Gabor filters applied")
+[hidden] Texture "Calculation of Gabor-filtered images, isotropic case. Internally, Texture::GaborFilter-module is applied. The output filtered images are pairs corresponding to min and (max-min) values of Gabor amplitudes at different orientations."
+{
+	tabulate("x*PI/anglecount", anglecount | orientations=result)
+	set(scales=GaborParams.scales)
+	set(wavelengths=GaborParams.wavelengths)
+	set(flags=GaborParams.flags)
+	Texture::GaborFilter(orientations=orientations, scales=scales, wavelengths=wavelengths, sw_table=flags, Image=image)
+	set(GaussianImages=GaussianResults)
+	set(waveletcount=GaborResults.Modulus.length/anglecount)
+	set(ii=0)
+	foreach(0..scales.length-1, "iscale")
+		set(scale=scales[iscale])
+		foreach(0..wavelengths.length-1, "iwave")
+			if(flags[iwave, iscale]==1)
+				set(wavelength=wavelengths[iwave])
+				create("datacube",0,0,0, "integer")
+				foreach(0..anglecount-1, "iangle")
+					set(index=ii+iangle*waveletcount)
+					ConvElems(minmaxfactor*GaborResults.Modulus[index], "integer", 4, "unsigned", clipoutofrange=1 | ampimage=result)
+					push(datacube, ampimage)
+				end()
+				Rearrange(datacube, vec(vec(0,0,1),vec(1,0,0),vec(0,1,0)), vec(anglecount, ampimage.width,ampimage.height), reduce="max" | maximageL=result)
+				Rearrange(datacube, vec(vec(0,0,1),vec(1,0,0),vec(0,1,0)), vec(anglecount, ampimage.width,ampimage.height), reduce="min" | minimageL=result)
+				company("maximageL/minmaxfactor" | maximage=result)
+				company("minimageL/minmaxfactor" | minimage=result)
+				push(namev, "GaborMin"&(ii+1), "GaborMax"&(ii+1))
+				push(anginfo, "min", "max")					
+				push(scalev, scale, scale)
+				push(wavelengthv, wavelength, wavelength)
+				push(scaleindexv, iscale, iscale)
+				push(GaborImages, minimage, maximage)
+				set(ii=ii+1)
+			end()
+		end()
+	end()
+	set(GaborInfo=tbl(FeatureName=namev, angularinfo=anginfo, scale=scalev, wavelength=wavelengthv, scaleindex=scaleindexv))
+}
+
+proc NormalizeGaborImages(
+	vector GaborImages explicit inout "Unnormalized Gabor images in input, suitably normalized ones in output",
+	string normalizationmode explicit in,
+	vector GaussianImages explicit in,
+	objectlist objects in,
+// ODe 2009-09-16	container GaborInfo explicit inout,
+	table GaborInfo explicit inout,
+	vector GaborIllustrations out "Scaled integer-type images"
+)[hidden] Texture "Normalization of Gabor images. Creation of illustrative images."
+{
+	rename(GaborImagesIn=GaborImages)
+	if(normalizationmode=="unnormalized")
+		foreach(GaborImagesIn, "image_in")
+			And(image=image_in, mask=objects.body.mask.image | result=image)
+			push(GaborImages, result)
+			convelems(result, "integer", 2, "unsigned", stretchdynamic=1)
+			push(GaborIllustrations, result)
+		end()
+	end()
+	//Here, "regional" and "external" are equivalent cases
+	if(normalizationmode=="regional" || normalizationmode=="external")
+		foreach(GaborImagesIn, "image_in")
+			//Create denominator image
+			company("0*image_in+1" | tmp=result)			
+			CarryObjects(objects.body, objects.norm, image=tmp | denom=image)
+			//Normalize:
+			company("objects.body.mask.image*image_in/denom")
+			push(GaborImages, result)
+			convelems(result, "integer", 2, "unsigned", stretchdynamic=1)
+			push(GaborIllustrations, result)
+		end()
+		//return()
+	end()
+	if(normalizationmode=="kernel")
+		foreach(0..GaborImagesIn.length-1, "i")
+			set(normimage=GaussianImages[GaborInfo.scaleindex[i]])
+			company("GaborImagesIn[i]/(normimage+1)")
+			push(GaborImages, result)
+			convelems(result, "integer", 2, "unsigned", stretchdynamic=1)
+			push(GaborIllustrations, result)
+		end()
+	end()
+	set(modev=filledvec(GaborInfo.@rowcount, normalizationmode))
+	set(GaborInfo.normalizationmode=modev)
+//stop()
+}
+
+
+proc CalcGaborParams(
+	double MinScale explicit in "The lowest scale value used in features calculation",
+	double MinWavelength explicit in "The lowest wavelength value used in features calculation",
+	vector ScaleFactors explicit in "Values by which MinScale is multiplied",
+	vector WavelengthFactors explicit in "Values by which MinWavelength is multiplied",
+	container GaborParams out
+)[hidden] Texture "Creation of a container with Gabor parameters. This is a preparatory step before calling GaborFilter-module." 
+{
+	if(MinScale*ScaleFactors.min<2.0)
+		error("At least one scale value is below 2.0")
+		stop()
+	end()
+	if(MinScale*ScaleFactors.max>32.0)
+		error("At least one scale value is above 32.0")
+		stop()
+	end()
+	if(MinWavelength*WavelengthFactors.min<2.0)
+		error("At least one wavelength value is below 2.0")
+		stop()
+	end()
+	if(MinWavelength*WavelengthFactors.max>64.0)
+		error("At least one wavelength value is above 64.0")
+		stop()
+	end()
+	set(scalevec=MinScale*ScaleFactors)
+	set(wavelengthvec=MinWavelength*WavelengthFactors)
+	Blank(wavelengthvec.length, scalevec.length, 1 | flags=image)
+
+	/// Ensure that wave numbers scale/wavelength >= 0.25
+	foreach(0..scalevec.length-1, "i")
+		set(scale=scalevec[i])
+		foreach(0..wavelengthvec.length-1, "j")
+			if(scale/wavelengthvec[j]<0.25)
+				set(flags[j,i]=0)
+			end()
+		end()
+	end()
+	if(flags.sum==0)
+		error("Not a single combination of scales and wavelengths is suited. Please ensure that scale/wavelength>=0.25.")
+		stop()
+	end()
+
+	set(GaborParams=cnt(scales=scalevec, wavelengths=wavelengthvec, flags=flags))
+}
+

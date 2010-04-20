@@ -1,0 +1,62 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This procedure generates automatically a syntax highlighting file to use
+//* with Eclipse net.sf.colorer plugin.
+//*
+//*********************************************************************************************
+
+proc GenerateTextPadSynFile(string  filename outputfilename in "Filename of style for Acapella")
+[experimental] system "This procedure generates automatically a syntax highlighting file to use with Eclipse net.sf.colorer plugin."
+{
+ReadFile("./AcapellaEclipseColorerTemplate.xml")
+printfopen("<replacement")
+
+functions()
+foreach(functions)
+	printf("<word name=\"%s\"/>\n", i)
+end()
+
+set(content=RegexReplace(content,"<!-- InsertFunctionsHere -->",replacement).text)
+
+set(replacement="")
+
+modules()
+foreach(modules)
+	printf("<word name=\"%s\"/>\n", i)
+end()
+WriteFile(filename,RegexReplace(content,"<!-- InsertModulesHere -->",replacement).text)
+}
+
+//#######################
+// Program Start
+//#######################
+
+GenerateTextPadSynFile("C:/Eclipse/plugins/net.sf.colorer_0.7.2/colorer/hrc/acapella/acapella.hrc")

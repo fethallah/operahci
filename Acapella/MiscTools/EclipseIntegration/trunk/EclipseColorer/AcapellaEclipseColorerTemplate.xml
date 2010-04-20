@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<!DOCTYPE hrc PUBLIC "-//Cail Lomecb//DTD Colorer HRC take5//EN"
+"http://colorer.sf.net/2003/hrc.dtd">
+<hrc version="take5" xmlns="http://colorer.sf.net/2003/hrc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://colorer.sf.net/2003/hrc http://colorer.sf.net/2003/hrc.xsd">
+
+	<annotation>
+		<documentation></documentation>
+		<contributors>Ghislain Bonamy gbonamy@gnf.org</contributors>
+	</annotation>
+	<type name="acapella">
+
+
+		<region name="String" parent="def:String" />
+		<region name="StringEscape" parent="def:StringContent" />
+
+		<region name="Number" parent="def:Number" />
+		<region name="StructureSymbol" parent="def:SymbolStrong" />
+		<region name="Variables" parent="def:Symbol" />
+		<region name="Boolean" parent="def:Character" />
+
+		<region name="Functions" parent="def:KeywordStrong" />
+		<region name="Modules" parent="def:Keyword" />
+		<region name="InnerModules" parent="def:Symbol" />
+		<region name="StatAggregation" parent="def:Constant" />
+		<region name="ScturctureFolding" parent="def:Label" />
+
+		<region name="KeywordLibFunctions" parent="def:FunctionKeyword" />
+		<region name="ObjectType" parent="def:StringContent" />
+
+
+		<region name="procOutline" parent="def:Outlined" />
+		<region name="PairStart" parent="def:PairStart" />
+		<region name="PairEnd" parent="def:PairEnd" />
+		<region name="Directive" parent="def:Directive" />
+		<region name="Comment" parent="def:Comment" />
+
+
+
+		<region name="procOutline" parent="def:Outlined" />
+
+
+		<scheme name="acapella">
+			<regexp match="/(proc)\s*(\w*)\b/i" region1="KeywordLibFunctions"
+				region2="procOutline" />
+			<block start="/(\{)/" end="/(\})/" scheme="acapella" region00="SymbolStrong"
+				region01="PairStart" region10="SymbolStrong" region11="PairEnd" />
+			<inherit scheme="TabsAsErrors" />
+			<inherit scheme="SpacesAsErrors" />
+			<inherit scheme="acapellaLanguage" />
+
+
+		</scheme>
+
+
+		<scheme name="acapellaLanguage">
+
+
+			<inherit scheme="AcapellaComments" />
+			<inherit scheme="String" />
+			<inherit scheme="TabsAsErrors" />
+			<inherit scheme="SpaceAsErrors" />
+
+			<inherit scheme="def:NetAddresses" />
+			<inherit scheme="def:Path" />
+
+			<inherit scheme="def:Number" />
+			<inherit scheme="def:FloatNumber" />
+			<inherit scheme="def:BadHex" />
+			<inherit scheme="def:Hex" />
+
+
+
+			<!-- StatAggregation -->
+			<keywords region="StatAggregation" ignorecase="yes">
+				<word name="max" />
+				<word name="min" />
+				<word name="maxat" />
+				<word name="minat" />
+				<word name="length" />
+				<word name="count" />
+				<word name="rowcount" />
+				<word name="columncount" />
+				<word name="sum" />
+				<word name="median" />
+				<word name="mean" />
+				<word name="stddev" />
+				<word name="histogram" />
+				<word name="width" />
+				<word name="height" />
+				<word name="body" />
+				<word name="center" />
+				<word name="border" />
+			</keywords>
+			<!-- Types Keywords -->
+			<keywords region="ObjectType" ignorecase="yes">
+				<word name="container" />
+				<word name="objectlist" />
+				<word name="table" />
+				<word name="image" />
+				<word name="memstring" />
+				<word name="int" />
+				<word name="integer" />
+				<word name="double" />
+				<word name="float" />
+				<word name="numeric" />
+				<word name="decimal" />
+				<word name="mempointer" />
+				<word name="string" />
+				<word name="memblock" />
+				<word name="text" />
+				<word name="vector" />
+				<word name="polytype" />
+				<word name="mask" />
+				<word name="stencil" />
+				<word name="objects" />
+				<word name="result" />
+				<word name="errors" />
+				<word name="errorcode" />
+			</keywords>
+			<!-- Types Keywords Modifiers -->
+			<keywords region="Directive" ignorecase="yes">
+				<word name="in" />
+				<word name="out" />
+				<word name="inout" />
+				<word name="noquote" />
+				<word name="keepquotes" />
+				<word name="filename" />
+				<word name="inputfilename" />
+				<word name="outputfilename" />
+				<word name="dirname" />
+				<word name="modulename" />
+				<word name="localcontext" />
+				<word name="dynadefault" />
+				<word name="nulldefault" />
+				<word name="explicit" />
+				<word name="syntaxrun" />
+				<word name="nodimensioncheck" />
+			</keywords>
+
+			<keywords region="Boolean" ignorecase="yes">
+				<word name="true" />
+				<word name="false" />
+				<word name="yes" />
+				<word name="no" />
+			</keywords>
+
+			<inherit scheme="ScturctureFolding" />
+			<inherit scheme="Character" />
+			<inherit scheme="Functions" />
+			<inherit scheme="Modules" />
+			<inherit scheme="Operators" />
+
+			<inherit scheme="Variables" />
+		</scheme>
+
+
+		<scheme name="String">
+			<inherit scheme="def:NetAddresses" />
+			<inherit scheme="def:Path" />
+
+			<!--
+				<block start="/(?{def:StringEdge}[Ll]?&#34;)/"
+				end="/(?{def:StringEdge}&#34;)/" scheme="StringContent"
+				region="String" inner-region="yes" />
+			-->
+			<block start="/(&#34;)/" end="/(&#34;)/" scheme="StringContent"
+				region00="String" region01="PairStart" region10="String" region11="PairEnd"
+				region="String" inner-region="yes" />
+		</scheme>
+		<scheme name="StringContent">
+			<regexp match="/\\\\$/" region="def:Error" />
+			<regexp match="/\\[^xX\d]/" region="StringEscape" />
+			<regexp match="/\\$/" region="StringEscape" />
+			<regexp match="/\\x[\da-fA-F]{1,8}/i" region="StringEscape" />
+			<regexp match="/\\[0-7]{1,12}/" region="StringEscape" />
+			<regexp match="/\%[\-\+\#0]*?[\d\*]*(\.[\d\*]+)?[Ll]?[SsCcsuidopxXnEefgG]/"
+				region="StringEscape" />
+			<regexp match="/[^\\\&#34;]$/" region="def:Error" />
+			<inherit scheme="TabsAsErrors" />
+			<inherit scheme="def:NetAddresses" />
+			<inherit scheme="def:Path" />
+		</scheme>
+
+		<scheme name="AcapellaComments">
+
+			<block start="/\/\//" end="/$/" scheme="AcapellaComments"
+				region="def:Comment" />
+			<inherit scheme="def:NetAddresses" />
+			<inherit scheme="def:Path" />
+			<inherit scheme="def:Comment" />
+		</scheme>
+
+		<scheme name="ScturctureFolding">
+			<!-- Operator brackets -->
+			<block start="/(\bforeach\b)/i" end="/(\bend\(\))/i" scheme="acapella"
+				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
+				region11="PairEnd" />
+
+			<block start="/(\bif\b)/i" end="/(\bend\(\))/i" scheme="acapella"
+				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
+				region11="PairEnd" />
+			<block start="/(\belse\(\))/i" end="/\M(\bend\(\))/i" scheme="acapella"
+				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
+				region11="PairEnd" />
+
+			<block start="/(\bwhile\b)/i" end="/(\bend\(\))/i" scheme="acapella"
+				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
+				region11="PairEnd" />
+
+			<block start="/(\btry\(\))/i" end="/(\bend\(\))/i" scheme="acapella"
+				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
+				region11="PairEnd" />
+			<block start="/(\bcatch_error\(\))/i" end="/\M(\bend\(\))/i"
+				scheme="acapella" region00="ScturctureFolding" region01="PairStart"
+				region10="ScturctureFolding" region11="PairEnd" />
+			<block start="/(\bcatch_warning\(\))/i" end="/\M(\bend\(\))/i"
+				scheme="acapella" region00="ScturctureFolding" region01="PairStart"
+				region10="ScturctureFolding" region11="PairEnd" />
+
+			<keywords ignorecase="yes" region="ScturctureFolding">
+				<word name="for" />
+				<word name="while" />
+				<word name="if" />
+				<word name="else()" />
+				<word name="break()" />
+				<word name="try()" />
+				<word name="catch_error()" />
+				<word name="catch_warning()" />
+				<word name="end()" />
+			</keywords>
+		</scheme>
+
+		<scheme name="TabsAsErrors" if="tabs-as-errors">
+			<regexp match="/\t+$/" region='def:Error' />
+		</scheme>
+
+		<scheme name="SpacesAsErrors" if="spaces-as-errors">
+			<regexp match="/\x20+$/" region='def:Error' />
+		</scheme>
+
+		<scheme name="Character">
+			<regexp
+				match="/[Ll]?'(\\\D | \\[0-7]{1,3} | \\x[\da-fA-F]{2} | [^\\']){1,4}'/x"
+				region="Character" />
+			<regexp match="/'.*?'/" region="def:Error" />
+		</scheme>
+
+		<scheme name="Operators">
+			<annotation>
+				<documentation>
+					Acapella Operators. This may need revision
+				</documentation>
+			</annotation>
+
+			<block start="/(\[)/" end="/(\])/" scheme="Operators" region00="StructureSymbol"
+				region01="PairStart" region10="StructureSymbol" region11="PairEnd" />
+			<!-- Symbols -->
+			<keywords region="StructureSymbol">
+				<symb name="&lt;" />
+				<symb name="&gt;" />
+				<symb name="^" />
+				<symb name="+" />
+				<symb name="&amp;" />
+				<symb name="~" />
+				<symb name="|" />
+				<symb name="-" />
+				<symb name="*" />
+				<symb name="/" />
+				<symb name="%" />
+				<symb name=";" />
+				<symb name=":" />
+				<symb name="=" />
+				<symb name="," />
+				<symb name="'" />
+				<symb name="." />
+				<symb name="!" />
+				<symb name="@" />
+
+				<symb name="or" />
+				<symb name="not" />
+				<symb name="and" />
+			</keywords>
+			<inherit scheme="AcapellaComments" />
+			<inherit scheme="String" />
+			<inherit scheme="TabsAsErrors" />
+			<inherit scheme="SpaceAsErrors" />
+
+			<inherit scheme="def:NetAddresses" />
+			<inherit scheme="def:Path" />
+
+			<inherit scheme="def:Number" />
+			<inherit scheme="def:FloatNumber" />
+			<inherit scheme="def:BadHex" />
+			<inherit scheme="def:Hex" />
+		</scheme>
+
+		<scheme name="Functions">
+
+			<!-- Functions brackets -->
+
+			<block start="/(\()/" end="/(\))/" scheme="acapella" region00="Functions"
+				region01="PairStart" region10="Functions" region11="PairEnd" />
+			<keywords region="Functions" ignorecase="yes">
+				<word name="abs" />
+				<!-- InsertFunctionsHere -->
+
+			</keywords>
+		</scheme>
+
+		<scheme name="Modules">
+			<!-- Modules brackets -->
+
+			<block start="/(\()/" end="/(\))/" scheme="acapella" region00="Modules"
+				region01="PairStart" region10="Modules" region11="PairEnd" />
+
+			<keywords region="Modules" ignorecase="yes">
+				<!-- InsertModulesHere -->
+			</keywords>
+			<regexp match="/\m(\b\w+)\(/" region1="InnerModules" priority="low" />
+		</scheme>
+
+		<scheme name="Variables">
+			<regexp match="/\b(\w+)\b/" region1="Variables" priority="low" />
+		</scheme>
+	</type>
+</hrc>

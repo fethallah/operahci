@@ -1,0 +1,8 @@
+Catch_Error()
+	//output the error to the standard error for processing by the scheduler
+	Write("ERROR: "& WellID &"\t="& catch_last_module&"("&catch_last_line&") - "&catch_message,"stderr","ascii")
+end()
+	//Marking the end of the parameters collection for the given wellIndex "i". Used by the scheduler to parse the results
+	Output( WellID  ,"WellEnd")
+	SourcedataJump("next")
+end()

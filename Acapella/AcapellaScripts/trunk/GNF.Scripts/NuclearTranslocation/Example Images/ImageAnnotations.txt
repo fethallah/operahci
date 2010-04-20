@@ -1,0 +1,4 @@
+001001000.flex: Low cell density, Nuclear localization. 
+001002000.flex: Low cell density, Cytoplasmic localization.
+001003000.flex: High cell density, Nuclear localization.
+001004000.flex: High cell density, Cytoplasmic localization.

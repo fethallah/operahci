@@ -1,0 +1,163 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This script is used to collect basic information about the images collected
+//*
+//*********************************************************************************************
+proc getChanInfo(memblock chanInfo out){
+
+	input(name, "NA", "Channel1 Name", type="String", description="1st Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "NA", "Channel1 Description", type="String", description="Description of the 1st Channel (ex. GFP, Hoechst, MGD...).")
+	push(chanNames,name)
+	push(chanDesc,desc)
+
+	input(name, "NA", "Channel2 Name", type="String", description="2snd Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "NA", "Channel2 Description", type="String", description="Description of the 2snd Channel (ex. GFP, Hoechst, MGD...).")
+	push(chanNames,name)
+	push(chanDesc,desc)
+
+	input(name, "NA", "Channel3 Name", type="String", description="3rd Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "NA", "Channel3 Description", type="String", description="Description of the 3rd Channel (ex. GFP, Hoechst, MGD...).")
+	push(chanNames,name)
+	push(chanDesc,desc)
+
+	input(name, "NA", "Channel4 Name", type="String", description="4th Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "NA", "Channel4 Description", type="String", description="Description of the 4th Channel (ex. GFP, Hoechst, MGD...).")
+	push(chanNames,name)
+	push(chanDesc,desc)
+
+	input(name, "NA", "Channel5 Name", type="String", description="5th Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "NA", "Channel5 Description", type="String", description="Description of the 5th Channel (ex. GFP, Hoechst, MGD...).")
+	push(chanNames,name)
+	push(chanDesc,desc)
+
+	input(name, "NA", "Channel6 Name", type="String", description="6th Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "NA", "Channel6 Description", type="String", description="Description of the 6th Channel (ex. GFP, Hoechst, MGD...).")
+	push(chanNames,name)
+	push(chanDesc,desc)
+
+	set(chanInfo=tbl(name=chanNames, desc=chanDesc))
+}
+
+
+proc paramInit(memblock param out){
+
+	input(SubstractBackground, false, "Substract Background", type="b", description="Indicate whether you want to detect and substract the background.")
+	input(minObjectSize,5,"Minimum Object Size",Type="d", description="Minimum size of the object to be considered as part of the pixels above background. Help remove small artifacts. modify qith \"Pizel Above Background\" preview. Allowed range: 0..1000, step 1.")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
+	input(ZStackProjectionType, "NA", "Z-Stack Projection", type="String", description="Select what type of Z-projection you wish to use. \"NA\" indictaes that you do not wish to project your z-stack, but use each section as an independent measurment. Allowed values: \"NA\", \"Add\", \"Average\", \"Max\", \"Min\".")
+	input(showIllustrations, false, "Show Illustrations", type="b", description="Indicate if you want to see the illustration for the objects detected.")
+	input(fieldSelected, 1, "Field To Analyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
+
+	Pack(param,*)
+	keep(param)
+}
+
+proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+	Unpack(param)
+	set(imageData=cnt())
+	if(SubstractBackground)
+		bckGndSubstraction(-1,includeBorders=true,images=images)
+		set(ImageData.bckGndObjects=bckGndObjects)
+	end()
+	Set(WholeWell=cnt())
+	Foreach(0..images.length-1)
+		if(SubstractBackground)
+			Set(image=images[i].image)
+			set(image=image/image*image)
+			mean(4)
+			Mask(1)
+			Mask2Stencil(Neighbourhood=8)
+			Stencil2Objects()
+			CalcArea()
+			ObjectFilter(area>minObjectSize)
+			Mask2Stencil(objects.body.mask,method= "One large object", Neighbourhood=8)
+			Stencil2Objects()
+			CalcArea()
+			if(showIllustrations)
+				imageview(objects.border,label ="Pixels above background",image=image,gamma=2)
+			end()
+			Set(WholeWell[images[i].desc&"_AreaAboveBackground"]=vec(objects.area.mean))
+			Set(WholeWell[images[i].desc&"_AreaBellowBackground"]=vec(image.width*image.height-objects.area.mean))
+			Set(WholeWell[images[i].desc&"_AreaFractionAboveBackground"]=vec(objects.area.mean/(image.width*image.height)))
+		else()
+			set(image=images[i].image)
+		end()
+		Set(WholeWell[images[i].desc&"_MaxIntensity"]=vec(image.max))
+		Set(WholeWell[images[i].desc&"_MeanIntensity"]=vec(image.mean))
+		Set(WholeWell[images[i].desc&"_MedianIntensity"]=vec(image.median))
+		Set(WholeWell[images[i].desc&"_SumIntensity"]=vec(image.sum))
+	end()
+	set(imageData.WholeWell=WholeWell)
+}
+proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
+	
+	set(data=create("container").container)
+	set(numFieldsInFocus=0)
+	if(images.length>0)
+	foreach(0..images.length-1, "field")
+	foreach(0..images[field].length-1, "stack")
+		imageAnalysis(images[field][stack],param)
+		if(imageData.length>0)
+			set(numFieldsInFocus=numFieldsInFocus+1)
+			combineMemBlocks(data, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
+			rename(data=newData)
+		end()
+		delete(imageData)
+	end()
+	end()
+	end()
+	set(data.numFieldsInFocus=numFieldsInFocus)
+}
+
+proc dataOutput(container data in, container param in, vector images in){
+	outputMemblockData(data,statValue=param.OutputStatType)
+}
+
+
+
+//#######################
+// Program Start
+//#######################
+getChanInfo()
+ParamInit()
+imagesInitV2()
+chanAttrib()
+set(param.chanInfo=chanInfo)
+if(param.ZStackProjectionType!="NA")
+	projectStacksV2(method=param.ZStackProjectionType)
+end()
+if(param.showIllustrations&&param.fieldSelected!=0)
+	set(param.fieldSelected=iif(param.fieldSelected<1,1,param.fieldSelected))
+	set(param.fieldSelected=iif(param.fieldSelected>images.length,images.length,param.fieldSelected))
+	set(Images=vec(images[param.fieldSelected-1]))
+end()
+Analysis()
+dataOutput()

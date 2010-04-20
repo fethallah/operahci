@@ -1,0 +1,259 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of procedures used to generate and work with
+//* WholeCells objectlist.
+//*
+//*********************************************************************************************
+
+
+proc Cytoplasm_Detection_Select(
+	image reference in "Cytoplasm stained image. Could be also nuclei stained image, where cytoplasm regions are partly stained. Cytoplasm is detected by this image. Supported image types are: 8-bit and 16-bit.",
+	bool ShowIllustrations=YES in "YES- Output illustrations are depicted. No- Output illustrations are not shown.",
+	objectList nuclei in "Input object list of nuclei. Cytoplasm regions are created around the nuclei.",
+	objectList WholeCells out "List of objects created around centers, e.g. ~cells around nuclei. Number of objects is the same as in the input list Nuclei. Includes the following stencil type attributes: body, border, centers (nuclei), centers_border (border of nucleus), cytoplasm (body without centers), cytoplasm_border, CytoplasmAndCenters (logical OR between cytoplasm and centers) and CytoplasmAndCenters_border. Please note, that in some cases the body attribute could be smaller than the centers attribute and could also have zero area.",
+	image membrane=none in "Membrane stained image. The second image with additional intensity information. Only required for Algorithm \"F\"",
+) object recognition, cytoplasm detection "Cytoplasm detection proc edure, which allows to scan the input parameters. The player inputs created by the proc edure are in the sub-section \"Cytoplasm Detection\". The detection algorithm (e.g. A, B, C..., F) can be determined with the player input \"Cytoplasm Detection Algorithm\". Write to the input window just a single letter, e.g. A or SET for comparing results of all routines. The algorithms are identical to ones called by Nuclei_Detection_A(), Nuclei_Detection_B() and the output results are the same. If the nuclei detection output contains errors one can apply the parameter scan with an aim to find the input parameter values, which provide the most appropriate nuclei recognition. The parameter scan can be controlled with the player input \"Parameter SCAN\". With the default value \"None\" the parameter scan is not applied. Select from \"Parameter SCAN\" menu the parameter you would like to scan and click to Run. The proc edure scans the parameter over the whole range and depicts the corresponding detection results. The label of the output illustration corresponds to the parameter value, e.g. the label \"0.4\" in case of the \"CytoplasmThresholdAdjustment\" scan marks the result obtained with CytoplasmThresholdAdjustment=0.4. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition. If needed apply the scan step-wise for all input parameters starting from \"CytoplasmIndividualThresholdAdjustment\". Afterwards test the selected set of input parameters with the different images. Please note, that it is possible to scan only one parameter at time and that if \"SET\" or multiple algorithms are already selected for the input \"Cytoplasmic Detection Algorithm\" the parameter scan is not supported."
+{
+	set(cytoThreshAdjVec=tabulate("x*0.1",11).result)
+	set(cytoIndivThreshAdjVec=tabulate("x*0.1",11).result)
+	set(algorithmsVec=vec("A","B","C","D","E","F"))
+
+	input(CytoAlgorithm,"A","Cytoplasm Detection Algorithm: Cytoplasm Detection",type="s",description="Specifies the cytoplasm detection algorithm from the OCDL. Allowed values:\"A\",\"B\",\"C\",\"D\",\"E\",\"F\".")
+	input(CytoplasmThresholdAdjustment, .45, "Cytoplasm Threshold Adjustment: Cytoplasm Detection","d", "Cytoplasm: Threshold tuning for the initial thresholding of cytoplasm. Higher values decrease cytoplasm size. This is not used by algorithms \"A\", \"D\" and \"F\". Allowed range: 0..1, step 0.01.")
+	input(CytoplasmIndividualThresholdAdjustment, 0.15, "Cytoplasm Individual Threshold Adjustment: Cytoplasm Detection", "d", "Cytoplasm: Controls the cytoplasm shape around nuclei. Higher values decrease cytoplasm size. Used by all algorithms. Allowed range: 0..1, step 0.01.")
+	//cytoplasm_detection_inputs()
+	input(ScanParameter, "None", "Parameter SCAN: Cytoplasm Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The proc edure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition. Possible values: \"None\", \"CytoplasmThresholdAdjustment\",\"CytoplasmIndividualThresholdAdjustment\",\"Algorithm\"")
+
+	//ensures that you use the actuall parameters with RMCA or Linux
+	EnvInfo()
+	Set(ScanParameter=iif(env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview,ScanParameter,"None"))
+
+	FindElem(CytoAlgorithm,algorithmsVec)
+	if(pos==-1)
+		Error("The algorithm selected for the cytoplasmic detection is invalid. Supported algorithms are \"A\",\"B\",\"C\",\"D\" and \"E\".")
+	end()
+	if(ScanParameter=="none")
+		set(scanVec=vec(0))
+	end()
+	if(ScanParameter=="CytoplasmThresholdAdjustment")
+		set(scanVec=cytoThreshAdjVec)
+	end()
+	if(ScanParameter=="CytoplasmIndividualThresholdAdjustment")
+		set(scanVec=cytoIndivThreshAdjVec)
+	end()
+	if(ScanParameter=="Algorithm")
+		set(scanVec=algorithmsVec)
+	end()
+	foreach(scanVec)
+		if(ScanParameter=="CytoplasmThresholdAdjustment")
+			set(CytoplasmThresholdAdjustment =i)
+		end()
+		if(ScanParameter=="CytoplasmIndividualThresholdAdjustment")
+			set(CytoplasmIndividualThresholdAdjustment =i)
+		end()
+		if(ScanParameter=="Algorithm")
+			set(CytoAlgorithm=i)
+		end()
+		if(CytoAlgorithm!="F"||defined("membrane"))
+			Eval("Cytoplasm_Detection_"&CytoAlgorithm&"_inner(reference, Nuclei=Nuclei)",ForwardGrantLicense=true)
+		else()
+			if(CytoAlgorithm=="F"&&ScanParameter=="None")
+				Error("For cytoplasmic detection algortim \"F\", an image of the membrane components needs to be shown.")
+			end()
+		end()
+		if(errorcode!=0)
+			Error(errors)
+		end()
+
+		if(showIllustrations)
+			if(ScanParameter=="None")
+				Set(label="WholeCells")
+				Set(Title="Whole Cells borders")
+			else()
+				set(label=i)
+				set(title="Whole Cells with: "&ScanParameter&"="&i)
+			end()
+			imageview(WholeCells.border, label=label, title=title, image=reference, gamma=1.0)
+		end()
+	end()
+	if(ScanParameter!="none")
+		stop()
+	end()
+	ObjectFilter("area>0",objects=wholeCells|wholeCells=objects) //use to paliate bugs in cytoplams detection which allow the creation of empty objects
+}
+
+proc chainedCytoplasm_Detection(
+	image reference in "Cytoplasm stained image. Could be also nuclei stained image, where cytoplasm regions are partly stained. Cytoplasm is detected by this image. Supported image types are: 8-bit and 16-bit.",
+	Vector cytoDetectAlgorithm=none in "Optional, provide the algorithm to use for cytoplasmic detection, from the list A,B,C,D,E,F. This will override the input provided. You can chain up to 2.",
+	bool ShowIllustrations=YES in "YES- Output illustrations are depicted. No- Output illustrations are not shown.",
+	objectList nuclei in "Input object list of nuclei. Cytoplasm regions are created around the nuclei.",
+	objectList WholeCells out "List of objects created around centers, e.g. ~cells around nuclei. Number of objects is the same as in the input list Nuclei. Includes the following stencil type attributes: body, border, centers (nuclei), centers_border (border of nucleus), cytoplasm (body without centers), cytoplasm_border, CytoplasmAndCenters (logical OR between cytoplasm and centers) and CytoplasmAndCenters_border. Please note, that in some cases the body attribute could be smaller than the centers attribute and could also have zero area.",
+	bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+)object recognition, cytoplasm detection "Detects cytoplasm regions around nuclei using 2 chained cytoplasm recognition algorithms. Outputs object list of whole cells using the algorithm specified in \"Cytoplasm Detection Algorithm\"."
+{
+
+	if(Not(defined("cytoDetectAlgorithm")))
+			input(cytoDetectAlgorithm,"E, B" , "Cytoplasmic detection Algorithm(s): Cytoplasm Detection","s", "lgorithm to use for cytoplasmic detection, from the list A,B,C,D,E. You can chain up to 2 algorithms.")
+			RegexReplace(cytoDetectAlgorithm,"\s","")
+			SplitString(text,",")
+			if(split.length<2)
+				Error("Please provide 2 algorithms from the list:  A,B,C,D,E. Your choice should be separated by a \",\"")
+			else()if(split.length>2)
+				Warning("Only 2 cytoplasmic detection algorithms can be chained!")
+				set(cytoDetectAlgorithm=vec(split[0],split[1]))
+				delete(split,text)
+			else()
+				rename(cytoDetectAlgorithm=split)
+				delete(text)
+			end()end()
+	end()
+	set(algorithms=vec("A","B","C","D","E"))
+	Foreach(0..cytoDetectAlgorithm.length-1)
+		FindElem(cytoDetectAlgorithm[i],algorithms)
+		if(pos==-1)
+			Error("The algorithm selected for the cytoplasmic detection is invalid. Supported algorithms are \"A\",\"B\",\"C\",\"D\" and \"E\".")
+		end()
+	end()
+
+	set(original=reference)
+	if(lowBitAnalysis)
+		convert(1,image=reference)
+		rename(reference=image)
+	end()
+
+	input(CytoplasmThresholdAdjustment, .45, "Cytoplasm Threshold Adjustment 1: Cytoplasm Detection","d", "Cytoplasm: Threshold tuning for the initial thresholding of cytoplasm. Higher values decrease cytoplasm size. Allowed range: 0..1, step=0.1.")
+	input(CytoplasmIndividualThresholdAdjustment, 0.15, "Cytoplasm Individual Threshold Adjustment 1: Cytoplasm Detection", "d", "Cytoplasm: Controls the cytoplasm shape around nuclei. Higher values decrease cytoplasm size. Allowed range: 0..1, step=0.1.")
+
+	input(CytoplasmThresholdAdjustment2, .45, "Cytoplasm Threshold Adjustment 2: Cytoplasm Detection","d", "Cytoplasm: Threshold tuning for the initial thresholding of cytoplasm. Higher values decrease cytoplasm size. Allowed range: 0..1, step 0.01.")
+	input(CytoplasmIndividualThresholdAdjustment2, 0.15, "Cytoplasm Individual Threshold Adjustment 2: Cytoplasm Detection", "d", "Cytoplasm: Controls the cytoplasm shape around nuclei. Higher values decrease cytoplasm size. Allowed range: 0..1, step=0.1.")
+
+	eval("cytoplasm_detection_"&cytoDetectAlgorithm[0]&"(reference)",AbortOnErrors=true)
+
+	rename(CytoplasmThresholdAdjustment=CytoplasmThresholdAdjustment2,CytoplasmIndividualThresholdAdjustment=CytoplasmIndividualThresholdAdjustment2)
+	eval("cytoplasm_detection_"&cytoDetectAlgorithm[1]&"(reference,nuclei=wholeCells,showIllustrations=false)",AbortOnErrors=true)
+
+
+	rename(objects=wholeCells)
+	addContainedObjectsInfo(nuclei,outputStencil="centers")
+	AddCytoplasmAttributesOneNucleus()
+	RenameAttr(NumberOfNuclei=centers_count)
+	CalcIntensity(image=original)
+	rename(WholeCells=objects)
+
+	if(showIllustrations)
+		imageview(WholeCells.cytoplasm_border, label="WholeCellsDetection#2", image=original, gamma=2.0)
+	end()
+}
+
+
+proc StopCytoplasmDetectionAnyX_IfSCANmode(
+	container NucleiDetectionData in, image reference in
+) [hidden]
+{
+	if(defined("NucleiDetectionData.NucleiLists"))
+		foreach(0..NucleiDetectionData.VariedParameterValues.length-1)
+			set(i2="" & NucleiDetectionData.VariedParameterValues[i])
+			set(i2=rep(i2,".","_"))
+			set(i2=rep(i2,",","_"))
+			set(i2=rep(i2,"-","minus"))
+			//eval("set(Nuclei_" & NucleiDetectionData.ScanParameter &  "_" & i2 & "=" & "NucleiDetectionData.NucleiLists[i])")
+			set(_["Nuclei_" & NucleiDetectionData.ScanParameter &  "_" & i2 ] = NucleiDetectionData.NucleiLists[i])
+
+			push(AverageAreaVector,NucleiDetectionData.NucleiLists[i].area.mean)
+			push(AverageIntensityVector,NucleiDetectionData.NucleiLists[i].intensity.mean)
+			push(NumberOfNucleiVector,NucleiDetectionData.NucleiLists[i].count)
+			push(AverageContrastVector,NucleiDetectionData.NucleiLists[i].contrast.mean)
+		end()
+		if(NucleiDetectionData.ScanParameter!="NucleiDetectionAlgorithm")
+
+			set(table4=tbl(x=NucleiDetectionData.VariedParameterValues+0,y=AverageIntensityVector)) // +0 added Oct 24, 2007 Olavi, Bug 7996
+			set(table3=tbl(x=NucleiDetectionData.VariedParameterValues+0,y=AverageAreaVector))
+			set(table2=tbl(x=NucleiDetectionData.VariedParameterValues+0,y=NumberOfNucleiVector))
+			set(yline1=tbl(x=vec(0,0), y=vec(0,1.1*AverageIntensityVector.max)))
+			GraphView(vec(yline1,table4), "AverageIntensity", yes, "Average intensity of nuclei versus " & NucleiDetectionData.ScanParameter,presto_options="set[0].line.color black, set[1].line.color red, graph.xaxis.title" & NucleiDetectionData.ScanParameter & ", graph.yaxis.title Average Intensity of Nuclei")
+			libcall("kernel32", "Sleep", "vi", 2000)
+			set(yline1=tbl(x=vec(0,0), y=vec(0,1.1*AverageAreaVector.max)))
+			GraphView(vec(yline1,table3), "AverageArea", yes, "Average area of nuclei versus " & NucleiDetectionData.ScanParameter,presto_options="set[0].line.color black, set[1].line.color red, graph.xaxis.title" & NucleiDetectionData.ScanParameter & ", graph.yaxis.title Average Area of Nuclei")
+			libcall("kernel32", "Sleep", "vi", 2000)
+			set(yline1=tbl(x=vec(0,0), y=vec(0,1.1*NumberOfNucleiVector.max)))
+			GraphView(vec(yline1,table2), "NumberOfNuclei", yes, "Number of nuclei versus " & NucleiDetectionData.ScanParameter,presto_options="set[0].line.color black, set[1].line.color red, graph.xaxis.title" & NucleiDetectionData.ScanParameter & ", graph.yaxis.title Number of Nuclei")
+			libcall("kernel32", "Sleep", "vi", 2000)
+			push(v_default_nuclei,"Nuclei_ThresholdAdjustment_1_5","Nuclei_MinimumNucleiDistance_7_0","Nuclei_NuclearSplittingAdjustment_7_0","Nuclei_IndividualThresholdAdjustment_0_4","Nuclei_MinimumNuclearArea_70","Nuclei_MinimumNuclearContrast_0_1")
+			push(v_default_values,"1.5","7.0","7.0","0.4","70","0.1")
+			foreach(0..v_default_nuclei.length-1,"i26")
+				if(defined("" & v_default_nuclei[i26]))
+					eval("set(NUmberOfNucleByDEfault=" & v_default_nuclei[i26] & ".count)")
+					set(DefaultLabel="" & v_default_values[i26])
+					eval("set(Nuclei=" & v_default_nuclei[i26] & ")")
+					set(text=NucleiDetectionData.ScanParameter & " " &  v_default_values[i26] & "; Number of Nuclei: " & NUmberOfNucleByDEfault)
+					imageview(nuclei.border, DefaultLabel, image=reference,gamma=2.0, title=text)
+				end()
+			end()
+			delete(i26,v_default_nuclei,v_default_values,yline1,table2,table3,table4,NUmberOfNucleByDEfault,nuclei,DefaultLabel,text)
+		else()
+			set(CalledAlgorithmsText="")
+			//set(CalledAlgorithmsText2="")
+			foreach(NucleiDetectionData.VariedParameterValues, "i100")
+				set(CalledAlgorithmsText=CalledAlgorithmsText & i100 & "; ")
+			end()
+			set(CalledAlgorithmsText=substr(CalledAlgorithmsText,1,CalledAlgorithmsText.length-2))
+			tabulate("x",NucleiDetectionData.VariedParameterValues.length)
+
+			set(table4=tbl(x=result,y=AverageIntensityVector))
+			set(table3=tbl(x=result,y=AverageAreaVector))
+			set(table2=tbl(x=result,y=NumberOfNucleiVector))
+			set(yline1=tbl(x=vec(0,0), y=vec(0,1.1*AverageIntensityVector.max)))
+
+			GraphView(vec(yline1,table4), "AverageIntensity", yes, "Average area of nuclei, algorithms: " & CalledAlgorithmsText, presto_options="set[0].line.color black, set[1].line.color red, graph.xaxis.title Detection algorithms: " & CalledAlgorithmsText & ", graph.yaxis.title Average Intensity of Nuclei")
+			libcall("kernel32", "Sleep", "vi", 2000)
+			set(yline1=tbl(x=vec(0,0), y=vec(0,1.1*AverageAreaVector.max)))
+			GraphView(vec(yline1,table3), "AverageArea", yes, "Average area of nuclei, algorithms: " & CalledAlgorithmsText, presto_options="set[0].line.color black, set[1].line.color red, graph.xaxis.title Detection algorithms: " & CalledAlgorithmsText & ", graph.yaxis.title Average Area of Nuclei")
+			libcall("kernel32", "Sleep", "vi", 2000)
+			set(yline1=tbl(x=vec(0,0), y=vec(0,1.1*NumberOfNucleiVector.max)))
+			GraphView(vec(yline1,table2), "NumberOfNuclei", yes, "Number of nuclei, algorithms: " & CalledAlgorithmsText, presto_options="set[0].line.color black, set[1].line.color red, graph.xaxis.title Detection algorithms: " & CalledAlgorithmsText & ", graph.yaxis.title Number of Nuclei")
+			libcall("kernel32", "Sleep", "vi", 2000)
+			if(defined("Nuclei_NucleiDetectionAlgorithm_B"))
+				set(text="NucleiDetectionAlgorithm B ; Number of Nuclei: ")
+				imageview(Nuclei_NucleiDetectionAlgorithm_B.border,"B", image=reference,gamma=2.0, title=text & Nuclei_NucleiDetectionAlgorithm_B.count)
+			else()
+				if(defined("Nuclei_NucleiDetectionAlgorithm_A"))
+					set(text="NucleiDetectionAlgorithm A ; Number of Nuclei: ")
+					imageview(Nuclei_NucleiDetectionAlgorithm_A.border,"A", image=reference,gamma=2.0, title=text & Nuclei_NucleiDetectionAlgorithm_A.count)
+				end()
+			end()
+			delete(i100,text,CalledAlgorithmsText,result,yline1,table2,table3,table4)
+		end()
+
+		Warning("Evaluation is stopped before exiting  Nuclei_detection_AnyX(). Stop is applied always if parameter SCAN or multi algorithm  mode is used.  For returning to the standard evaluation mode please enter only one algorithm (e.g. B) and/or exit the parameter scanner by selecting Parameter SCAN=none.")
+		delete(errorcode,errors,errors_Xml,i,i2,foreach_index,warningcode)
+		stop()
+	end()
+}

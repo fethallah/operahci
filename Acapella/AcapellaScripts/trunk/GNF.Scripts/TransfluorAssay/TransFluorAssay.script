@@ -1,0 +1,317 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This script is used to measure vesicle formation, such a GPCR internalization.
+//*
+//*********************************************************************************************
+
+
+proc getChanInfo(memblock chanInfo out){
+
+	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
+	input(minIntensity, 150, "Min Nuclear Chanel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive.Allowed range: 0..1000.")
+	push(chanPurpose,"nucDetection")	
+	push(chanNames,name)
+	push(chanDesc,desc)
+	push(chanMin,minIntensity)
+	push(chanCutOff,0)
+
+	input(Name, "Exp1Cam1", "CytoplasmicChanelName", type="String", description="Channel containing the fluorescence from thecytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "MGD", "Cytoplasmic StainDescription", type="String", description="Description of the Cytoplasmic stain (\"NA\" if no cytoplasmic marker is used).")
+	input(minIntensity, 150, "Min Cytoplasmic Chanel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
+	if(desc!="NA" && Name!="NA")
+		push(chanPurpose,"cytoDetection")
+		push(chanNames,Name)
+		push(chanDesc,desc)	
+		push(chanMin,minIntensity)
+		push(chanCutOff,0)
+	end()
+
+	input(Name, "Exp1Cam1", "Marker1 ChanelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
+	input(desc, "GFP", "Marker1 Description", type="String", description="Description of the first marker (ex. GFP).")
+	//input(cutOff, 150, "Marker1 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the first marker. Allowed range: 1..1000, step 0.1.")	
+	//if(cutOff<1)
+	//	Error("The cutt-off must be >= to 1")
+	//end()	
+	push(chanPurpose,"marker")
+	push(chanNames,Name)
+	push(chanDesc,desc)	
+	push(chanMin,0)
+	push(chanCutOff,0)//cutOff)
+
+	input(Name, "NA", "Marker2 ChanelName", type="String", description="Channel containing the fluorescence from the second marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "RFP", "Marker2 Description", type="String", description="Description of the second marker (ex. RFP).")
+	//input(cutOff, 150, "Marker2 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the second marker. Allowed range: 1..1000, step 0.1.")	
+	if(desc!="NA" && Name!="NA")
+		//if(cutOff<1)
+		//	Error("The cutt-off must be >= to 1")
+		//end()	
+		push(chanPurpose,"marker")
+		push(chanNames,Name)
+		push(chanDesc,desc)	
+		push(chanMin,0)
+		push(chanCutOff,0)//cutOff)
+	end()
+
+	input(Name, "NA", "Marker3 ChanelName", type="String", description="Channel containing the fluorescence from the third marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "Alexa647", "Marker3 Description", type="String", description="Description of the third marker (ex. Alexa647).")
+	//input(cutOff, 150, "Marker3 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the third marker. Allowed range: 1..1000, step 0.1.")	
+	if(desc!="NA" && Name!="NA")
+		//if(cutOff<1)
+		//	Error("The cutt-off must be >= to 1")
+		//end()	
+		push(chanPurpose,"marker")
+		push(chanNames,Name)
+		push(chanDesc,desc)	
+		push(chanMin,0)
+		push(chanCutOff,0)//cutOff)
+	end()
+
+	create("table")
+	set(table.name=chanNames, table.desc=chanDesc,table.min=chanMin,table.purpose=chanPurpose, table.cutOff=chanCutOff)
+	rename(chanInfo=table)
+}
+
+
+proc paramInit(memblock param out){
+
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	EnvInfo()
+	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
+	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
+	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
+	//input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
+	//if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")
+	//	error("The Cut-Off type must be either  \"threshold\", \"folds\" or \"stddev\"")
+	//end()
+	Pack(param,*)
+	keep(param)
+}
+
+proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+
+	input(distanceTrimed,0,"Distance to Trim:Transfluor Assay","i","Distance in pixels to remove from the nucleus and from the cytoplasm around the nuclear membrane.")
+	input(rimSize,30,"Donnut Size:Transfluor Assay","i","Distance size in pixel of the donut around the nucleus.")
+	input(useDonutModel, true, "Use Donut Model:Transfluor Assay", type="b", description="Assumes a donut around the nucleus to emulate the cytoplasm, if no cytoplasmic channel is provided, this method will be used.")
+	input(NucleiNormalization,4,"NucleiNormalization:Transfluor Assay","d", "Normalize the nuclei population so that outliers are removed.Nuclei with properties that are more than this number of standardaviation away from the population mean are removed. Adjust per Normalize Object Illustration. Use \"0\" if you do not want to remove outliers.")
+
+	Unpack(param)
+	set(cytoChanNum=chanInfo.number[findElem("cytoDetection",chanInfo.purpose).pos])
+	set(nucChanNum=findChanNum(images,"nucDetection","purpose").indexList[0])
+	set(nucChanMin=images[nucChanNum].min)
+
+	set(imageData=cnt())
+	if(images[nucChanNum].image.max>nucChanMin)
+		bckGndSubstraction(-1,images=images)
+		
+		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean)
+		
+		set(nucImage=images[nucChanNum].image)
+		convert(bpp=1,image=nucImage)
+		Nuclei_Detection_Select(image)
+		CalcIntensity(Image=nucImage,objects=nuclei|nuclei=objects)
+		
+		if(cytoChanNum>=0)
+			set(minCytoIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[cytoChanNum].desc&"_StdDevIntensity"].mean)
+			convert(bpp=1,image=images[cytoChanNum].image)
+			Cytoplasm_Detection_Select(reference=image)
+			CalcIntensity(image=images[cytoChanNum].image,objects=WholeCells)
+			ObjectFilter(intensity>minCytoIntensity,objects=objects|WholeCells=objects)
+		end()
+		if(useDonutModel || cytoChanNum==-1)
+			Set(objects=nuclei)
+			Set(NumberOfOuterZones=distanceTrimed+rimSize)
+			if(defined("wholeCells"))
+				calczone(NumberOfOuterZones, zonetype="equidistant",Stencil=Wholecells.Body)
+			else()
+				calczone(NumberOfOuterZones, zonetype="equidistant")
+			end()
+			zonemask(distanceTrimed, oo)
+			renameattr(innerRegion=zonemask)
+			zonemask(0, -1*rimSize)
+			renameattr(outerRegion=zonemask)
+			Set(temp=objects)
+			Stencil2Objects(objects.outerRegion)
+			FillObjects()
+			SetAttr(centers,temp.innerRegion)
+			CalcBorder(centers)
+			SetAttr(cytoplasm,temp.outerRegion)
+			CalcBorder(cytoplasm)
+			Delete(Temp)
+			if(showIllustrations)
+				ImageView(objects.centers_border,label="Centers-"&images[nucChanNum].desc, title="Area used for the centers for channel "&images[nucChanNum].desc &" ajust per \"Distance to Trim\"", image=images[nucChanNum].image,  gamma=1)
+				if(cytoChanNum==-1)
+					set(chan=nucChanNum)
+				else()
+					set(chan=cytoChanNum)
+				end()
+				ImageView(objects.cytoplasm_border,label="Donut-"&images[chan].desc, title="Ring Borders for channel "&images[chan].desc &"adjust per \"Donnut Size\"", image=images[chan].image,  gamma=1)
+			end()
+			rename(wholeCells=objects)
+		end()
+	//Filtering of nuclei. Then select corresponding cells
+		ObjectFilter(intensity>minNucIntensity,objects=nuclei)
+		normalizeObjects(NucleiNormalization,image=nucImage,keepCaluclatedAttributes=true)
+		
+
+		DeleteAttr(intensity,contrast,AreaInGeneralUnits,border)
+		CalcFeatures(images=vec(images[nucChanNum]),parentNames=("WholeCells"),parentObjects=cnt("WholeCells"=WholeCells),CalcMorphologyFeatures=false,CalcCorrelationFeatures=false)
+		CalcMassCentre()
+		rename(nuclei=objects,objects=wholeCells)				
+		CalcIntensity(image=Nuclei.MassCentre.mask.image)
+		ObjectFilter(intensity>0)
+		DeleteAttr(intensity,border,centers_border,cytoplasm_border,CytoplasmAndCenters)
+		RenameAttr(Nuclei=centers)
+		
+		Set(WholeCells=objects)
+		
+		//generate a set of images containing the images from the marker only
+		set(markerImages=vec())
+		foreach(findChanNum(images,"marker","purpose").indexList,"index")
+			push(markerImages,images[index])
+		end()
+		rename(images=markerImages)
+		
+		CalcFeatures(CalcMorphologyFeatures=false,CalcCorrelationFeatures=true) //get the features for the cells and only for the marker channels
+		Rename(WholeCells=objects)
+		Foreach(0..images.length-1, "markerChanNum")
+			Set(temp=WholeCells)
+			Spot_Detection_Select(images[markerChanNum].image,ShowOutputParameters=false)
+			Rename(WholeCells=temp)
+			
+			//Generate image containing only SpotIntensity
+			Set(spotImage=spots.Body.mask.image*images[markerChanNum].image)
+			
+			Set(objects=Nuclei)
+			Set(preFix=Quote("_Spots/Cells").quoted)
+			Set(preFix=appendQuotedText(images[markerChanNum].desc,preFix).text)
+			CalcStat("Sum",image=spots.SpotCenters.mask.image, AttrName=preFix&"_Count")
+			CalcStat("Sum",image=spots.Body.mask.image, AttrName=preFix&"_Area")
+			CalcStat("Mean",image=spotImage, AttrName=preFix&"_AverageIntensity")
+			CalcStat("Sum",image=spotImage, AttrName=preFix&"_IntegratedIntensity")
+			Rename(Nuclei=Objects)
+		
+			Set(objects=wholeCells)
+			CalcStat("Sum",image=spots.SpotCenters.mask.image, AttrName=preFix&"_Count")
+			CalcStat("Sum",image=spots.Body.mask.image, AttrName=preFix&"_Area")
+			CalcStat("Mean",image=spotImage, AttrName=preFix&"_AverageIntensity")
+			CalcStat("Sum",image=spotImage, AttrName=preFix&"_IntegratedIntensity")
+			Set(wholeCells=objects)
+			
+			rename(objects=spots)
+			DeleteAttr(CellIntensity, ContrastOK, ReferenceIntensity, ReferenceRegions, ReferenceRegions_area, ReferenceRegions_intensity, SpotToCellIntensityOK)
+			set(Spots=objects)
+			containedObjects(nuclei,objects, overlap=false)
+			rename(spotsInNuclei=objects,spotsInCytoplasm=remainder)
+			assembleCompositObject(cnt("Nuclear"=spotsInNuclei,"Cytoplasmic"=spotsInCytoplasm),objects=Spots|Spots=compositObject)
+			Set(imageData["Spots_"&images[markerChanNum].desc]=Spots)
+			Delete(Spots)
+		end()
+			
+		Set(imageData.bckGndObjects=bckGndObjects,imageData.Nuclei=Nuclei,ImageData.WholeCells=WholeCells)
+	end()	
+}
+proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
+
+	set(wholeWellData=cnt())
+	set(numFieldsInFocus=0)
+	Set(FeaturesTable=Tbl(),ROITable=Tbl())
+	if(images.length>0)
+	foreach(0..images.length-1, "field")
+	foreach(0..images[field].length-1, "stack")
+		imageAnalysis(images[field][stack],param)
+		if(imageData.length>0)
+			set(numFieldsInFocus=numFieldsInFocus+1)
+			if(param.getROI)
+				if(defined("imageData.Nuclei"))
+					getROITable(imageData.Nuclei,ObjectType="Nuclei")
+				end()
+				if(defined("imageData.WholeCells"))
+					getROITable(imageData.WholeCells,ObjectType="WholeCells")
+				end()
+			end()
+			if(param.getSingleCellFeatures)
+				Foreach(imageData.keys,"keyName")
+					Set(objects=ImageData[keyName])
+						if(objects.class=="objectlist"||objects.class=="compositObjectlist")
+							getFeaturesTable(objects,ObjectType=keyname)
+						end()
+				end()
+			end()
+			
+			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
+			rename(wholeWellData=newData)
+		end()
+		delete(imageData)
+	end()
+	end()
+	end()
+
+	Set(singleCellData=Cnt())
+	if(param.getSingleCellFeatures)
+		Set(singleCellData.Features=FeaturesTable)
+	end()
+	if(param.getROI)
+		Set(singleCellData.ROI=ROITable)
+	end()
+	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
+	pack(data,wholeWellData,singleCellData)
+}
+proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
+	unpack(data)
+	delete(data)
+	if(Defined("singleCellData.Features"))
+		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellID,extension="feat",label="")
+	end()
+	if(Defined("singleCellData.ROI"))
+		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellID,extension="roi",label="")
+	end()
+	outputMemblockData( wholeWellData)
+}
+
+
+//#######################
+// Program Start
+//#######################
+getChanInfo()
+ParamInit()
+imagesInitV2()
+chanAttrib()
+set(param.chanInfo=chanInfo)
+if(param.showIllustrations&&param.fieldSelected!=0)
+	set(param.fieldSelected=iif(param.fieldSelected<1,1,param.fieldSelected))
+	set(param.fieldSelected=iif(param.fieldSelected>images.length,images.length,param.fieldSelected))
+	set(Images=vec(images[param.fieldSelected-1]))
+end()
+Analysis()
+dataOutput(data,sourcedataprop,param.OutputStatType)

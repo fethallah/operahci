@@ -1,0 +1,278 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of procedures used to work with cellular features/textures.
+//*
+//*********************************************************************************************
+
+
+proc CalcFractionEdgeContact(
+	string attrName="" in "The name of the created attribute. Use \"\" if you want to have the attrName automatically generated (ex. \"Border_DegreeImageEdgeContact\")",
+	string stencil="Border"  in "Specifies location of object pixels. This stencil should be of type border (ie. not filled)",
+	ObjectList objects localcontext  in "The object list containing the stencil for which the degree of contact with the image edge is measured and containing the new attribute",
+	ObjectList objects out "The object list containing the newlycreated attribute.",
+) Object list attribute creation, Features "Calculates a feature measuring the degree of overlap of a \"border-like\" stencil with the image edge."
+{
+	if(! Defined("objects."&stencil))
+		Error("The stencil selected: \""&Stencil&"\" does not exist in the object provided.")
+	end()
+
+	Rename(objectsIni=objects)
+
+	Stencil2Objects(objectsIni[stencil])
+	CalcBorder()
+	CalcArea(Border)
+	Set(width=objects.imagewidth,height=objects.imageheight)
+	Blank()
+	RectMask(2,2,width-2,height-2,image=image,Inverted=true)
+	CalcStat("Mean",stencil=Border,AttrName="Contact",Image=Mask)
+	set(attrName=iif(attrName=="",iif(stencil=="Body","",stencil&"_")&"DegreeImageEdgeContact",attrName))
+
+	SetAttr(&AttrName,objects.Contact/objects.Border_Area,objects=objectsIni)
+}
+
+proc getFeatures(
+	Objectlist objects in "Object list contaning the features to calculate. Make sure that the Objectlist only contains stencil which you wish to use for intensity measurments.",
+	Vector images=none in  "Container containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objetcs. If no images are provided, or if the images is an empty vector, these features are not returned. Images should have the form images[chanel].image & images[chanel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack]).",
+	Objectlist objects out "Object list contaning the newly calculated features.",
+	Container parentObjects=none in "Container with the differnt objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
+	Vector parentNames=none in "Vector containing the names for the parents in the order for which the mapping should be done. Objects with name at a  higher Index contain objects with lower index (ex. Nuclei should have a lower index than WholeCells). use vec(\"name1\",\"name2\",...)",
+)object list attribute creation, Feature, Texture "Adds to an object all of the features that can be extracted. Generates the inputs necessary. Cf. CalcFeaturesInner()"
+{
+	CalcFeaturesInputs()
+	CalcFeatures()
+}
+
+proc CalcFeaturesInputs(
+	boolean CalcMorphologyFeatures=true out "Indicate whether or not to collect morphology-based features (lenght, area etc.). This will moderatly impact runtime.",
+	boolean CalcIntensityInfo=true out "Indicate whether or not to collect intensity-based features (Intensity, CV, etc.). This will moderatly impact runtime.",
+	boolean CalcCorrelationFeatures=false out "Indicate whether or not tto collect image correlation features (Perason Correlation). This will significantly impact runtime.",
+
+	string CalcTextureFeatures="None" out "Indicate whether or nott to collect texture-based features (TAS, SER, Haralick). This will significantly impact runtime.",
+	double TASbracket out "Braket Factor : The value used will provide varying cutt-offs depending on the normalization method selected. This value, used in conjunction with the mean intensity of an object allows to establish 3 different thresholds. For a given object, the absolute thresholds are then calculated with: \"(mean object intensity)*(1+-bracket)\", when NormalizationMethod=\"Mean\"; \"(mean object intensity) +/- bracket x (StdDev object intensity)\" when NormalizationMethod=\"zScore\"; \"(mean object intensity) +/- bracketwhen\" when  NormalizationMethod=\"None\". This value should should be >0 when NormalizationMethod=\"None\" or \"zScore\" and be set between 0 and 1 when NormalizationMethod=\"Mean\".",
+	string TASnormalization out "Indicates which normalization should be used to normalize the object intensity. The following methods are accepetd: \"None\" in which case no normalization is provided and the bracket refferes to raw pixel values; \"Mean\", in which case the values are normalized by the mean value of the object and the bracket then reffers to a fold intensity above and bellow the mean value; \"zScore\" in which case each pixels is converted into a number of StdDev above and bellow the mean value and a Z-score reflects a cutt-off in this scale.",
+
+	vector SERscale out "Scale parameter for SER texture filtering.",
+	string SERnormalization out "SER normalization methods. Select between unnormalized, kernel, regional.",
+
+	double GaborMinScale out "The lowest scale value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	double GaborMinWavelength out "The lowest wavelength value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	vector GaborScaleFactors out "Values by which MinScale is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	vector GaborWavelengthFactors out "Values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	int GaborAngleCount out "Number of orientations. Reasonable values are between 6 and 16",
+
+	int HaralickDistance=1 out "Distance between Haralick pixel pairs. NB Fractional distance values will be rounded to integers",
+)[Hidden] object list attribute creation, Features, Textures "Inputs requied for the CalcFeatures Module."
+{
+	input(CalcMorphologyFeatures, true, "Measure Morphology Information:Cell Features", "b", "Indicate whether or not you wish to collect morphology-based features (lenght, area etc.). This will moderatly impact runtime.")
+	input(CalcIntensityInfo, true, "Measure Intensity Information:Cell Features", "b", "Indicate whether or not you wish to collect intensity-based features (Intensity, CV, etc.). This will moderatly impact runtime.")
+	input(CalcCorrelationFeatures, false, "Measure Image Correlation:Cell Features", "b", "Indicate whether or not you wish to collect image correlation features (Perason Correlation). This will significantly impact runtime. Features are only Calculated on channels flagged as \"Marker\".")
+
+	input(CalcTextureFeatures, "None" , "Measure Texture Information:Cell Features", "s", "Indicate which texture you wish to collect (TAS, SER, Gabor, Haralick). This will significantly impact runtime. Allowed values:  \"None\", \"All\", \"TAS\",\"SER\", \"Gabor\", \"Haralick\".")
+
+	input(TASbracket, 0.2, "TAS Texture Braket:Cell Features", "d", "Braket Factor : The value used will provide varying cutt-offs depending on the normalization method selected. This value, used in conjunction with the mean intensity of an object allows to establish 3 different thresholds. For a given object, the absolute thresholds are then calculated with: \"(mean object intensity)*(1+-bracket)\", when NormalizationMethod=\"Mean\"; \"(mean object intensity) +/- bracket x (StdDev object intensity)\" when NormalizationMethod=\"zScore\"; \"(mean object intensity) +/- bracketwhen\" when  NormalizationMethod=\"None\". This value should should be >0 when NormalizationMethod=\"None\" or \"zScore\" and be set between 0 and 1 when NormalizationMethod=\"Mean\". Allowed range: 0..100, step 0.05.")
+	input(TASnormalization, "Mean", "TAS Texture NormMode:Cell Features", "s", "Indicates which normalization should be used to normalize the object intensity. The following methods are accepetd: \"None\" in which case no normalization is provided and the bracket refferes to raw pixel values; \"Mean\", in which case the values are normalized by the mean value of the object and the bracket then reffers to a fold intensity above and bellow the mean value; \"zScore\" in which case each pixels is converted into a number of StdDev above and bellow the mean value and a Z-score reflects a cutt-off in this scale. Allowed values:  \"None\", \"Mean\", \"zScore\".")
+
+	input(SERscale, 100, "SER Texture Scale:Cell Features", "d", "Scale parameter for SER texture filtering. Use 100, if you wish to calculate a predefined arrary of SERscales {0,0.5,1,1.5,2.2.5,3,4,6}. Allowed range: 0..100, step 0.1.")
+	if(SERscale==100)
+		set(SERscale=vec(0,0.5,1.5,1,2,2.5,3))
+	else()
+		set(SERscale=vec(SERscale))
+	end()
+	input(SERnormalization, "regional", "SER Texture NormMode:Cell Features", "s", "Normalization method used for SER texture.  Allowed values:  \"regional\", \"unnormalized\", \"kernel\".")
+
+	input(GaborMinScale, 0, "Gabor Min Scale:Cell Features", "d", "The lowest scale value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100, step 0.05.")
+	input(GaborMinWavelength, 0, "Gabor Min Wavelength:Cell Features", "d", "The lowest wavelength value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100, step 0.05.")
+	input(GaborScaleFactors, "1,", "Gabor Scale Factors:Cell Features", "s", "Coma delimited values by which MinScale is multipliedfor Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100.")
+	SplitString(RegexReplace(GaborScaleFactors,"\s","").text,",")
+	rename(GaborScaleFactors=split)
+	input(GaborWavelengthFactors, "1,", "Gabor Wavelength Factors:Cell Features", "s", "Coma delimited values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.")
+	SplitString(RegexReplace(GaborWavelengthFactors,"\s","").text,",")
+	rename(GaborWavelengthFactors=split)
+	input(GaborAngleCount, 8, "Gabor Angle Count:Cell Features", "i", "Number of orientations. Reasonable values are between 6 and 16. Allowed range: 4..20, step 1.")
+
+	input(HaralickDistance, 1, "Haralick Distance:Cell Features", "i", "Distance between Haralick pixel pairs. Allowed range: 1..100, step 1.")
+}
+
+proc CalcFeatures(
+	Objectlist objects in "Object list contaning the features to calculate. Make sure that the Objectlist only contains stencil which you wish to use for intensity measurments.",
+	Vector images=none in  "Container containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objetcs. If no images are provided, or if the images is an empty vector, these features are not returned. Images should have the form images[chanel].image & images[chanel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack]).",
+	Objectlist objects out "Object list contaning the newly calculated features.",
+	Container parentObjects=none in "Container with the differnt objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
+	Vector parentNames=none in "Vector containing the names for the parents in the order for which the mapping should be done. Objects with name at a  higher Index are physical containers for objects with lower index (ex. Nuclei should have a lower index than WholeCells). use vec(\"name1\",\"name2\",...)",
+
+	boolean CalcMorphologyFeatures=true in "Indicate whether or not you wish to collect morphology-based features (lenght, area etc.). This will moderatly impact runtime.",
+	boolean CalcIntensityInfo=true in "Indicate whether or not you wish to collect intensity-based features (Intensity, CV, etc.). This will moderatly impact runtime.",
+	boolean CalcCorrelationFeatures=false in "Indicate whether or not you wish to collect image correlation features (Perason Correlation). This will significantly impact runtime.",
+
+	string CalcTextureFeatures="None" in "Indicate whether or not you wish to collect texture-based features (TAS, SER, Gabor, Haralick). This will significantly impact runtime.",
+	double TASbracket=0.2 in "Braket Factor : The value used will provide varying cutt-offs depending on the normalization method selected. This value, used in conjunction with the mean intensity of an object allows to establish 3 different thresholds. For a given object, the absolute thresholds are then calculated with: \"(mean object intensity)*(1+-bracket)\", when NormalizationMethod=\"Mean\"; \"(mean object intensity) +/- bracket x (StdDev object intensity)\" when NormalizationMethod=\"zScore\"; \"(mean object intensity) +/- bracketwhen\" when  NormalizationMethod=\"None\". This value should should be >0 when NormalizationMethod=\"None\" or \"zScore\" and be set between 0 and 1 when NormalizationMethod=\"Mean\".",
+	string TASNormalization="Mean" in "Indicates which normalization should be used to normalize the object intensity. The following methods are accepetd: \"None\" in which case no normalization is provided and the bracket refferes to raw pixel values; \"Mean\", in which case the values are normalized by the mean value of the object and the bracket then reffers to a fold intensity above and bellow the mean value; \"zScore\" in which case each pixels is converted into a number of StdDev above and bellow the mean value and a Z-score reflects a cutt-off in this scale.",
+
+	vector SERscale=vec(1) in "Vector of scale parameters for SER texture filtering.",
+	string SERnormalization="regional" in "SER normalization methods. Select between unnormalized, kernel, regional.",
+
+	double GaborMinScale=2.0 explicit in "The lowest scale value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	double GaborMinWavelength=2.5 explicit in "The lowest wavelength value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	vector GaborScaleFactors=vec(1) explicit in "Values by which MinScale is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	vector GaborWavelengthFactors=vec(1) explicit in "Values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	int GaborAngleCount=8 explicit in "Number of orientations. Reasonable values are between 6 and 16",
+
+	int HaralickDistance=1 explicit in "Distance between Haralick pixel pairs. NB Fractional distance values will be rounded to integers",
+
+) object list attribute creation, Feature, Texture "Adds to an object all of the features that can be extracted."
+{
+	//if(Not(defined("Objects.parentType"))||Not(defined("Objects.parentID")))
+		AssociateObject2Parents(objects)
+	//end()
+	//RenameAttr(Body=body)
+	addObjectID()
+
+	//Make sure all Attributes are correctly capitalized
+	set(AttrNames=objects.keys)
+	foreach(AttrNames,"KeyName")
+		Set(Capitalized=regexReplace(keyName,"(\\b\\w|(?<=_)\\w)","\\u$1").text) //Capitalize word correctly
+		eval("RenameAttr("&Capitalized&"="&keyName&")")
+	end()
+
+	if(defined("images") && (CalcIntensityInfo ||CalcCorrelationFeatures || CalcTextureFeatures!="None"))
+	if(images.length>0)
+		set(numChan=images.length)
+		foreach(0..numChan-1)
+			if(defined("images["&i&"].name"))
+				if(Not(defined("images["&i&"].desc")))
+					set(images[i].desc=images[i].name)
+				end()
+			else()
+				sprintf(name,"Chan%02d", i+1)
+				set(images[i].desc=name) //pad the number with at last one 0.
+			end()
+		end()
+		set(AttrNames=objects.keys)
+		foreach(AttrNames,"StencilName")
+			//ensure that StencilName is actually a stencil and is neither the Center of mass or a Border.
+			if(objects[StencilName].type!="stencil" ||  objects[StencilName].class !="intervalvector" || StencilName=="MassCentre"|| at("border",StencilName,1)>0)
+				continue()
+			end()
+
+			Set(StencilName=regexReplace(StencilName,"(\\b\\w|(?<=_)\\w)","\\u$1").text) //Capitalize word correctly
+			Set(objects[StencilName]=objects[StencilName])
+
+			foreach(0..numChan-1)
+				set(attrPrefix=StencilName&"_"&images[i].desc)
+				set(image=images[i].image)
+				if(CalcIntensityInfo)
+					CalcStat("Mean",AttrName=attrPrefix&"_MeanIntensity", image=image,stencil=objects[StencilName])
+					CalcStat("Median",AttrName=attrPrefix&"_MedianIntensity", image=image,stencil=objects[StencilName])
+					CalcStat("Min",AttrName=attrPrefix&"_MinIntensity", image=image,stencil=objects[StencilName])
+					CalcStat("Max",AttrName=attrPrefix&"_MaxIntensity", image=image,stencil=objects[StencilName])
+					CalcStat("Sum",AttrName=attrPrefix&"_SumIntensity", image=image,stencil=objects[StencilName])
+					CalcStat("stddev",AttrName=attrPrefix&"_StdDevIntensity", image=image,stencil=objects[StencilName])
+					Set(objects[attrPrefix&"_CVIntensity"]=objects[attrPrefix&"_StdDevIntensity"]/objects[attrPrefix&"_MeanIntensity"])
+					CalcMoment(3,central=true, stencil=objects[StencilName])
+					set(objects[attrPrefix&"_SkewnessIntensity"]=objects.CentralMoment3)
+					deleteAttr(CentralMoment3)
+					CalcMoment(4,central=true, stencil=objects[StencilName])
+					set(objects[attrPrefix&"_KurosisIntensity"]=objects.CentralMoment4)
+					deleteAttr(CentralMoment4)
+				end()
+				if(CalcCorrelationFeatures&&numchan>1&&i<numChan-1)
+					foreach(i+1..numChan-1,"nextChan")
+						MBF_PearsonsCoefficient(image,images[nextChan].image,objects,stencil=objects[StencilName],AttrName="PearsonsR"|temp=objects)
+						set(AttributeName=keyName&"_"&images[nextChan].desc&"_"&images[i].desc&"_PearsonR")
+						set(Objects[AttributeName]=temp.PearsonsR)
+					end()
+				end()
+				if(CalcTextureFeatures!="None" && searchElem("marker",images[i].purpose,0).pos>=0) //only get Texture features for marker channels
+
+					if(CalcTextureFeatures=="TAS"||CalcTextureFeatures=="All")
+						Texture::CalcTASFeatures(image,TASbracket,StencilName,NormalizationMethod=TASNormalization,AttrPrefix=attrPrefix)
+					end()
+
+					if(CalcTextureFeatures=="SER"||CalcTextureFeatures=="All")
+					foreach(SERscale,"scale")
+						Set(scaleStr=quote(scale,"Name").quoted)
+						Set(scaleStr=substr(scaleStr,2,length(scaleStr)))
+						Texture::CalcSERFeatures(image,scale,StencilName,SERnormalization,AttrPrefix=attrPrefix&"_Scale"&scaleStr)
+					end()
+					end()
+
+					if(CalcTextureFeatures=="Gabor"||CalcTextureFeatures=="All")
+						Texture::CalcGaborFeatures(image,GaborMinScale,GaborMinWavelength,GaborScaleFactors,GaborWavelengthFactors,GaborAngleCount,AttrPrefix=attrPrefix)
+					end()
+
+					if(CalcTextureFeatures=="Haralick"||CalcTextureFeatures=="All")
+						Texture::CalcHaralickFeatures(image,HaralickDistance,AttrPrefix=attrPrefix)
+					end()
+				end()
+			end()
+		end()
+	end()
+	end()
+	if(! CalcMorphologyFeatures)
+		return()
+	end()
+	if(Not(defined("objects.area")))
+		CalcArea()
+	end()
+	RenameAttr(Area=area)
+
+	if(Not(defined("objects.border")))
+		CalcBorder()
+		RenameAttr(Border=border)
+	end()
+	CalcFractionEdgeContact()
+
+	if(Not(defined("objects.perimeter")))
+		CalcArea(border)
+		RenameAttr(Perimeter=border_area)
+	end()
+
+	if(Not(defined("objects.masscentre")))
+		CalcMassCentre()
+	end()
+	set(Objects.xCentre=objects.MassCentre.x.target)
+	set(Objects.yCentre=objects.MassCentre.y.target)
+
+	if(not(defined("objects.shortestDistance"))||not(defined("objects.NearestObjectDistance")))
+		objectsDistances()
+		SetAttr(NearestObjectDistance, shortestDistance)
+	end()
+	if(Not(defined("objects.roundness")))
+		CalcAttr(Roundness)
+	end()
+	if(Not(defined("objects.ratio_Perimeter_To_Area")))
+		setAttr(ratio_Perimeter_To_Area, perimeter/area)
+	end()
+	if(Not(defined("objects.ratio_Width_To_Length")))
+		CalcWidthLengthSafe(0) //use the automated object sizing method
+		setAttr(ratio_Width_To_Length, 2*half_width/full_length)
+	end()
+}

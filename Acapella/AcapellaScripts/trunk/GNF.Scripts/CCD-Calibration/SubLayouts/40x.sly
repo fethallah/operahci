@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Sublayout code_version="1" date="02.04.2010 09:55:09">
+  <Description></Description>
+  <Plate>96_Opera_Adjustment_Plate</Plate>
+  <Lens>40xW_PlanAPO_40xWLSM_NA=0.9</Lens>
+  <OverlapH_pc>50</OverlapH_pc>
+  <OverlapV_pc>50</OverlapV_pc>
+  <Point x="-222" y="84" />
+  <Point x="-111" y="84" />
+  <Point x="0" y="84" />
+  <Point x="111" y="84" />
+  <Point x="222" y="84" />
+  <Point x="222" y="0" />
+  <Point x="111" y="0" />
+  <Point x="0" y="0" />
+  <Point x="-111" y="0" />
+  <Point x="-222" y="0" />
+  <Point x="-222" y="-84" />
+  <Point x="-111" y="-84" />
+  <Point x="0" y="-84" />
+  <Point x="111" y="-84" />
+  <Point x="222" y="-84" />
+</Sublayout>

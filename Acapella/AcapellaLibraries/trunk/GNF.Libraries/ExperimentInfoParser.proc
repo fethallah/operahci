@@ -1,0 +1,632 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of tools used to extract information from the experiment.
+//*
+//*********************************************************************************************
+
+proc getNodesData(
+	//INPUT
+	string xmlStream in, string attribute="" in "An XML Stream as a String containing the info to extract",
+	//OUTPUT
+	Memblock nodesData out "Memblock containing the data from each nodes"
+)data manipulation, XML functions "Gets the XML stream inside differnent Nodes (not including the node names nor attributes if applicable) into an array of nodes given in the order they appear first value is contained in the index 0"
+{
+	create("container")
+	rename(nodesData=container)
+	if(at("<"&attribute&"/>",xmlStream,1)!=0)
+		 return()
+	end()
+	//a valid beging tag could be: <MinPlane> or <Parameter name="VerticalBinning">
+	set(startTag=iif(at("<"&attribute&">",xmlStream,1)==0,"<"&attribute&" ","<"&attribute&">"))
+
+	//the matching end tag would be respectivelly: </MinPlane> and  </Parameter>
+	set(endTag="</"&attribute&">")
+	set(continue=true, index=0)
+
+	while (continue==true)
+
+		 set(startTagPos=at(startTag,xmlStream,1))
+		 if(startTagPos!=0)
+			  set(xmlStream=substr(xmlStream,startTagPos+length(startTag),length(xmlStream)))
+			  set(startTagPos=iif(startTag==("<"&attribute&">"),1,at(">",xmlStream,1)+1))  //used to calculate the actual location in xmlStream of the end of the desired node
+			  set(xmlStream=substr(xmlStream,startTagPos,length(xmlStream)-length(startTag)-1))
+			  set(endTagPos=at(endTag,xmlStream,1)-1)
+			  set(nodesData[index]=substr(xmlStream,1,endTagPos))
+			  set(index=index+1)
+		 else()
+			  set(continue=false)
+		 end()
+	end()
+}
+
+
+
+
+
+
+//gets the XML stream inside different Nodes (including the node names and attributes if applicable) into an array of nodes given in the order they appear
+//first value is contained in the index 0, includes the node name
+proc getNodes(
+	//INPUT
+	string xmlStream in, string attribute="" in "An XML Stream as a String containing the info to extract",
+	//OUTPUT
+	Memblock nodes out "Memblock containing the different nodes name and data"
+)data manipulation, XML functions "Gets the XML stream inside different Nodes (including the node names and attributes if applicable) into an array of nodes given in the order they appear first value is contained in the index 0, includes the node name"
+{
+	create("container")
+	rename(nodes=container)
+
+	if(at("<"&attribute&"/>",xmlStream,1)!=0)
+		 set(nodes[0]="<"&attribute&"/>")
+		 return()
+	end()
+	//a valid beging tag could be: <MinPlane> or <Parameter name="VerticalBinning">
+	set(startTag=iif(at("<"&attribute&">",xmlStream,1)==0,"<"&attribute&" ","<"&attribute&">"))
+
+	//the matching end tag would be respectivelly: </MinPlane> and  </Parameter>
+	set(endTag="</"&attribute&">")
+	set(continue=true, index=0)
+	while (continue==true)
+		 set(startTagPos=at(startTag,xmlStream,1))
+		 if(startTagPos!=0)
+			  set(endTagPos=at(endTag,xmlStream,1))
+			  set(nodes[index]=substr(xmlStream,startTagPos,(endTagPos+length(endTag)-startTagPos)))
+			  set(xmlStream=substr(xmlStream,endTagPos+Length(endTag),length(xmlStream)))
+			  set(index=index+1)
+		 else()
+			  set(continue=false)
+		 end()
+	end()
+}
+
+
+
+
+
+//This returns all of the elements in a node, an element is defined here as <XXX YYY=AAA .../> or <XXX YYY=AAA ...> The node should not contain the node name get the node data with the function getNodesData()
+proc getElementsInNode(
+	//INPUT
+	string node in, string elementName in "An XML Stream as a String containing the info to extract",
+	//OUTPUT
+	Memblock elements out "Memblock containing the elements from the node"
+)data manipulation, XML functions "This returns all of the elements in a node, an element is defined here as <XXX YYY=AAA .../> or <XXX YYY=AAA ...> The node should not contain the node name get the node data with the function getNodesData()"
+{
+	create("container")
+	rename(elements=container)
+	set(startTag="<"&elementName&" ")
+	set(endTag=">")
+	set(continue=true, index=0)
+	while (continue==true)
+		 set(startTagPos=at(startTag,node,1))
+		 if(startTagPos!=0)
+			  set(node=substr(node,startTagPos,length(node))) //substring to keep only the latest element at the begining
+			  set(endTagPos=at(endTag,node,1))
+			  set(elements[index]=substr(node,1,endTagPos)) //include ">"
+			  set(node=substr(node,endTagPos+1,length(node)))
+			  set(index=index+1)
+		 else()
+			  set(continue=false)
+		 end()
+	end()
+}
+
+
+
+
+//make a list of the attributes from a node (first node encountered if an xmlStream). Returns "WellPosX" and " WellPosY" in "<Exposures WellPosX="0" WellPosY="0"/>"
+//or  "name" in " <LaserParameter name="Laser_3">"
+//returns an array containing a membloc with a variable name containing the name and a variable value containing the associated value
+//Should be used in conjunction with getElementsInNode or getNodes (ie only the attributes from the first node will be returned!)
+proc getAttributes(
+	//INPUT
+	string element in "An elment from the XML stream obtained from getElementsInNode or getNodes",
+	//OUTPUT
+	Memblock attributes out "List of pair atrribute name, attribute value")data manipulation, XML functions "Make a list of the attributes from a node (first node encountered if an xmlStream). Returns \"WellPosX\" and \" WellPosY\" in \"<Exposures WellPosX=\"0\" WellPosY=\"0\"/>\" or  \"name\" in \" <LaserParameter name=\"Laser_3\">\" returns an array containing a membloc with a variable name containing the name and a variable value containing the associated value. This should be used in conjunction with getElementsInNode or getNodes (ie only the attributes from the first node will be returned!)"
+{
+	create("container")
+	rename(attributes=container)
+	create("container")
+	rename(attribute=container)
+
+	set(startTag="<")
+	set(endTag=">")
+	set(startTagPos=at(startTag,element,1))
+	set(endTagPos=at(endTag,element,1))
+	set(element=substr(element,startTagPos,endTagPos-startTagPos))
+	set(continue=true, index=0)
+	set(startTag=" ",midTag="=\"", endTag="\"")
+	while (continue==true)
+		set(elementLength=length(element))
+		set(midTagPos=at(midTag,element,1))
+		if(midTagPos!=0)
+			set(tempAttributeName = substr(element, 1, midTagPos-1)) //do not take the equal sign in the substring
+			set(startTagPos=at(startTag,tempAttributeName,1)+1)//do not include the space in the substring (search forward)
+			set(name=substr(tempAttributeName,startTagPos,length(tempAttributeName)))
+			set(attribute.name=name)
+			set(tempAttributeValue = substr(element ,midTagPos+2, elementLength))//do not take the equal sign and the quote in the substring
+			set(endTagPos=at(endTag,tempAttributeValue,1)-1) //to remove the quotation mark
+			set(attribute.value=substr(tempAttributeValue,1,endTagPos))
+			set(attributes[index]=attribute)
+			set(element=substr(tempAttributeValue,endTagPos+2,length(tempAttributeValue)))
+			set(index=index+1)
+		else()
+			set(continue=false)
+		end()
+	end()
+	keep(attributes)
+}
+
+
+
+
+
+//************************************************************************************************************************
+// procedures to extract info about the different ers of the experiment
+//************************************************************************************************************************
+
+
+proc extractSubLayout(
+	//INPUT
+	string xmlStream in "XML stream as a String obtained from parsing the Mea File or directly from the sublayout file",
+	//OUTPUT
+	memblock subLayout out "Memblock containing the different points from the sublayout"
+) Experiment Info Parser "This proc edure returns the different coordinates of the sublayouts in the same order as they were imaged"
+{
+	create("container")
+	set(subLayout=container)
+	rename(point=container)
+	getElementsInNode(xmlStream,"Point") //only take care of the first sublayout indicated for now
+	set(sublayout.numXFields=1)
+	set(sublayout.numYFields=1)
+	set(sublayout.firstExtensionAxis="X")
+	foreach(0..elements.length-1)
+		 getAttributes(elements[i])
+
+		 foreach(0..attributes.length-1,"index")
+			  set(name=attributes[index].name)
+			  set(value=1*attributes[index].value)
+			  set(point[name]=value)
+		end()
+		Set(subLayout[i]=point)
+		 if (i>0)
+		 if(point.x!=sublayout[i-1].x)
+			  set(sublayout.numXFields=sublayout.numXFields+1)
+			  if(i==1)
+				   set(sublayout.firstExtensionAxis="X")  //indicate that Y is the first axis extended
+			  end()
+		 else()
+			  set(sublayout.numYFields=sublayout.numYFields+1)
+			  if(i==1)
+				   set(sublayout.firstExtensionAxis="Y") //indicate that X is the first axis extended
+			  end()
+		 end()
+		 end()
+	end()
+	if(subLayout.length-3>1)
+		 if(sublayout.numXFields<sublayout.numYFields)
+			  set(sublayout.numYFields=(subLayout.length-3)/sublayout.numXFields)
+			  set(sublayout.numXFields=(subLayout.length-3)/sublayout.numYFields)
+		 else()
+			  set(sublayout.numXFields=(subLayout.length-3)/sublayout.numYFields)
+			  set(sublayout.numYFields=(subLayout.length-3)/sublayout.numXFields)
+		 end()
+	end()
+}
+
+
+
+
+
+
+//TODO, this proc edure should be expanded to extract all of the info from the experiment, including laser power,... This can easily be done by following the same usage of the XML functions defined in this set of procedures
+proc getExposure(
+	//INPUT
+	string xmlStream in "XML stream as a String obtained from parsing the Mea File or directly from the exposure file (.exs)",
+	//OUTPUT
+	memblock expInfo inout "Memblock containing the various info about the Exposure ers"
+) Experiment Info Parser "This proc edure returns information about the exposure Parameters"
+{
+
+	getNodesData(xmlStream,"ExposureParameter")//grab the magnification coeeficient
+	set(exposure=nodesData)
+
+	getNodesData(exposure[0],"Magnification")//grab the magnification coeeficient
+	set(expInfo.mag=1*nodesData[0])
+
+	getNodesData(exposure[0],"CameraParameter")
+	getNodes(nodesData[0],"Parameter")
+	set(expInfo.binning=0)
+	set(index=0)
+	while(expInfo.binning==0 && index<nodes.length)
+		 getAttributes(nodes[index])
+		 set(i=0)
+		 while(i<attributes.length && expInfo.binning==0)
+			  if (attributes[i].value=="VerticalBinning")
+				   getNodesData(nodes[index],"Parameter") //get the value of the vertical binning
+				   set(expInfo.binning=1*nodesData[0])
+			  end()
+			  set(i=i+1)
+		 end()
+		 set(index=index+1)
+	end()
+
+//TODO: implement a way to save the resolution into the skewcrop ref and MEA file when running the skewcrop analysis.
+	input(resolution,0,"Resolution","d","Entre the resolution, if you have not measured it set to 0.")
+	set(expInfo.resolution=resolution)
+	if(expInfo.resolution==0)
+		set(expInfo.resolution=(1352/expInfo.binning)*expInfo.mag/(444*20)) //At binning 1 the image size is ~1352 pixel wide and at 20x the field size is about 444um
+	end()
+
+	set(expInfo.totalC=0)
+	foreach(0..exposure.length-1)
+		 getNodesData(exposure[i],"CameraParameter")  //grab the magnification coeficient
+		 set(expInfo.totalC=expInfo.totalC+nodesData.length)
+	end()
+}
+
+
+
+
+
+proc getNumStack(
+	//INPUT
+	string xmlStream in "XML stream as a String obtained from parsing the Mea File or directly from the stack file",
+	//OUTPUT
+	integer numStack out "Numnber of Stacks"
+) Experiment Info Parser "This proc edure returns the number of stacks in the experiment"
+{
+	getNodesData(xmlStream,"MinPlane")
+	set(numStack=1*nodesData[0])
+	getNodesData(xmlStream,"MaxPlane")
+	set(numStack=1*nodesData[0]-numStack+1)
+}
+
+
+
+proc getWellInfo(
+	container _ in,
+	//OUTPUT
+	memblock wellInfo out "Memblock containg the following informations: WellIndex, Filename, BarCode name, name of the Measurment folder, Name of the directory conating the file, name of the directory containing all of the data for the plate, Meas=Name of the measurment and MeasNum=number of the measurment"
+) Experiment Info Parser "This proc edure should be launched before the loading images via the function Single() well for instance. This proc edure will return info about the current experiment in particular regarding the Well index and the name fo the file analyzed"
+{
+
+	// creates an empty memblock to use for subkeys creations
+	//if(defined("filename"))
+	//if(defined("wellindex_restored"))
+	try()
+		rename(wellIndex=wellindex_restored)
+		rename(filename=filename_restored)
+		Output(filename,"filename")
+		set(start=at("/",filename,-3))
+		set(mid=at("/",filename,-2))
+		set(end=at("/",filename,-1))
+		if(start >0)
+			set(BarCode=substr(filename, start+1,mid-start-1))
+			set(MeasFolder=substr(filename, mid+1,end-mid-1))
+			set(fileDir=substr(filename,1,end))
+			set(plateDir=substr(filename,1,mid))
+		else()
+			error("invalid bar code and/or measurment, filename="&filename)
+		end()
+		set(end=at("(",MeasFolder,1)-1)
+		set(Meas=iif(end>0,substr(MeasFolder,1,end),MeasFolder))
+
+		set(start=at("Meas_",Meas,1)+5)
+		set(MeasNum=1*substr(Meas,start,2))
+		delete(start)
+	//else()
+	catch_error()
+		set(fileDir="C:\\Opera\\Temp\\")
+		set(plateDir="C:\\Opera\\Temp\\")
+		set(BarCode="null")
+		set(Meas="null")
+		set(MeasNum=0)
+	end()
+	//if(Meas!="null")
+
+	//else()
+	//end()
+
+	Pack(wellInfo,*)
+}
+
+
+
+
+
+//************************************************************************************************************************
+// procedures to extract info from the MEA or EXP files
+// Note these procedures do not implement multiple sublayout or multiple exposure ers accross the plate!
+//************************************************************************************************************************
+
+//****************************************************************************************************************************************************************************************************************
+//											 TODO
+// Make this proc edure capable of returning the info relative to the well being measured, in the case where the plate has different regions defined with varrying exposure Parameters, sublayouts..
+//****************************************************************************************************************************************************************************************************************
+
+//extract info regarding the experiment this includes: the number of stacks (expInfo.totalStacks), the magnification (expInfo.mag), the binning (expInfo.binning), the total number of channels (expInfo.totalC)
+proc getExpInfoMea(
+	//INPUT
+	string xmlStream in "XML stream obtained from the MEA file" ,
+	//OUTPUT
+	memblock expInfo out "Memblock containing the various information about the experiment",
+	memblock sublayout out "Memblock containing the different points from the sublayout",
+	vector plateArea = vec("") in "String vector containing the name of the targeted area(s)"
+) Experiment Info Parser "This proc edure will return the sublayout used and information about the experiment settings obtained from parsing the measurment file (.mea). "
+{
+
+	rename(expInfo = cnt())
+	set(areaNodeNum=0)
+
+	getNodesData(xmlStream, "Host")
+	getAttributes(nodesData[0])
+
+	getNodesData(xmlStream,"Areas") //get the list of all of the area
+	set(xmlStream=nodesData[0]) //only keep the first area
+	set(areaNodeNum=0)
+	getNodes(xmlStream, "Area")
+	foreach(0..nodes.length-1)
+		getAttributes(nodes[i])
+		set(value="")
+		foreach(0..attributes.length-1, "j")
+			if(attributes[j].name=="name")
+				set(value=attributes[j].value)
+				set(j=attributes.length)
+			end()
+		end()
+		foreach(0..plateArea.length-1,"j")
+			set(area= iif(value!="", iif(at(plateArea[j],value,1)>0,true,false),false))
+			if(area)
+				set(areaNodeNum=i)
+				set(j=plateArea.length)
+				set(i=nodes.length)
+			end()
+		end()
+	end()
+
+	getNodesData(nodes[areaNodeNum],"Stack")//grab the stack info
+	getNumStack(nodesData[0])
+	set(expInfo.totalZ=numStack)
+
+	getNodesData(nodes[areaNodeNum], "Sublayout")
+	extractSubLayout(nodesData[0])
+	set(expInfo.totalF=subLayout.length-3) //their three other unrelated fields to remove
+
+	getNodesData(nodes[areaNodeNum], "Exposures")//return the list of exposures based on the different areas
+	getExposure(nodesData[0])
+
+	set(expInfo.totalImages=expInfo.totalF*expInfo.totalC*expInfo.totalZ)
+	keep(expInfo, sublayout)
+}
+
+proc getExpInfoExp(
+	//INPUT
+	string xmlStream in "XML stream as String containing the data extracted from the experiment file",
+	//OUTPUT
+	memblock expInfo out "Memblock containing the various information about the experiment",
+	memblock sublayout out "Memblock containing the different points from the sublayout",
+	vector plateArea = vec("") in "String vector containing the name of the targeted area(s)"
+) Experiment Info Parser "This proc edure will return the sublayout used and information about the experiment settings obtained from parsing the experiment file (.exp) . "
+{
+
+	rename(expInfo = cnt())
+
+
+	set(expInfo.sublayoutPath="",expInfo.exposureParamsPath="",expInfo.stackPath="", expInfo.refImagePath="", expInfo.skewCropPath="")
+	set(areaNodeNum=0)
+	getNodes(xmlStream, "Area")
+	foreach(0..nodes.length-1)
+		getAttributes(nodes[i])
+		set(value="")
+		foreach(0..attributes.length-1, "j")
+			if(attributes[j].name=="name")
+				set(value=attributes[j].value)
+				set(j=attributes.length)
+			end()
+		end()
+		foreach(0..plateArea.length-1,"j")
+			set(area= iif(value!="", iif(at(plateArea[j],value,1)>0,true,false),false))
+			if(area)
+				set(areaNodeNum=i)
+				set(j=plateArea.length)
+				set(i=nodes.length)
+			end()
+		end()
+	end()
+
+	getNodesData(nodes[areaNodeNum],"Skewcrop")
+	if(nodesData.length>0)
+		set(expInfo.skewCropPath= nodesData[0])
+	end()
+	getNodesData(nodes[areaNodeNum],"Sublayout")
+	if(nodesData.length>0)
+		set(expInfo.sublayoutPath= nodesData[0])
+	end()
+	getNodesData(nodes[areaNodeNum],"ExposureParams")
+	if(nodesData.length>0)
+		set(expInfo.exposureParamsPath = nodesData[0])
+	end()
+	getNodesData(nodes[areaNodeNum],"Stack")
+	if(nodesData.length>0)
+		set(expInfo.stackPath= nodesData[0])
+	end()
+	getNodesData(nodes[areaNodeNum],"Refpic")
+	if(nodesData.length>0)
+		set(expInfo.refImagePath= nodesData[0])
+	end()
+
+	if(expInfo.sublayoutPath!="")
+			eval(readfile(expInfo.sublayoutPath))
+		if(errorcode==0)
+			extractSubLayout(content)
+			set(expInfo.totalF=subLayout.length-3) //their three other unrelated fields to remove
+		else()
+			set(expInfo.totalF=1)
+		end()
+	else()
+		set(expInfo.totalF=1)
+	end()
+
+	if(expInfo.exposureParamsPath!="")
+		readfile(expInfo.exposureParamsPath)
+		getExposure(content, expInfo)
+	else()
+		error("No Valid Exposure found in the MEA file, the file may be incorrect")
+	end()
+
+	if(expInfo.stackPath!="")
+		Eval(readfile(expInfo.stackPath))
+		if(errorcode==0)
+			getNumStack(content)
+			set(expInfo.totalZ=numStack)
+		else()
+			set(expInfo.totalZ=1)
+		end()
+	else()
+			set(expInfo.totalZ=1)
+	end()
+
+	set(expInfo.totalImages=expInfo.totalF*expInfo.totalC*expInfo.totalZ)
+}
+
+
+//TODO, this should be provided with the info about the MEAS number and be saved into expInfo
+//TODO, Make this function capable of getting the correct info from the well if several regions have been defined in the plate (Todo that use the info from WellInfo and look in which region the wellID is located
+proc getExpInfo(
+	//OUTPUT
+	memblock expInfo out "Memblock containing the various information about the experiment",
+	memblock sublayout out "Memblock containing the different points from the sublayout",
+	vector plateArea = vec("") in "String vector containing the name of the targeted area(s)"
+) Experiment Info Parser "This proc edure will return the sublayout used and information about the experiment settings. "
+{
+
+	rename(expInfo=cnt())
+//TODO, this should be provided with the info about the MEAS number and be saved into expInfo
+	input(expFile,"\\\\projects\opera\db","Name of the .EXP or .MEA file")
+	set(expInfo.expFile=expFile)
+	if(at(".exp",expFile,-1)==0)
+		if(at(".mea",expFile,-1)==0)
+			error("invalid experiment or mea file")
+		else()
+			readfile(expFile)
+			getExpInfoMea(content)
+		end()
+	else()
+		readfile(expFile)
+		getExpInfoExp(content)
+	end()
+}
+
+proc getWellInfoV2(
+	table SourceData inout "Container gerenated by the single well proc edure in Evoshell >2.0",
+	container sourcedataprop inout "Container gerenated by the single well proc edure in Evoshell >2.0. New parameters are added to it"
+
+) Experiment Info Parser "This proc edure will return info about the current experiment in particular regarding the WellIndex, number of channels etc. and the name fo the file analyzed. This proc edure should be launched after loading images via the function Single() well for instance."
+{
+	if (defined("sourcedata.barcode"))
+		set(sourcedataprop.barcode=sourcedata.barcode[0])
+	else()
+		set(sourcedataprop.Barcode="NA")
+	end()
+
+	//Make sure that the file was not loaded through Acapella Player. For any other files lenght should be higher than 9.
+	if(length(sourcedata.SourceFileName[0])>9)
+		set(filename=sourcedata.SourceFileName[0])
+		set(sourcedataprop.filename=filename)
+		set(start=at("\\",filename,-3))
+		set(mid=at("\\",filename,-2))
+		set(end=at("\\",filename,-1))
+		if(start==0)
+			set(start=at("/",filename,-3))
+			set(mid=at("/",filename,-2))
+			set(end=at("/",filename,-1))
+		end()
+
+		if(start >0)
+			if(sourcedataprop.barcode=="NA")
+				set(sourcedataprop.barcode=substr(filename, start+1,mid-start-1))
+			end()
+			set(sourcedataprop.MeasFolder=substr(filename, mid+1,end-mid-1))
+			set(sourcedataprop.fileDir=substr(filename,1,end))
+			set(sourcedataprop.plateDir=substr(filename,1,mid))
+			quote(substr(filename,end+1,9))
+			RegexReplace(substr(filename,end+1,filename.length),"^\\d*_(\\d*)\\..*","$1") //replace the well name in case of external images
+			set(sourcedataprop.wellID=substr(text,1,9))
+
+
+			//added try/catch block because of archive_path problem caused by using Acapella on RMCA vs. Acapella Player.
+			try()
+				set(end=at("(",sourcedataprop.MeasFolder,1)-1)
+				set(sourcedataprop.Meas=iif(end>0,substr(sourcedataprop.MeasFolder,1,end),sourcedataprop.MeasFolder))
+				set(start=at("Meas_",sourcedataprop.Meas,1)+5)
+				set(sourcedataprop.MeasNum=1*substr(sourcedataprop.Meas,start,2))
+			catch_error()
+				set(sourcedataprop.MeasNum=0)
+			end()
+		else()
+			warning("invalid barcode and/or measurment, filename="&filename)
+		end()
+		delete(start,mid,end)
+	else()
+		set(FileName="null")
+		set(sourcedataprop.fileDir="\\\\Projects\\Opera\\Temp\\")
+		set(sourcedataprop.plateDir="\\\\Projects\\Opera\\Temp\\")
+		set(sourcedataprop.Meas="null")
+		set(sourcedataprop.MeasNum=0)
+		set(sourcedataprop.wellID=sourcedata.SourceFileName[0])
+	end()
+
+	if(Not(Defined("sourceData.Name")))
+		Set(sourceData.Name=SourceData.FrameIndex)
+	end()
+
+	if(Not(Defined("sourceData.channel")))
+		Set(sourceData.channel=SourceData.FrameIndex)
+	end()
+
+	if(Not(Defined("SourceDataProp.NumberOfImages")))
+		Set(SourceDataProp.NumberOfImages=SourceData.SourceImage.length)
+		Set(SourceDataProp.NumberOfChannels=SourceData.SourceImage.length)
+	end()
+
+	set(sourcedataprop.total=SourceDataProp.NumberOfImages)
+	set(sourcedataprop.totalC=SourceDataProp.NumberOfChannels)
+	if(defined("SourceDataProp.NumberOfFields"))
+		set(sourcedataprop.totalF=SourceDataProp.NumberOfFields)
+		set(sourcedataprop.totalZ=SourceDataProp.NumberOfPlanes)
+		set(sourcedataprop.totalT=SourceDataProp.NumberOfTimepoints)
+	else()
+		set(sourcedataprop.totalF=sourcedataprop.total/sourcedataprop.totalC)
+		set(sourcedataprop.totalZ=1)
+		set(sourcedataprop.totalT=1)
+	end()
+}
+

@@ -1,0 +1,481 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of procedures used to organize and work with images.
+//*
+//*********************************************************************************************
+
+//Group all of the images into one folder with the strcutue images[field][channel][z-section]
+proc imagesInit(
+	//INPUT
+	Memblock expInfo in "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
+	Int minIntensity=0 in "minimum intensity of any images to be define",
+	//OUTPUT
+	memblock images out "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number"
+) Image Manipulation "This proc edure returns an organized structure containing the images. Use it as a replacement of the singlewell proc edure"
+{
+	singleWell()
+	pack(images,sourceData)
+	foreach(0..expInfo.totalF-1, "field")
+		 set(images["F"&field]=cnt())
+		 set(fieldIndex=field*expInfo.totalZ*expInfo.totalC)
+	foreach(0..expInfo.totalZ-1, "stack")
+		 set(images["F"&field]["Z"&stack]=cnt())
+		 set(stackIndex=fieldIndex+stack*expInfo.totalC)
+	set(infocus=true)
+	foreach(0..expInfo.totalC-1,"chan")
+		 set(chanIndex=stackIndex+chan+1)
+		if(defined("image"&chanIndex))
+			set(image=_["image"&chanIndex])
+			if(image.max > minIntensity) //only keep the images above a given threshold
+				set(images["F"&field]["Z"&stack]["C"&chan]=image)
+				RegexReplace(sourceData.Name[""&chanIndex-1],"[0-9]*_","",first_only=true)
+				Set(images["F"&field]["Z"&stack]["NameC"&chan]=text)
+			else()
+				set(infocus=false)
+			end()
+		delete(_["image"&chanIndex])
+		else()
+			set(infocus=false)
+	   	end()
+	end()
+	if(infocus==false && defined("images.F"&field&".Z"&stack)) //remove empty Z-sections
+		delete(images["F"&field]["Z"&stack])
+	end()
+	end()
+	if(defined("images.F"&field))
+	if(images["F"&field].length==0)  //remove empty Fields
+		delete(images["F"&field])
+	end()
+	end()
+	end()
+}
+
+
+//TODO write verification to ensure that bpp is either 8bit or 16bit
+proc convertImages(
+	//INPUT
+	memblock expinfo in "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
+	memblock images inout  "Memblock containing the images organized via the ImagesInit() proc edure",
+	int bpp=1 in "Bit depth of the image should be either 8bit=1, or 16 bit=2"
+) Image Manipulation "This proc edure will convert the bit-format of the images organized in a Memblock via ImagesInit()."
+{
+	foreach(0..expInfo.totalF-1,"field")
+	foreach(0..expInfo.totalZ-1, "stack")
+	foreach(0..expInfo.totalC-1,"chan")
+		if(defined("images.F"&field&".Z"&stack&".C"&chan))
+			set(image=images["F"&field]["Z"&stack]["C"&chan])
+			convert(bpp,image=image)
+			set(images["F"&field]["Z"&stack]["C"&chan]=image)
+
+		end()
+	end()
+	end()
+	end()
+	keep(images)
+}
+
+proc projectStacks(
+	//INPUT
+	memblock expInfo inout "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	String method="max" in "Method to use to project the data. Possible values: \"overwrite\", \"average\", \"max\", \"min\", \"add\". Default: \"max\".",
+) Image Manipulation "This proc edure will project all of the stacks using the selected method to reduce the number of stacks to 1, the memblock expinfo is modified accordingly."
+{
+	foreach(0..expInfo.totalF-1,"field")
+	foreach(0..expInfo.totalC-1,"chan")
+		set(initiated=false)
+		foreach(0..expInfo.totalZ-1, "stack")
+			if(defined("images.F"&field&".Z"&stack&".C"&chan))
+				if(!initiated)
+				if(!defined("images.F"&field))
+					set(images["F"&field]=cnt())
+				end()
+				if(!defined("images.F"&field&".Z0"))
+					set(images["F"&field].Z0=cnt())
+					set(name=images["F"&field].Z0["NameC"&chan])
+				end()
+					set(images["F"&field].Z0["C"&chan]=image)
+					set(initiated=true)
+				else()
+					paste(image, image=images["F"&field].Z0["C"&chan], method=method)
+					set(images["F"&field].Z0["C"&chan]=image)
+					set(images["F"&field].Z0["NameC"&chan]=name)
+				end()
+			end()
+
+		end()
+	end()
+		foreach(1..expInfo.totalZ-1, "stack")
+			if(defined("images.F"&field&".Z"&stack))
+				delete(images["F"&field]["Z"&stack])
+			end()
+		end()
+	end()
+	set(expInfo.totalZ=1)
+	keep(images,expinfo)
+}
+
+proc projectStacksV2(
+	//INPUT
+	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	String method="max" in "Method to use to project the data. Possible values: \"overwrite\", \"average\", \"max\", \"min\", \"add\". Default: \"max\".",
+) Image Manipulation "This proc edure will project all of the stacks using the selected method to reduce the number of stacks to 1, the memblock expinfo is modified accordingly."
+{
+foreach(0..images.length-1,"field")
+set(numStacks=images[field].length)
+if(numStacks>1)
+foreach(1..numStacks-1, "stack")
+	foreach(0..images[field][1].length-1,"chan")
+		Paste(images[field][1][chan],image=images[field][0][chan], method=method)
+	end()
+	Pop(images[field],pos=1) //remove the last stack merged
+end()
+end()
+end()
+}
+//This proc edure ensures the factor when pasting to keep the highest factor  and converts the image to the bpp desired
+proc PasteImage(
+//INPUT
+	image imageToPaste in,
+	int x in "xOffset for the image to Paste",
+	int y in "yOffset for the image to Paste",
+	image image inout "image in which \"imageToPaste\" will be pasted onto",
+	int bpp=0 in "Resulting image bit per pixel model. Allowed values: 1 (8bpp), 2 (16bpp), 3 (24bpp), 4 (32bpp). Default is 0 (no change).",
+	double threshold=0 in "threshold if pixel bellow a certain value should be diregarded",
+	string method="overwrite" in,
+)image combining
+
+{
+	if(image.bpp!=bpp)
+		convert(bpp)
+	end()
+
+	if(imageToPaste.bpp!=bpp)
+		rename(imageReceivingPaste=image)
+		convert(bpp,image=imageToPaste)
+		rename(imageToPaste=image)
+		rename(image=imageReceivingPaste)
+	end()
+
+	if(image.factor!=imageToPaste.factor)
+	if(image.factor<imageToPaste.factor)
+		ensurefactor(image,imageToPaste.factor) //keep the highest factor for all images
+	else()
+		set(tempImage=image)
+		ensureFactor(imageToPaste, tempImage.factor) //keep the highest factor for all
+		set(imageToPaste=image)
+		rename(image=tempImage)
+	end()
+	end()
+	if(threshold>0)
+		rename(tempImage=image)
+		rename(image=imageToPaste)
+		mask(threshold)
+		boole(mask, "and", image=image)
+		rename(imageToPaste=image)
+		rename(image=tempImage)
+	end()
+	paste(imageToPaste,x,y, method=method)
+	keep(image)
+}//PasteImage
+
+proc wellMontage(
+	//INPUT
+	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	boolean stich=false in "Indicates wether images should be stiched by trying to overlay the images to the current montage. Stiching is slow, so use if necessary.",
+	int binning=1 in "Use if image generated is too large.",
+	int bpp=0 in "Resulting Montage bit per pixel model. Allowed values: 1 (8bpp), 2 (16bpp), 3 (24bpp), 4 (32bpp). Default is 0 (no change).",
+) Image Manipulation "This proc edure will generate a well montage of all fields taken into the well."
+{
+if(binning>1)
+	binImages()
+end()
+Set(resolutionX=images[0][0][0].ImageResolutionX@um)
+Set(resolutionY=images[0][0][0].ImageResolutionY@um)
+Set(numFields=images.length)
+if(numFields>1)
+foreach(1..numFields-1,"field")
+foreach(0..images[1].length-1, "stack")
+foreach(0..images[1][stack].length-1,"chan")
+
+	set(xIni=images[0][stack][chan].PositionX@um)
+	set(yIni=images[0][stack][chan].PositionY@um)
+	Set(imageIni=images[0][stack][chan].image)
+	Set(image=images[1][stack][chan].image)
+
+	Set(xCurrent=images[1][stack][chan].PositionX@um)
+	Set(yCurrent=images[1][stack][chan].PositionY@um)
+	Set(widthIni=imageIni.width)
+	Set(heightIni=imageIni.height)
+	Set(deltaX=xCurrent-xIni)
+	Set(deltaY=yCurrent-yIni)
+
+	Delete(images[field][stack][chan])
+
+	//REDIMENSION MONTAGE
+	//Exchange Width and Height due to -90° rotation between image and coordinates ???
+	Set(width=abs(deltaX)/resolutionX+image.width)
+	Set(width=iif(widthIni>width,widthIni,width))
+	Set(height=abs(deltaY)/resolutionY+image.height)
+	Set(height=iif(heightIni>height,heightIni,height))
+
+	Set(enlargeOffsetX=iif(deltaX<0,-1*deltaX/resolutionX,0))
+	Set(enlargeOffsetY=iif(deltaY<0,-1*deltaY/resolutionY,0))
+	redimension(width,height,enlargeOffsetX,enlargeOffsetY,image=imageIni|imageIni=image)
+
+
+	//Paste image into the Montage
+	set(pasteOffsetX=iif(deltaX<0,0,deltaX/resolutionX))
+	set(pasteOffsetY=iif(deltaY<0,0,deltaY/resolutionY))
+
+	PasteImage(image, pasteOffsetX, pasteOffsetY, image=imageIni)
+	delete(imageIni)
+	set(images[0][stack][chan].image=image)
+	set(images[0][stack][chan].PositionX@um=iif(deltaX<0,xCurrent,xIni))
+	set(images[0][stack][chan].PositionY@um=iif(deltaY<0,yCurrent,yIni))
+
+end()
+end()
+
+Pop(images,pos=1)
+
+end()
+end()
+}
+
+proc binImages(
+
+	integer binning in "Bining value sellected to bin the images.",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	String method="mean" in "Method to use to project the data. Possible values: \"mean\", \"median\", \"sum\".",
+) Image Manipulation "This proc edure will bin all of the images to the desired size, the memblock expinfo is modified accordingly."
+{
+foreach(0..images.length-1,"field")
+foreach(0..images[field].length-1, "stack")
+	foreach(0..images[field][stack].length-1,"chan")
+		Binning(binning,binning,method="mean",image=images[field][stack][chan].image)
+		Set(images[field][stack][chan].image=image)
+		try() //adjust the resuolution only if it was provided.
+			Set(images[field][stack][chan].ImageResolutionX@um=images[field][stack][chan].ImageResolutionX@um*binning)
+			Set(images[field][stack][chan].ImageResolutionY@um=images[field][stack][chan].ImageResolutionY@um*binning)
+		catch_error()
+		end()
+
+		Delete(image)
+	end()
+end()
+end()
+}
+
+proc decimateImages(
+	//INPUT
+	memblock expinfo inout "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	String dimension2Decimate="field" in "String indicating which dimension to decimate, either \"field\" or \"stack\"",
+	Integer toKeep=1 in "Integer indicating the index of the dimension to keep"
+) Image Manipulation "This proc edure will keep only the selected image amongst all of the stacks of fields."
+{
+	set(toKeep=toKeep-1)
+	if(dimension2Decimate!="field" &&dimension2Decimate!="stack" )
+		error("the only value accepted for dimension2Decimate are \"field\" and \"stack\"")
+	end()
+	set(dim=iif(dimension2Decimate=="field","F","Z"))
+	if(toKeep<0)
+		error("The data to keep can only point to a stack or field that is above 0")
+	end()
+	if(toKeep>expInfo["total"&dim]-1)
+		error("The data to keep can only point to a stack or field that exist (ie. bellow the total number of fields or stacks present)")
+	end()
+	foreach(0..expInfo["total"&dim]-1,dimension2Decimate)
+	foreach(0..expInfo["total"&iif(dimension2Decimate=="field","Z","F")]-1, iif(dimension2Decimate=="field","stack","field"))
+			if(defined("images.F"&toKeep&".Z"&stack))
+			if(dimension2Decimate!="field"&stack==0)
+				set(images["F"&field].Z0=images["F"&field]["Z"&toKeep])
+			else()
+				if(dimension2Decimate=="field"&field==0)
+					set(images.F0["Z"&stack]=images["F"&toKeep]["Z"&stack])
+				else()
+					delete(images["F"&field]["Z"&stack])
+				end()
+			end()
+			end()
+	end()
+	end()
+
+	set(expInfo["total"&dim]=1) //reset the number of fields or stacks
+	keep(expInfo,Images)
+}
+
+//Group all of the images into one folder with the strcutue images[field][channel][z-section]
+proc imagesInitV2(
+	//INPUT
+	Int minIntensity=0 in "minimum intensity of any images to be define",
+	//OUTPUT
+	container sourceDataProp out "Memblock containing info about the well",
+	table sourceData out "Memblock containing info about the well",
+	memblock images out "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number"
+
+) Image Manipulation "This proc edure returns an organized structure containing the images. Use it as a replacement of the singlewell proc edure. It will not work for time-series"
+{
+	singlewell(compact=true)
+	getWellInfoV2()
+	set(images=vec())
+	foreach(0..sourcedataProp.totalF-1, "field")
+		set(fieldIndex=field*sourcedataProp.totalZ*sourcedataProp.totalC)
+		set(zTemp=vec())
+		foreach(0..sourcedataProp.totalZ-1, "stack")
+			set(stackIndex=fieldIndex+stack*sourcedataProp.totalC)
+			set(infocus=true)
+			set(cTemp=vec())
+			foreach(0..sourcedataProp.totalC-1,"chan")
+				 set(chanIndex=stackIndex+chan)
+				if(defined("image")&infocus)
+					set(image=sourceData.sourceImage[chanIndex])
+					if(image.max > minIntensity) //only keep the images above a given threshold
+						set(temp=cnt())
+						set(temp.image=image)
+						foreach(sourceData.columns,"key")
+							if(key!="sourceImage" && key!="Name"&&key!="Channel")
+								//added to fix Acapella bug in extracting resolution information
+								//if(at("resolution",key,1)>0)
+								//	Set(magnification =1*RegexReplace(SourceData.ObjectiveRef[0],"^(\\d{1,2}).*$","\1").text)
+								//	set(temp[key]=(SourceData.CameraBinningX[0]/1352)*(444*20)/magnification) //At binning 1 the image size is ~1352 pixel wide and at 20x the field size is about 444um =>0.33µm/pix
+								//	continue()
+								//end()
+								Set(temp[key]=sourceData[key][chanIndex])
+							else()
+								RegexReplace(sourceData.Name[chanIndex],"[0-9]*_","",first_only=true)
+								set(temp.Name=text) //contains the channel name  Chan1_Exp1
+								set(temp.Desc=text) //Initiate the description to be the same as the name
+								set(temp.Purpose=vec())//initiate image purpose, typically it is a vector of string contaning: "marker", "nucDetection", "cytoDetection"...
+								set(temp.Chan=sourceData.channel[chanIndex])
+							end()
+						end()
+						push(cTemp,temp)
+					else()
+						set(infocus=false)
+						Break()
+					end()
+				else()
+					set(infocus=false)
+					Break()
+				end()
+			end()
+			if(infocus) //keep only full Z-Sections
+				push(zTemp,ctemp)
+			end()
+		end()
+		if(zTemp.length>0)
+			push(images,zTemp)
+		end()
+	end()
+	delete(sourcedata.SourceImage)
+}
+
+proc chanAttrib(
+	table chanInfo inout "Table containing the info about the different channels",
+	memblock images inout "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number",
+) Experiment Info Parser "This proc edure will add to each images the description of the channel, the min value of the channel etc.."
+{
+	create("vector", 0, chanInfo.name.length, -1)
+	set(chanInfo.number=vector)
+	delete(vector)
+
+	if(images.length>0)
+		foreach(0..chanInfo.name.length-1,"chanInfoIndex")
+			if(at(chanInfo.name[chanInfoIndex],"NA",1)>0)
+				Set(chanInfoFound=true)
+				continue()
+			end()
+			Set(ChanInfoFound=false)
+			foreach(0..images.length-1, "field")
+			foreach(0..images[field].length-1, "stack")
+			foreach(0..images[field][stack].length-1,"chan")
+				if(at(images[field][stack][chan].name,chanInfo.name[chanInfoIndex],1)>0)
+					Set(chanInfoFound=true)
+					set(chanInfo.number[chanInfoIndex]=chan)
+					Foreach(0..chanInfo.length-1)
+						Set(columnName=chanInfo.@columns[i])
+						if(columnName!="name" && columnName!="number")
+							if(columnName=="purpose")
+								push(images[field][stack][chan][columnName],chanInfo[columnName][chanInfoIndex])
+								continue()
+							end()
+							if(columnName=="desc")
+								regexReplace(chanInfo.desc[chanInfoIndex],"_","-")
+								quote(text,"Name")
+								set(images[field][stack][chan].desc=RegexReplace(quoted,"@","",first_Only=true).text)
+								continue()
+							end()
+							if(columnName=="min"&&defined("images[field][stack][chan][columnName]"))
+								Set(newValue=chanInfo[columnName][chanInfoIndex],CurrentVal=images[field][stack][chan][columnName])
+								set(images[field][stack][chan][columnName]=iif(CurrentVal>newValue,CurrentVal,newValue))
+								Delete(newValue,CurrentVal)
+								continue()
+							end()
+							set(images[field][stack][chan][columnName]=chanInfo[columnName][chanInfoIndex])
+						end()
+					end()
+				end()
+			end()
+			end()
+			end()
+			if(Not(chanInfoFound))
+				Error("The current script parameters are invalid. You are refering to a non existing channel: "&chanInfo.name[chanInfoIndex]&".")
+			end()
+		end()
+	end()
+}
+
+proc findChanNum(
+	memblock images inout "Memblock containing the images and attributes for the different channels (color).",
+	String item="" in "The value to search for. This can be a regex expression",
+	String property="" in "The image property that is searched (ex. Desc, Purpose, etc.)",
+	boolean patialMatch=true in "Indicates whether the match should be partial (true) or identical (false).",
+	Vector indexList out "Vector containing the list of channels which matches this querry. If no channel correspond to the querry an empty vector is returned.",
+) Experiment Info Parser "This proc edure will retrieve the list of channels that satisfy the querry. For instance, one can querry the list of channels that correspond to a \"marker\"."
+{
+	set(indexList=vec())
+	foreach(0..images.length-1, "chan")
+		if(typeOf(images[chan][property])!="memblock")
+			if((at(item,images[chan][property],1)>0&&partialMatch)||images[chan][property]==item)
+				push(indexList,chan)
+			end()
+			continue()
+		end()
+		if(images[chan][property].class=="vector")
+			if(searchElem(item=item, vector=images[chan][property]).pos>=0)
+				push(indexList,chan)
+			end()
+			continue()
+		end()
+	end()
+}

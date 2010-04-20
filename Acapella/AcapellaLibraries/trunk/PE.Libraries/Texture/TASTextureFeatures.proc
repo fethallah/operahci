@@ -1,0 +1,120 @@
+/////////////// Threshold Adjacency Statistics
+////////////// Proptotype: a procedure from McMaster University
+////////////// Reference: Hamilton et al. BMC informatics, 2007. 8:110
+////////////// Last inspected by Peet Kask 2009-07-23
+// ODe 2009-09-19: Replaced [internal] bei [hidden] for Acap 2.0
+
+package(Texture)
+
+
+/////// An envelope procedure for general Acapella users //////////////////////
+
+proc CalcTASFeatures(
+	image image explicit in "Image to be analysed",
+	double bracket=0.2 explicit in "Braket Factor : The value used will provide varying cutt-offs depending on the normalization method selected. This value, used in conjunction with the mean intensity of an object allows to establish 3 different thresholds. For a given object, the absolute thresholds are then calculated with: \"(mean object intensity)*(1+-bracket)\", when NormalizationMethod=\"Mean\"; \"(mean object intensity) +/- bracket x (StdDev object intensity)\" when NormalizationMethod=\"zScore\"; \"(mean object intensity) +/- bracketwhen\" when  NormalizationMethod=\"None\". This value should should be >0 when NormalizationMethod=\"None\" or \"zScore\" and be set between 0 and 1 when NormalizationMethod=\"Mean\".",
+	string stencilname="body" explicit in "Name of the region of interest -- must be present in input objectlist",
+	objectlist objects inout "Predefined objectlist. In output, 30 TAS features appear as new attributes",
+	table TASInfo out "Meaning of texture features",
+	String NormalizationMethod="Mean" in "Indicates which normalization should be used to normalize the object intensity. The following methods are accepetd: \"None\" in which case no normalization is provided and the bracket refferes to raw pixel values; \"Mean\", in which case the values are normalized by the mean value of the object and the bracket then reffers to a fold intensity above and bellow the mean value; \"zScore\" in which case each pixels is converted into a number of StdDev above and bellow the mean value and a Z-score reflects a cutt-off in this scale.",
+	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
+)Texture "Calculation of a set of Threshold Adjacency Statistics -- texture features -- of previously defined objects. Reference: Hamilton et al. BMC informatics, 2007. 8:110"
+{	
+	if(NormalizationMethod!="Mean"&& bracket<0.01) error("The value of bracket should be >0 regardless of the normalization method selected") end()
+	if(NormalizationMethod=="Mean" && bracket>0.99) error("The value of bracket should be between 0 and 1 when the Normalization method select is \"Mean\"") end()
+
+	Set(imageIni=image)
+	Set(objectsIni=objects)
+	if(!defined("objects[stencilname]"))
+		error("Specified stencil is absent in the objectlist")
+	end()
+	Stencil2Objects(objects[stencilname])
+
+	if(NormalizationMethod=="Mean" || NormalizationMethod=="zScore")	
+	//blank(image.width, image.height)
+		//convelems(image, type="double",sign = "autodetect")
+		CalcStat("mean", Stencil=body, Image=image, objects=objects, AttrName="Mean")
+		carryobjects(objects.body, objects.Mean | imageMean=image)
+		if(NormalizationMethod=="Mean")
+			set(image=imageIni/imageMean)
+			delete(imageIni,ImageMean)
+		end()
+		if(NormalizationMethod=="zScore")
+			CalcStat("mean", Stencil=body, Image=image, objects=objects, AttrName="StdDev")
+			carryobjects(objects.body, objects.StdDev | imageStdDev=image)
+			set(image=(imageIni - imageMean)/ imageStdDev)
+			delete(imageIni,ImageMean,imaegStdDev)
+		end()	
+	end()
+	TAS30(image, bracket, objects)
+	rename(objects=ObjectsIni)
+// ODe 2009-09-16:	set(featurenames=TASInfo.featurename)
+	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
+	set(featurenames = TASInfo.feature)
+	foreach(featurenames,"featurename")
+		Set(objects[AttrPrefix & featurename]=TASFeatures[featurename])
+	end()
+}
+
+//////////// Internal procedure //////////////////////////////////////////////
+
+proc	TAS30(
+	image image explicit in "Image of interest",
+	double bracket=0.2 explicit in "Threshold bracket",
+	objectlist objects = objects in "Objects with body-stencil of interest",
+	table TASFeatures out "Table of threshold adjacency statistics",
+	table TASInfo out "Meaning of texture features",
+	vector maskvec out "The set of threshold masks",
+)[hidden] Texture "Calculation of Threshold Adjacency Statistics of previously defined objects. Calculated texture features are in a separate table."
+{
+
+	set(in_objects=objects)
+	if(!defined("objects.area"))
+		calcArea()
+	end()
+	rename(ratio_image=image)
+
+	set(TASFeatures=tbl())
+	push(lowvec, 1.0-bracket, 1.0-bracket, 1.0)
+	push(highvec, 1.0+bracket, inf, inf)
+	push(labelvec, "TAS_LowHigh", "TAS_LowInf", "TAS_MeanInf")
+
+	foreach(0..2, "i")
+		set(low=lowvec[i])
+		set(high=highvec[i])
+		set(label=labelvec[i])
+		mask(low, image=ratio_image | mask12=mask)
+		if(i==0)
+			mask(high, image=ratio_image | mask2=mask)
+			set(mask12=mask12-mask2)
+		end()
+		push(maskvec, mask12)
+		blank(3,3,2 | kernel=image)
+		convolution(image=mask12, ConvolutionKernel=kernel, ConvolutionKernelFactor=2 | adjac0=image)
+
+		calcstat("sum", AttrName="mask12area", Stencil=body, Image=mask12, objects=objects)
+		set(adjac=adjac0*mask12)
+		set(featurename=label)
+		set(TASFeatures[featurename]=objects.mask12area/objects.area)
+		push(featurenamev, featurename)
+		push(lowv, low)
+		push(highv, high)
+		push(adjacv, "any")
+		push(denomv, "full area")
+
+		mask(1, image=adjac)
+		foreach(2..10, "p")
+			Rename(Mask3=mask)
+			mask(p, image=adjac)
+			set(mask3=mask3-mask)
+			calcstat("sum", AttrName="mask3area", Stencil=body, Image=mask3, objects=objects)
+			set(featurename=label & (p-1))
+			set(TASFeatures[featurename]=objects.mask3area/objects.mask12area)
+			push(featurenamev, featurename)
+			push(lowv, low)
+			push(highv, high)
+			push(adjacv, p-1)
+			push(denomv, "mask area")
+		end()
+	end()
+	set(TASInfo=tbl(feature=featurenamev, low=lowv, high=highv, adjacency=adjacv, normalization=denomv))
+}

@@ -1,0 +1,95 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of misceleanous tools.
+//*
+//*********************************************************************************************
+
+proc searchElem(
+String item in "The value to search for.",
+Vector vector in "The vector to search.",
+int pos out "The element index where the item partially matching the item was found, or -1 if the item was not found.",
+int startpos=0 in "Starting position index of the search. Negative value for backward searching",
+int occurence=1 in "Occurence number of the term to find",
+boolean patialMatch=true in "Indicates whether the match should be partial (true) or identical (false).",
+) data proc essing "Finds the index of the selected occurence for the specified item in a vector that at least partially matches the item."
+{
+set(Pos=-1)
+if(startPos>vector.length-1||-1*startPos>vector.length-1)
+	Warning("The endex selected in startPos exceeds the length of the vector!")
+	Return()
+end()
+if(occurence<1)
+	Warning("The Occurence should be superior to 1!")
+	Return()
+end()
+if(vector.length<1)
+	Warning("The Vector provided is empty.")
+	Return()
+end()
+set(end=vector.length-1)
+set(start=startPos)
+if(startPos<0)
+	set(start=end+startPos)
+	set(end=0)
+end()
+set(direction = iif(startPos<0,-1,1))
+foreach(0..occurence-1,"occurenceNum")
+	set(Pos=-1)
+	foreach(start..end)
+		if((at(item,vector[i],1)>0&&patialMatch)||(vector[i]==item))
+			Set(Pos=i) //Sets the current valid position
+			set(start=i+direction) //sets the new starting point
+			Break()
+		end()
+	end()
+	if(start+direction==end) //test if the last element of the vector was searched.
+		return()
+	end()
+end()
+}
+
+proc reQuote(
+	String text inout "Text that should be quoted again",
+) Text Manipulation "This function allows to quote a String that is the composit of quoted and unquoted string"
+{
+	RegexReplace(text,"@","",first_Only=true)
+	RegexReplace(Quote(text,"Name").quoted,"@40(\d{1,3})","@\1",first_Only=false)
+}
+
+proc appendQuotedText(
+	String text inout "Left portion of the string Returned",
+	String text2="" in "Right portion of the text to happend and that needs to be put in quotes (cf. quote()/unquote())",
+) Text Manipulation "This function allows to append a new string to a previous string for latter use with the quote() / unquote() modules"
+{
+	Rename(text1=text,text=text2)
+	RegexReplace(Quote(text,"Name").quoted,"@","",first_Only=true)
+	Set(text=text1&text)
+}
