@@ -147,12 +147,13 @@ proc outputMemblockData(
 	end()
 
 	if(data.class=="vector")
-		if(statValue=="allValues")
+		if(data.elemtype==13) //printout all of the values for a string.
 			SprintfLoop("value", "%g;", data)
 		else()if(defined("data[statValue]"))
 			set(value=data[statValue])
 		else()
-			warning("The statistical value requested: "&statValue&" does not exist for:"&dataName&" - " & data.description)
+			warning("The statistical value requested: "&statValue&" does not exist for: "&dataName&" - " & data.description)
+			set(value=0/0)
 			return()
 		end()
 		end()

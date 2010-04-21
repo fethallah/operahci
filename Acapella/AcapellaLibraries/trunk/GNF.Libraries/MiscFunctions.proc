@@ -28,7 +28,7 @@
 
 //*********************************************************************************************
 //*
-//* This library defines a set of misceleanous tools.
+//* This library defines a set of miscellaneous tools.
 //*
 //*********************************************************************************************
 
@@ -37,13 +37,13 @@ String item in "The value to search for.",
 Vector vector in "The vector to search.",
 int pos out "The element index where the item partially matching the item was found, or -1 if the item was not found.",
 int startpos=0 in "Starting position index of the search. Negative value for backward searching",
-int occurence=1 in "Occurence number of the term to find",
+int occurence=1 in "Occurrence number of the term to find",
 boolean patialMatch=true in "Indicates whether the match should be partial (true) or identical (false).",
-) data proc essing "Finds the index of the selected occurence for the specified item in a vector that at least partially matches the item."
+) data processing "Finds the index of the selected occurrence for the specified item in a vector that at least partially matches the item."
 {
 set(Pos=-1)
 if(startPos>vector.length-1||-1*startPos>vector.length-1)
-	Warning("The endex selected in startPos exceeds the length of the vector!")
+	Warning("The index selected in startPos exceeds the length of the vector!")
 	Return()
 end()
 if(occurence<1)
@@ -78,7 +78,7 @@ end()
 
 proc reQuote(
 	String text inout "Text that should be quoted again",
-) Text Manipulation "This function allows to quote a String that is the composit of quoted and unquoted string"
+) Text Manipulation "This function allows to quote a String that is the composite of quoted and unquoted string"
 {
 	RegexReplace(text,"@","",first_Only=true)
 	RegexReplace(Quote(text,"Name").quoted,"@40(\d{1,3})","@\1",first_Only=false)
@@ -86,7 +86,7 @@ proc reQuote(
 
 proc appendQuotedText(
 	String text inout "Left portion of the string Returned",
-	String text2="" in "Right portion of the text to happend and that needs to be put in quotes (cf. quote()/unquote())",
+	String text2="" in "Right portion of the text to append and that needs to be put in quotes (cf. quote()/unquote())",
 ) Text Manipulation "This function allows to append a new string to a previous string for latter use with the quote() / unquote() modules"
 {
 	Rename(text1=text,text=text2)
