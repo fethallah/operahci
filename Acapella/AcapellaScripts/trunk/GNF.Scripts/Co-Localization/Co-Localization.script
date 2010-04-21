@@ -105,7 +105,7 @@ proc paramInit(memblock param out){
 
 	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
 	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
-	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\".")
 
 	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the signal considered as positive;\" \"folds: number of fold above the background for the signal to be considered as positive;\", \" stddev: number of bckground standard deviation above the background for the signal to be considered as positive.\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
 	if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")

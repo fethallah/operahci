@@ -71,7 +71,7 @@ proc paramInit(memblock param out){
 
 	input(SubstractBackground, false, "Substract Background", type="b", description="Indicate whether you want to detect and substract the background.")
 	input(minObjectSize,5,"Minimum Object Size",Type="d", description="Minimum size of the object to be considered as part of the pixels above background. Help remove small artifacts. modify qith \"Pizel Above Background\" preview. Allowed range: 0..1000, step 1.")
-	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\".")
 	input(ZStackProjectionType, "NA", "Z-Stack Projection", type="String", description="Select what type of Z-projection you wish to use. \"NA\" indictaes that you do not wish to project your z-stack, but use each section as an independent measurment. Allowed values: \"NA\", \"Add\", \"Average\", \"Max\", \"Min\".")
 	input(showIllustrations, false, "Show Illustrations", type="b", description="Indicate if you want to see the illustration for the objects detected.")
 	input(fieldSelected, 1, "Field To Analyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
