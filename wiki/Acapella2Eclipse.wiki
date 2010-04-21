@@ -1,0 +1,23 @@
+#labels Utility,EclipseColorer
+This page gives a brief overview about using [http://eclipse.org/ Eclipse] to devellope Acapella Code.
+
+= Introduction =
+
+It is easy to write and test Acapella Code with [http://eclipse.org/ Eclipse] a module to color your code has been devellop for the [http://colorer.sourceforge.net/eclipsecolorer/index.html Eclipse Colorer plugin].
+
+= Set Up =
+
+1) Install [http://eclipse.org/ Eclipse]: http://eclipse.org/
+
+2) Install the [http://colorer.sourceforge.net/eclipsecolorer/index.html Eclipse Colorer plugin]: http://colorer.sourceforge.net/eclipsecolorer/index.html For better functionallity install the [https://sourceforge.net/projects/colorer/files/Eclipse%20Colorer/EclipseColorer-take5_0.8.0/EclipseColorer-take5_0.8.0.zip/download version 0.8.0] of the plugin by unpacking content of the plugin's package into %ECLIPSEHOME%/plugins/
+
+3) Edit the *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/catalog.xml* and add in the <hrc-sets> the following line: *_<location link="hrc/acapella/acapellaLink.hrc"/>_*
+
+4) Create a folder named acapella in: *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/hrc
+
+5) Add to the newly created folder the content of: http://code.google.com/p/operahci/source/browse/#svn/Acapella/MiscTools/EclipseIntegration/trunk/EclipseColorer/acapella
+
+6) Start Eclipse and open a .script, .param or .parameter file.
+
+= Result =
+If everything goes according to plan your code should now be colored!
