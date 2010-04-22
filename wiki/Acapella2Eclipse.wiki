@@ -11,8 +11,7 @@ It is easy to write and test Acapella Code with [http://eclipse.org/ Eclipse] a 
 
 2) Install the [http://colorer.sourceforge.net/eclipsecolorer/index.html Eclipse Colorer plugin]: http://colorer.sourceforge.net/eclipsecolorer/index.html For better functionallity install the [https://sourceforge.net/projects/colorer/files/Eclipse%20Colorer/EclipseColorer-take5_0.8.0/EclipseColorer-take5_0.8.0.zip/download version 0.8.0] of the plugin by unpacking content of the plugin's package into %ECLIPSEHOME%/plugins/
 
-3) Edit the *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/catalog.xml* and add in the <hrc-sets> container the following line: *_<location link="hrc/acapella/acapellaLink.hrc"/>_*
-
+3) Edit the *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/catalog.xml* and add in the <hrc-sets> container the following line: <location link="hrc/acapella/acapellaLink.hrc"/>
 4) Create a folder named acapella in: *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/hrc
 
 5) Add to the newly created folder the content of: http://code.google.com/p/operahci/source/browse/#svn/Acapella/MiscTools/EclipseIntegration/trunk/EclipseColorer/acapella
