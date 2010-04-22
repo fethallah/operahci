@@ -21,3 +21,5 @@ It is easy to write and test Acapella Code with [http://eclipse.org/ Eclipse] a 
 
 = Result =
 If everything goes according to plan your code should now be colored!
+
+http://code.google.com/p/operahci/source/browse/wiki/Acapella2EclipseImages/EclispeColorerScreenshot.png
