@@ -6,9 +6,9 @@ This page gives a brief overview about using [http://eclipse.org/ Eclipse] to de
 It is easy to write and test Acapella Code with [http://eclipse.org/ Eclipse] a module to colorize your code has been developed for the [http://colorer.sourceforge.net/eclipsecolorer/index.html Eclipse Colorer plugin]. This will allow you to program in a nice IDE and leverage many functions not implemented in the Evoshell, such as SVN, spell checker, other programming resources etc.
 
 = Set Up =
-1) Install [http://eclipse.org/ Eclipse]: http://eclipse.org/
+1) Install Eclipse: http://eclipse.org/
 
-2) Install the [http://colorer.sourceforge.net/eclipsecolorer/index.html Eclipse Colorer plugin]: http://colorer.sourceforge.net/eclipsecolorer/index.html For better functionallity install the [https://sourceforge.net/projects/colorer/files/Eclipse%20Colorer/EclipseColorer-take5_0.8.0/EclipseColorer-take5_0.8.0.zip/download version 0.8.0] of the plugin by unpacking content of the plugin's package into %ECLIPSEHOME%/plugins/
+2) Install the "Eclipse Colorer plugin": http://colorer.sourceforge.net/eclipsecolorer/index.html For better functionallity install the [https://sourceforge.net/projects/colorer/files/Eclipse%20Colorer/EclipseColorer-take5_0.8.0/EclipseColorer-take5_0.8.0.zip/download version 0.8.0] of the plugin by unpacking content of the plugin's package into %ECLIPSEHOME%/plugins/
 
 3) Edit the *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/catalog.xml* and add in the *{{{<hrc-sets>}}}* container the following line: <location link="hrc/acapella/acapellaLink.hrc"/>
 4) Create a folder named acapella in: *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/hrc
