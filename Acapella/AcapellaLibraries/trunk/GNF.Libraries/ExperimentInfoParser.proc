@@ -198,7 +198,7 @@ proc extractSubLayout(
 	string xmlStream in "XML stream as a String obtained from parsing the Mea File or directly from the sublayout file",
 	//OUTPUT
 	memblock subLayout out "Memblock containing the different points from the sublayout"
-) Experiment Info Parser "This proc edure returns the different coordinates of the sublayouts in the same order as they were imaged"
+) Experiment Info Parser "This procedure returns the different coordinates of the sublayouts in the same order as they were imaged"
 {
 	create("container")
 	set(subLayout=container)
@@ -246,13 +246,13 @@ proc extractSubLayout(
 
 
 
-//TODO, this proc edure should be expanded to extract all of the info from the experiment, including laser power,... This can easily be done by following the same usage of the XML functions defined in this set of procedures
+//TODO, this procedure should be expanded to extract all of the info from the experiment, including laser power,... This can easily be done by following the same usage of the XML functions defined in this set of procedures
 proc getExposure(
 	//INPUT
 	string xmlStream in "XML stream as a String obtained from parsing the Mea File or directly from the exposure file (.exs)",
 	//OUTPUT
 	memblock expInfo inout "Memblock containing the various info about the Exposure ers"
-) Experiment Info Parser "This proc edure returns information about the exposure Parameters"
+) Experiment Info Parser "This procedure returns information about the exposure Parameters"
 {
 
 	getNodesData(xmlStream,"ExposureParameter")//grab the magnification coeeficient
@@ -301,7 +301,7 @@ proc getNumStack(
 	string xmlStream in "XML stream as a String obtained from parsing the Mea File or directly from the stack file",
 	//OUTPUT
 	integer numStack out "Numnber of Stacks"
-) Experiment Info Parser "This proc edure returns the number of stacks in the experiment"
+) Experiment Info Parser "This procedure returns the number of stacks in the experiment"
 {
 	getNodesData(xmlStream,"MinPlane")
 	set(numStack=1*nodesData[0])
@@ -315,7 +315,7 @@ proc getWellInfo(
 	container _ in,
 	//OUTPUT
 	memblock wellInfo out "Memblock containg the following informations: WellIndex, Filename, BarCode name, name of the Measurment folder, Name of the directory conating the file, name of the directory containing all of the data for the plate, Meas=Name of the measurment and MeasNum=number of the measurment"
-) Experiment Info Parser "This proc edure should be launched before the loading images via the function Single() well for instance. This proc edure will return info about the current experiment in particular regarding the Well index and the name fo the file analyzed"
+) Experiment Info Parser "This procedure should be launched before the loading images via the function Single() well for instance. This procedure will return info about the current experiment in particular regarding the Well index and the name fo the file analyzed"
 {
 
 	// creates an empty memblock to use for subkeys creations
@@ -369,7 +369,7 @@ proc getWellInfo(
 
 //****************************************************************************************************************************************************************************************************************
 //											 TODO
-// Make this proc edure capable of returning the info relative to the well being measured, in the case where the plate has different regions defined with varrying exposure Parameters, sublayouts..
+// Make this procedure capable of returning the info relative to the well being measured, in the case where the plate has different regions defined with varrying exposure Parameters, sublayouts..
 //****************************************************************************************************************************************************************************************************************
 
 //extract info regarding the experiment this includes: the number of stacks (expInfo.totalStacks), the magnification (expInfo.mag), the binning (expInfo.binning), the total number of channels (expInfo.totalC)
@@ -380,7 +380,7 @@ proc getExpInfoMea(
 	memblock expInfo out "Memblock containing the various information about the experiment",
 	memblock sublayout out "Memblock containing the different points from the sublayout",
 	vector plateArea = vec("") in "String vector containing the name of the targeted area(s)"
-) Experiment Info Parser "This proc edure will return the sublayout used and information about the experiment settings obtained from parsing the measurment file (.mea). "
+) Experiment Info Parser "This procedure will return the sublayout used and information about the experiment settings obtained from parsing the measurment file (.mea). "
 {
 
 	rename(expInfo = cnt())
@@ -434,7 +434,7 @@ proc getExpInfoExp(
 	memblock expInfo out "Memblock containing the various information about the experiment",
 	memblock sublayout out "Memblock containing the different points from the sublayout",
 	vector plateArea = vec("") in "String vector containing the name of the targeted area(s)"
-) Experiment Info Parser "This proc edure will return the sublayout used and information about the experiment settings obtained from parsing the experiment file (.exp) . "
+) Experiment Info Parser "This procedure will return the sublayout used and information about the experiment settings obtained from parsing the experiment file (.exp) . "
 {
 
 	rename(expInfo = cnt())
@@ -525,7 +525,7 @@ proc getExpInfo(
 	memblock expInfo out "Memblock containing the various information about the experiment",
 	memblock sublayout out "Memblock containing the different points from the sublayout",
 	vector plateArea = vec("") in "String vector containing the name of the targeted area(s)"
-) Experiment Info Parser "This proc edure will return the sublayout used and information about the experiment settings. "
+) Experiment Info Parser "This procedure will return the sublayout used and information about the experiment settings. "
 {
 
 	rename(expInfo=cnt())
@@ -546,10 +546,10 @@ proc getExpInfo(
 }
 
 proc getWellInfoV2(
-	table SourceData inout "Container gerenated by the single well proc edure in Evoshell >2.0",
-	container sourcedataprop inout "Container gerenated by the single well proc edure in Evoshell >2.0. New parameters are added to it"
+	table SourceData inout "Container gerenated by the single well procedure in Evoshell >2.0",
+	container sourcedataprop inout "Container gerenated by the single well procedure in Evoshell >2.0. New parameters are added to it"
 
-) Experiment Info Parser "This proc edure will return info about the current experiment in particular regarding the WellIndex, number of channels etc. and the name fo the file analyzed. This proc edure should be launched after loading images via the function Single() well for instance."
+) Experiment Info Parser "This procedure will return info about the current experiment in particular regarding the WellIndex, number of channels etc. and the name fo the file analyzed. This procedure should be launched after loading images via the function Single() well for instance."
 {
 	if (defined("sourcedata.barcode"))
 		set(sourcedataprop.barcode=sourcedata.barcode[0])

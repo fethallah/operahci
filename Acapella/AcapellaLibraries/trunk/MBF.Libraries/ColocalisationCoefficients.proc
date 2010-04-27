@@ -1,5 +1,5 @@
 //#############################################################################################
-//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
 //# and libraries.
 //#
 //# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
@@ -33,7 +33,7 @@
 
 //*********************************************************************************************
 //*
-//* This library defines a set of proc edures used calculates the various colocalisation
+//* This library defines a set of procedures used calculates the various colocalisation
 //* coefficients for two input images using a user defined objects list
 //*
 //*********************************************************************************************

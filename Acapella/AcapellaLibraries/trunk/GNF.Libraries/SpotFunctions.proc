@@ -53,15 +53,15 @@ proc Spot_Detection_Select(
 	double IntegratedSpotSignalPerArea out "Integrated spot signal per SearchRegion area (per visible ~cell area).",
 	double IntegratedSpotSignalPerArea_BackgroundSubtracted out "Integrated spot signal BackgroundSubtracted per SearchRegion area (per visible ~cell area)."
 
-) object recognition, spot detection "Spot detection proc edure, which allows to scan the input parameters. The player inputs created by the proc edure are in the sub-section \"Spot Detection\". The detection algorithm (e.g. A, B, C, D) can be determined with the player input \"Spot Detection Algorithm\". Write to the input window just a single letter, e.g. A or SET for comparing results of all routines. The algorithms are identical to ones called by Spot_Detection_A(), Spot_Detection_B() and the output results are the same. If the nuclei detection output contains errors one can apply the parameter scan with an aim to find the input parameter values, which provide the most appropriate nuclei recognition. The parameter scan can be controlled with the player input \"Parameter SCAN\". With the default value \"None\" the parameter scan is not applied. Select from \"Parameter SCAN\" menu the parameter you would like to scan and click to Run. The proc edure scans the parameter over the whole range and depicts the corresponding detection results. The label of the output illustration corresponds to the parameter value, e.g. the label \"3.0\" in case of the \"SpotMinimumDistance\" scan marks the result obtained with SpotMinimumDistance=3.0. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. If needed apply the scan step-wise for all input parameters starting from \"SpotMinimumDistance\". Afterwards test the selected set of input parameters with the different images. Please note, that it is possible to scan only one parameter at time and that if \"SET\" or multiple algorithms are already selected for the input \"Spot Detection Algorithm\" the parameter scan is not supported."
+) object recognition, spot detection "Spot detection procedure, which allows to scan the input parameters. The player inputs created by the procedure are in the sub-section \"Spot Detection\". The detection algorithm (e.g. A, B, C, D) can be determined with the player input \"Spot Detection Algorithm\". Write to the input window just a single letter, e.g. A or SET for comparing results of all routines. The algorithms are identical to ones called by Spot_Detection_A(), Spot_Detection_B() and the output results are the same. If the nuclei detection output contains errors one can apply the parameter scan with an aim to find the input parameter values, which provide the most appropriate nuclei recognition. The parameter scan can be controlled with the player input \"Parameter SCAN\". With the default value \"None\" the parameter scan is not applied. Select from \"Parameter SCAN\" menu the parameter you would like to scan and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. The label of the output illustration corresponds to the parameter value, e.g. the label \"3.0\" in case of the \"SpotMinimumDistance\" scan marks the result obtained with SpotMinimumDistance=3.0. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. If needed apply the scan step-wise for all input parameters starting from \"SpotMinimumDistance\". Afterwards test the selected set of input parameters with the different images. Please note, that it is possible to scan only one parameter at time and that if \"SET\" or multiple algorithms are already selected for the input \"Spot Detection Algorithm\" the parameter scan is not supported."
 {
 	if( SearchRegion!="" and defined("WholeCells"))
 		if(!defined("WholeCells." & SearchRegion))
-			error("proc edure Spots_Detection_A() input attribute SearchRegion " & SearchRegion & " does not exist. The input SearchRegion should correspond to the stencyl-type attribute in the input object list or to be an empty string \"\". The empty string means that spots are searched over the whole image and the input object list is ignored.")
+			error("Procedure Spots_Detection_A() input attribute SearchRegion " & SearchRegion & " does not exist. The input SearchRegion should correspond to the stencyl-type attribute in the input object list or to be an empty string \"\". The empty string means that spots are searched over the whole image and the input object list is ignored.")
 		else()
 			eval("set(SearchMask=WholeCells." & SearchRegion & ")")
 			if (SearchMask.class!="intervalvector")
-				error("proc edure Spots_Detection_A() input attribute SearchRegion " & SearchRegion & " is not a stencil. The input SearchRegion should correspond to the stencyl-type attribute in the input object list or to be an empty string \"\". The empty string means that spots are searched over the whole image and the input object list is ignored.")
+				error("procedure Spots_Detection_A() input attribute SearchRegion " & SearchRegion & " is not a stencil. The input SearchRegion should correspond to the stencyl-type attribute in the input object list or to be an empty string \"\". The empty string means that spots are searched over the whole image and the input object list is ignored.")
 			end()
 		end()
 		set(SearchObjects=WholeCells)
@@ -90,7 +90,7 @@ proc Spot_Detection_Select(
 
 	input(SpotMinimumToCellIntensity, 1.0, "SpotMinimumToCellIntensity: Spot Detection","d","Minimum allowed intensity ratio between Spot Peak Intensnity and the Average Intensity of the cell/object to which the spot is belongs. Has smaller influence on the outputs than the main selection parameter SpotMinimumContrast. Adjust parameter by illustrations SpotSelection and Spots. If the parameter value is lowered the number of classified spots increases and vice versa. Allowed range: 0..20, step 0.01.")
 
-	input(ScanParameter, "None", "Parameter SCAN: Spot Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The proc edure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. Possible values: \"None\", \"SpotMinimumDistance\",\"SpotPeakRadius\",\"SpotReferenceRadius\",\"SpotMinimumContrast\",\"SpotMinimumToCellIntensity\",\"Algorithm\"")
+	input(ScanParameter, "None", "Parameter SCAN: Spot Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. Possible values: \"None\", \"SpotMinimumDistance\",\"SpotPeakRadius\",\"SpotReferenceRadius\",\"SpotMinimumContrast\",\"SpotMinimumToCellIntensity\",\"Algorithm\"")
 
 
 	//ensures that you use the actuall parameters with RMCA or Linux
@@ -99,7 +99,7 @@ proc Spot_Detection_Select(
 
 	FindElem(SpotAlgorithm,algorithmsVec)
 	if(pos==-1)
-		Error("The algorithm selected for the cytoplasmic detection is invalid. Supported algorithms are \"A\",\"B\",\"C\",\"D\" and \"E\".")
+		Error("The algorithm selected for the spot detection is invalid. Supported algorithms are \"A\",\"B\",\"C\",\"D\" and \"E\".")
 	end()
 	if(ScanParameter=="none")
 		set(scanVec=vec(0))
@@ -492,6 +492,7 @@ boolean showIllustrations=true in "Optional. Used to indicate if you want to see
 bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
 ) object recognition "Refine the spots to better fit the image"
 {
+	
 	ParasiteDetection_parameters()
 	ParasiteDetection_inner()
 }

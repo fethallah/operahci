@@ -169,7 +169,7 @@ proc bckGndDetection(
 //OUTPUT
 	objectList objects out "Object represnting the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
 	double stdDevToSubstract=0 inout "Optional: Inducate how many standard deviation of the noise should be considered as background.",
-) object list manipulations "This proc edure detects the object containing the background pixels"
+) object list manipulations "This procedure detects the object containing the background pixels"
 {
 	if(minLevel==0)
 		input(minLevel,0,"Min Channel Level: Background detection",Type="i", description="Used to remove from the background object mask pixels bellow this value. Usefull to remove border of a well for instace. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded. Allowed range: 0..1000.")
@@ -195,7 +195,7 @@ proc bckGndDetection_Inner(
 //OUTPUT
 	objectList objects out "Object represnting the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
 	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwriten by setting the input to true. Select depending on the background illustation."
-) object list manipulations "This proc edure detects the object containing the background pixels"
+) object list manipulations "This procedure detects the object containing the background pixels"
 {
 	set(initImage=image)
 	convert(bpp=1,image=image)
@@ -727,7 +727,7 @@ proc AssociateObject2Phenotypes(
 proc compositObjectVerifier(
 	container compositObject in "Conatiner to validate as \"compositobjectlist\"",
 	boolean isCompositObject out "Value which indicates whether the object provided is a composit object or not",
-) [hidden] "Technical proc edure, which asses wether the container provided is a valid \"compositobjectlist\""
+) [hidden] "Technical procedure, which asses wether the container provided is a valid \"compositobjectlist\""
 {
 	set(isCompositObject=false)
 	if(compositObject.class!="compositobjectlist")

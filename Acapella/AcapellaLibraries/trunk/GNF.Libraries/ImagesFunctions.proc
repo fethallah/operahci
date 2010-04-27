@@ -35,11 +35,11 @@
 //Group all of the images into one folder with the strcutue images[field][channel][z-section]
 proc imagesInit(
 	//INPUT
-	Memblock expInfo in "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
+	Memblock expInfo in "Memblock containing the experimental info, obtained from the getExpInfo() procedure",
 	Int minIntensity=0 in "minimum intensity of any images to be define",
 	//OUTPUT
 	memblock images out "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number"
-) Image Manipulation "This proc edure returns an organized structure containing the images. Use it as a replacement of the singlewell proc edure"
+) Image Manipulation "This procedure returns an organized structure containing the images. Use it as a replacement of the singlewell procedure"
 {
 	singleWell()
 	pack(images,sourceData)
@@ -82,10 +82,10 @@ proc imagesInit(
 //TODO write verification to ensure that bpp is either 8bit or 16bit
 proc convertImages(
 	//INPUT
-	memblock expinfo in "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
-	memblock images inout  "Memblock containing the images organized via the ImagesInit() proc edure",
+	memblock expinfo in "Memblock containing the experimental info, obtained from the getExpInfo() procedure",
+	memblock images inout  "Memblock containing the images organized via the ImagesInit() procedure",
 	int bpp=1 in "Bit depth of the image should be either 8bit=1, or 16 bit=2"
-) Image Manipulation "This proc edure will convert the bit-format of the images organized in a Memblock via ImagesInit()."
+) Image Manipulation "This procedure will convert the bit-format of the images organized in a Memblock via ImagesInit()."
 {
 	foreach(0..expInfo.totalF-1,"field")
 	foreach(0..expInfo.totalZ-1, "stack")
@@ -104,10 +104,10 @@ proc convertImages(
 
 proc projectStacks(
 	//INPUT
-	memblock expInfo inout "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
-	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	memblock expInfo inout "Memblock containing the experimental info, obtained from the getExpInfo() procedure",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
 	String method="max" in "Method to use to project the data. Possible values: \"overwrite\", \"average\", \"max\", \"min\", \"add\". Default: \"max\".",
-) Image Manipulation "This proc edure will project all of the stacks using the selected method to reduce the number of stacks to 1, the memblock expinfo is modified accordingly."
+) Image Manipulation "This procedure will project all of the stacks using the selected method to reduce the number of stacks to 1, the memblock expinfo is modified accordingly."
 {
 	foreach(0..expInfo.totalF-1,"field")
 	foreach(0..expInfo.totalC-1,"chan")
@@ -145,9 +145,9 @@ proc projectStacks(
 
 proc projectStacksV2(
 	//INPUT
-	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
 	String method="max" in "Method to use to project the data. Possible values: \"overwrite\", \"average\", \"max\", \"min\", \"add\". Default: \"max\".",
-) Image Manipulation "This proc edure will project all of the stacks using the selected method to reduce the number of stacks to 1, the memblock expinfo is modified accordingly."
+) Image Manipulation "This procedure will project all of the stacks using the selected method to reduce the number of stacks to 1, the memblock expinfo is modified accordingly."
 {
 foreach(0..images.length-1,"field")
 set(numStacks=images[field].length)
@@ -161,7 +161,7 @@ end()
 end()
 end()
 }
-//This proc edure ensures the factor when pasting to keep the highest factor  and converts the image to the bpp desired
+//This procedure ensures the factor when pasting to keep the highest factor  and converts the image to the bpp desired
 proc PasteImage(
 //INPUT
 	image imageToPaste in,
@@ -209,11 +209,11 @@ proc PasteImage(
 
 proc wellMontage(
 	//INPUT
-	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
 	boolean stich=false in "Indicates wether images should be stiched by trying to overlay the images to the current montage. Stiching is slow, so use if necessary.",
 	int binning=1 in "Use if image generated is too large.",
 	int bpp=0 in "Resulting Montage bit per pixel model. Allowed values: 1 (8bpp), 2 (16bpp), 3 (24bpp), 4 (32bpp). Default is 0 (no change).",
-) Image Manipulation "This proc edure will generate a well montage of all fields taken into the well."
+) Image Manipulation "This procedure will generate a well montage of all fields taken into the well."
 {
 if(binning>1)
 	binImages()
@@ -274,9 +274,9 @@ end()
 proc binImages(
 
 	integer binning in "Bining value sellected to bin the images.",
-	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
 	String method="mean" in "Method to use to project the data. Possible values: \"mean\", \"median\", \"sum\".",
-) Image Manipulation "This proc edure will bin all of the images to the desired size, the memblock expinfo is modified accordingly."
+) Image Manipulation "This procedure will bin all of the images to the desired size, the memblock expinfo is modified accordingly."
 {
 foreach(0..images.length-1,"field")
 foreach(0..images[field].length-1, "stack")
@@ -297,11 +297,11 @@ end()
 
 proc decimateImages(
 	//INPUT
-	memblock expinfo inout "Memblock containing the experimental info, obtained from the getExpInfo() proc edure",
-	memblock images inout "Memblock containing the images organized via the ImagesInit() proc edure",
+	memblock expinfo inout "Memblock containing the experimental info, obtained from the getExpInfo() procedure",
+	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
 	String dimension2Decimate="field" in "String indicating which dimension to decimate, either \"field\" or \"stack\"",
 	Integer toKeep=1 in "Integer indicating the index of the dimension to keep"
-) Image Manipulation "This proc edure will keep only the selected image amongst all of the stacks of fields."
+) Image Manipulation "This procedure will keep only the selected image amongst all of the stacks of fields."
 {
 	set(toKeep=toKeep-1)
 	if(dimension2Decimate!="field" &&dimension2Decimate!="stack" )
@@ -343,7 +343,7 @@ proc imagesInitV2(
 	table sourceData out "Memblock containing info about the well",
 	memblock images out "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number"
 
-) Image Manipulation "This proc edure returns an organized structure containing the images. Use it as a replacement of the singlewell proc edure. It will not work for time-series"
+) Image Manipulation "This procedure returns an organized structure containing the images. Use it as a replacement of the singlewell procedure. It will not work for time-series"
 {
 	singlewell(compact=true)
 	getWellInfoV2()
@@ -403,7 +403,7 @@ proc imagesInitV2(
 proc chanAttrib(
 	table chanInfo inout "Table containing the info about the different channels",
 	memblock images inout "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number",
-) Experiment Info Parser "This proc edure will add to each images the description of the channel, the min value of the channel etc.."
+) Experiment Info Parser "This procedure will add to each images the description of the channel, the min value of the channel etc.."
 {
 	create("vector", 0, chanInfo.name.length, -1)
 	set(chanInfo.number=vector)
@@ -461,7 +461,7 @@ proc findChanNum(
 	String property="" in "The image property that is searched (ex. Desc, Purpose, etc.)",
 	boolean patialMatch=true in "Indicates whether the match should be partial (true) or identical (false).",
 	Vector indexList out "Vector containing the list of channels which matches this querry. If no channel correspond to the querry an empty vector is returned.",
-) Experiment Info Parser "This proc edure will retrieve the list of channels that satisfy the querry. For instance, one can querry the list of channels that correspond to a \"marker\"."
+) Experiment Info Parser "This procedure will retrieve the list of channels that satisfy the querry. For instance, one can querry the list of channels that correspond to a \"marker\"."
 {
 	set(indexList=vec())
 	foreach(0..images.length-1, "chan")
