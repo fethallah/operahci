@@ -1,0 +1,689 @@
+/////////// Created by Peet Kask 2009-06-29
+/////////// Last inspection 2009-07-22
+/////////// Procedures for Gaussian and Gaussian derivative filters
+/////////// Reference: L.J.van Vliet, I.T.Young and P.W.Verbeek, Recursive Gaussian Derivative Filters, Proceedings 14th ICPR 1998, 509-514.
+
+package(Texture)
+
+/////////////////////// Procedures for general Acapella users ////////////////////////////////
+
+proc GaussianFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function.",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image result out)
+[internal] Texture "Gaussian image filter. At scale>=1, a recurrent implementation similar to van Vliet et al 1998. At scale<1, a convolution approach is applied." 
+{
+	if(scale<1.0)
+		GaussianSmallScaleFilter(image, scale)
+	else()
+		GaussianRecursiveFilter(image, scale, PoleOrder)
+	end()
+}
+
+proc Gaussian1stDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image L0 out "Gaussian-filtered image",
+	image Lx out "First derivative in x-direction",
+	image Ly out "First derivative in y-direction",
+	image grad out "Gradient image")
+Texture "First derivative Gaussian image filter. At scale>=1, a recurrent implementation similar to van Vliet et al 1998. At scale<1, a convolution approach is applied." 
+{
+	if(scale<1.0)
+		GaussianSmallScale1stDerivFilter(image, scale)
+	else()
+		GaussianRecursive1stDerivFilter(image, scale, PoleOrder)
+	end()
+}
+
+proc Gaussian2ndDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works best if 1<scale<100.",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image L0 out "Gaussian-filtered image",
+	image Lxx out "Second derivative in x-direction",
+	image Lyy out "Second derivative in y-direction",
+	image Lxy out "Second cross-derivative",
+	image E1 out "Higher eigenvalue of Hessian matrix",
+	image E2 out "Lower eigenvalue of Hessian matrix")
+Texture "Second derivative Gaussian image filter. At scale>=1, a recurrent implementation similar to van Vliet et al 1998. At scale<1, a convolution approach is applied." 
+{
+	if(scale<1.0)
+		GaussianSmallScale2ndDerivFilter(image, scale)
+	else()
+		GaussianRecursive2ndDerivFilter(image, scale, PoleOrder)
+	end()
+}
+
+proc Gaussian1st2ndDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works best if 1<scale<100.",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image L0 out "Gaussian-filtered image",
+	image Lx out "First derivative in x-direction",
+	image Ly out "First derivative in y-direction",
+	image Lxx out "Second derivative in x-direction",
+	image Lyy out "Second derivative in y-direction",
+	image Lxy out "Second cross-derivative",
+	image grad out "Gradient image",
+	image E1 out "Higher eigenvalue of Hessian matrix",
+	image E2 out "Lower eigenvalue of Hessian matrix")
+Texture "First and second derivative Gaussian image filter. At scale>=1, a recurrent implementation similar to van Vliet et al 1998. At scale<1, a convolution approach is applied." 
+{
+	if(scale<1.0)
+		GaussianSmallScale1st2ndDerivFilter(image, scale)
+	else()
+		GaussianRecursive1st2ndDerivFilter(image, scale, PoleOrder)
+	end()
+}
+
+
+////////////////////// Recursive filters ////////////////////////////
+
+proc GaussianRecursiveFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works best if 1<scale<100.",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image result out)
+[internal] Texture "Gaussian image filter. An implementation similar to van Vliet et al 1998." 
+{
+	//Make sure that scale and PoleOrder are of appropriate values
+	if(scale<0.8) error("scale is out of range") stop() end()
+	if(scale>100) set(scale=100.0) end()
+	if(PoleOrder<3) set(PoleOrder=3) end()
+	if(PoleOrder>5) set(PoleOrder=5) end()
+
+	//Calculation of coefficients of the recurrent filter
+	ScaleToPoleParams(scale, PoleOrder)		//Out: PoleParams
+	PoleParamsToComplexPoles(PoleParams)	//Out: poles
+	ComplexPolesToRealCoefficients(poles)		//Out: bvec
+
+	//Filtering
+	LinearPass(bvec, Image=image | imageV=image)
+	Transpose(imageV | imageVT=result)
+	LinearPass(bvec, Image=imageVT | GFT=image)
+	Transpose(GFT)
+//stop()
+} 
+
+proc GaussianRecursive1stDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works best if 1<scale<100.",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image L0 out "Gaussian-filtered image",
+	image Lx out "First derivative in x-direction",
+	image Ly out "First derivative in y-direction",
+	image grad out "Gradient image")
+[internal] Texture "First derivative Gaussian image filter. An implementation similar to van Vliet et al 1998." 
+{
+
+	//Make sure that scale and PoleOrder are of appropriate values
+	if(scale<0.8) error("scale is out of range") stop() end()
+	if(scale>100) set(scale=100.0) end()
+	if(PoleOrder<3) set(PoleOrder=3) end()
+	if(PoleOrder>5) set(PoleOrder=5) end()
+
+	//Calculation of coefficients of the Gaussian recurrent filter
+	ScaleToPoleParams(scale, PoleOrder)		//Out: PoleParams
+	PoleParamsToComplexPoles(PoleParams)	//Out: poles
+	ComplexPolesToRealCoefficients(poles)		//Out: bvec
+
+	//Filtering in y-direction
+	LinearPass(bvec, Image=image | imageV0=image)
+	DerivativePass(1, Image=imageV0 | imageV1=image)
+
+	//Transpose and repeat filtering in x-direction
+	Transpose(imageV0 | imageV0T=result)
+	Transpose(imageV1 | imageV1T=result)
+	LinearPass(bvec, Image=imageV1T | LyT=image)
+	Transpose(LyT | Ly=result)
+	LinearPass(bvec, Image=imageV0T | L0T=image)
+	DerivativePass(1, Image=L0T | LxT=image)
+	Transpose(L0T | L0=result)
+	Transpose(LxT | Lx=result)
+	company("sqrt(Lx*Lx+Ly*Ly)" | grad=result)
+} 
+
+proc GaussianRecursive2ndDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works best if 1<scale<100.",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image L0 out "Gaussian-filtered image",
+	image Lxx out "Second derivative in x-direction",
+	image Lyy out "Second derivative in y-direction",
+	image Lxy out "Second cross-derivative",
+	image E1 out "Higher eigenvalue of Hessian matrix",
+	image E2 out "Lower eigenvalue of Hessian matrix")
+[internal] Texture "Second derivative Gaussian image filter. An implementation similar to van Vliet et al 1998." 
+{
+	//Make sure that scale and PoleOrder are of appropriate values
+	if(scale<0.8) error("scale is out of range") stop() end()
+	if(scale>100) set(scale=100.0) end()
+	if(PoleOrder<3) set(PoleOrder=3) end()
+	if(PoleOrder>5) set(PoleOrder=5) end()
+
+	//Calculation of coefficients of the Gaussian recurrent filter
+	ScaleToPoleParams(scale, PoleOrder)		//Out: PoleParams
+	PoleParamsToComplexPoles(PoleParams)	//Out: poles
+	ComplexPolesToRealCoefficients(poles)		//Out: bvec
+
+	//Filtering in y-direction
+	LinearPass(bvec, Image=image | imageV0=image)
+	DerivativePass(1, Image=imageV0 | imageV1=image)
+	DerivativePass(2, Image=imageV0 | imageV2=image)
+
+
+	//Transpose and repeat filtering in x-direction
+	Transpose(imageV0 | imageV0T=result)
+	Transpose(imageV1 | imageV1T=result)
+	Transpose(imageV2 | imageV2T=result)
+
+	LinearPass(bvec, Image=imageV0T | L0T=image)
+	Transpose(L0T | L0=result)
+
+	DerivativePass(2, Image=L0T | LxxT=image)
+	Transpose(LxxT | Lxx=result)
+
+	LinearPass(bvec, Image=imageV1T | LyT=image)
+	DerivativePass(1, Image=LyT | LxyT=image)
+	Transpose(LxyT | Lxy=result)
+
+	LinearPass(bvec, Image=imageV2T | LyyT=image)
+	Transpose(LyyT | Lyy=result)
+
+	//Solve eigenproblem
+	Company("Lxx+Lyy" | trace=result)
+	Company("sqrt((Lxx-Lyy)*(Lxx-Lyy)+4*Lxy*Lxy)" | DeltaE=result)
+	Company("(trace+DeltaE)/2" | E1=result)
+	Company("(trace-DeltaE)/2" | E2=result)	
+} 
+
+proc GaussianRecursive1st2ndDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works best if 1<scale<100.",
+	int PoleOrder=3 explicit in "Only values 3,4 and 5 are allowed. Select a higher value than 3 only if unusually high accuracy is wanted.",
+	image L0 out "Gaussian-filtered image",
+	image Lx out "First derivative in x-direction",
+	image Ly out "First derivative in y-direction",
+	image Lxx out "Second derivative in x-direction",
+	image Lyy out "Second derivative in y-direction",
+	image Lxy out "Second cross-derivative",
+	image grad out "Gradient image",
+	image E1 out "Higher eigenvalue of Hessian matrix",
+	image E2 out "Lower eigenvalue of Hessian matrix")
+[internal] Texture "First and second derivative Gaussian image filter. A recurrent implementation according to van Vliet et al 1998." 
+{
+	//Make sure that scale and PoleOrder are of appropriate values
+	if(scale<0.8) error("scale is out of range") stop() end()
+	if(scale>100) set(scale=100.0) end()
+	if(PoleOrder<3) set(PoleOrder=3) end()
+	if(PoleOrder>5) set(PoleOrder=5) end()
+
+	//Calculation of coefficients of the Gaussian recurrent filter
+	ScaleToPoleParams(scale, PoleOrder)		//Out: PoleParams
+	PoleParamsToComplexPoles(PoleParams)	//Out: poles
+	ComplexPolesToRealCoefficients(poles)		//Out: bvec
+
+	//Filtering in y-direction
+	LinearPass(bvec, Image=image | imageV0=image)
+	DerivativePass(1, Image=imageV0 | imageV1=image)
+	DerivativePass(2, Image=imageV0 | imageV2=image)
+
+	//Transpose
+	Transpose(imageV0 | imageV0T=result)
+	Transpose(imageV1 | imageV1T=result)
+	Transpose(imageV2 | imageV2T=result)
+
+	//Repeat filtering in x-direction
+	LinearPass(bvec, Image=imageV0T | L0T=image)
+	Transpose(L0T | L0=result)
+
+	DerivativePass(1, Image=L0T | LxT=image)
+	Transpose(LxT | Lx=result)
+
+	DerivativePass(2, Image=L0T | LxxT=image)
+	Transpose(LxxT | Lxx=result)
+
+	LinearPass(bvec, Image=imageV1T | LyT=image)
+	DerivativePass(1, Image=LyT | LxyT=image)
+	Transpose(LyT | Ly=result)
+	Transpose(LxyT | Lxy=result)
+
+	LinearPass(bvec, Image=imageV2T | LyyT=image)
+	Transpose(LyyT | Lyy=result)
+
+	//Calculate gradient
+	company("sqrt(Lx*Lx+Ly*Ly)" | grad=result)
+
+	//Solve eigenproblem
+	Company("Lxx+Lyy" | trace=result)
+	Company("sqrt((Lxx-Lyy)*(Lxx-Lyy)+4*Lxy*Lxy)" | DeltaE=result)
+	Company("(trace+DeltaE)/2" | E1=result)
+	Company("(trace-DeltaE)/2" | E2=result)	
+} 
+
+//////////// Small scale filters (scale<1) /////////////////
+
+proc GaussianSmallScaleFilter(
+	image image explicit in "Image to be filtered.",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works at scale<1.",
+	image result out)
+[internal] Texture "Gaussian image filter at scale<1"
+{
+	if(scale<0.0001) set(result=image) return() end()
+	if(scale>1.0) error("scale is out of range") stop() end()
+
+	//Constants
+	set(b1=scale*scale/4)
+
+	//Smoothing in y-dimension
+	BlurDoublePass(b1, image | imgY=image)
+
+	//Smoothing in x-dimension
+	Transpose(imgY | imgYT=result)
+	BlurDoublePass(b1, imgYT | imgXYT=image)
+	Transpose(imgXYT)
+}
+
+proc GaussianSmallScale1stDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works at scale<1.",
+	image L0 out "Gaussian-filtered image",
+	image Lx out "First derivative in x-direction",
+	image Ly out "First derivative in y-direction",
+	image grad out "Gradient image")
+[internal] Texture "Gaussian first derivative image filter at scale<1" 
+{
+	//Make sure that scale is of appropriate value
+	if(scale>1.0) error("scale is out of range") stop() end()
+
+	//Constant
+	set(b1=scale*scale/4)
+
+	//Filtering in y-direction
+	BlurDoublePass(b1, Image=image | imageV0=image)
+	DerivativePass(1, Image=imageV0 | imageV1=image)
+
+	//Transpose
+	Transpose(imageV0 | imageV0T=result)
+	Transpose(imageV1 | imageV1T=result)
+
+	//Repeat filtering in x-direction
+	BlurDoublePass(b1, Image=imageV0T | L0T=image)
+	Transpose(L0T | L0=result)
+
+	DerivativePass(1, Image=L0T | LxT=image)
+	Transpose(LxT | Lx=result)
+
+	BlurDoublePass(b1, Image=imageV1T | LyT=image)
+	Transpose(LyT | Ly=result)
+
+	//Calculate gradient
+	company("sqrt(Lx*Lx+Ly*Ly)" | grad=result)
+} 
+
+proc GaussianSmallScale2ndDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works at scale<1.",
+	image L0 out "Gaussian-filtered image",
+	image Lxx out "Second derivative in x-direction",
+	image Lyy out "Second derivative in y-direction",
+	image Lxy out "Second cross-derivative",
+	image E1 out "Higher eigenvalue of Hessian matrix",
+	image E2 out "Lower eigenvalue of Hessian matrix")
+[internal] Texture "Gaussian second derivative image filter at scale<1" 
+{
+	//Make sure that scale is of appropriate value
+	if(scale>1.0) error("scale is out of range") stop() end()
+
+	//Constant
+	set(b1=scale*scale/4)
+
+	//Filtering in y-direction
+	BlurDoublePass(b1, Image=image | imageV0=image)
+	DerivativePass(1, Image=imageV0 | imageV1=image)
+	DerivativePass(2, Image=imageV0 | imageV2=image)
+
+	//Transpose
+	Transpose(imageV0 | imageV0T=result)
+	Transpose(imageV1 | imageV1T=result)
+	Transpose(imageV2 | imageV2T=result)
+
+	//Repeat filtering in x-direction
+	BlurDoublePass(b1, Image=imageV0T | L0T=image)
+	Transpose(L0T | L0=result)
+
+	DerivativePass(2, Image=L0T | LxxT=image)
+	Transpose(LxxT | Lxx=result)
+
+	BlurDoublePass(b1, Image=imageV1T | LyT=image)
+	DerivativePass(1, Image=LyT | LxyT=image)
+	Transpose(LxyT | Lxy=result)
+
+	BlurDoublePass(b1, Image=imageV2T | LyyT=image)
+	Transpose(LyyT | Lyy=result)
+
+	//Solve eigenproblem
+	Company("Lxx+Lyy" | trace=result)
+	Company("sqrt((Lxx-Lyy)*(Lxx-Lyy)+4*Lxy*Lxy)" | DeltaE=result)
+	Company("(trace+DeltaE)/2" | E1=result)
+	Company("(trace-DeltaE)/2" | E2=result)	
+} 
+
+proc GaussianSmallScale1st2ndDerivFilter(
+	image image explicit in "Image to be filtered",
+	double scale explicit in "Measure of the width of the Gaussian transfer function. The algorithm works at scale<1.",
+	image L0 out "Gaussian-filtered image",
+	image Lx out "First derivative in x-direction",
+	image Ly out "First derivative in y-direction",
+	image Lxx out "Second derivative in x-direction",
+	image Lyy out "Second derivative in y-direction",
+	image Lxy out "Second cross-derivative",
+	image grad out "Gradient image",
+	image E1 out "Higher eigenvalue of Hessian matrix",
+	image E2 out "Lower eigenvalue of Hessian matrix")
+[internal] Texture "First and second derivative Gaussian image filter at scale<1" 
+{
+	//Make sure that scale is of appropriate value
+	if(scale>1.0) error("scale is out of range") stop() end()
+
+	//Constant
+	set(b1=scale*scale/4)
+
+	//Filtering in y-direction
+	BlurDoublePass(b1, Image=image | imageV0=image)
+	DerivativePass(1, Image=imageV0 | imageV1=image)
+	DerivativePass(2, Image=imageV0 | imageV2=image)
+
+	//Transpose
+	Transpose(imageV0 | imageV0T=result) delete(imageV0)
+	Transpose(imageV1 | imageV1T=result) delete(imageV1)
+	Transpose(imageV2 | imageV2T=result) delete(imageV2)
+
+	//Repeat filtering in x-direction
+	BlurDoublePass(b1, Image=imageV0T | L0T=image)
+	Transpose(L0T) convelems(result, "float", 4 | L0=result)
+
+	DerivativePass(1, Image=L0T | LxT=image)
+	Transpose(LxT | Lx=result) delete(LxT)
+
+	DerivativePass(2, Image=L0T | LxxT=image)
+	Transpose(LxxT | Lxx=result) delete(LxxT)
+	delete(L0T)
+
+	BlurDoublePass(b1, Image=imageV1T | LyT=image)
+	DerivativePass(1, Image=LyT | LxyT=image)
+	Transpose(LyT | Ly=result) delete(LyT)
+	Transpose(LxyT | Lxy=result) delete(LxyT)
+
+	BlurDoublePass(b1, Image=imageV2T | LyyT=image)
+	Transpose(LyyT | Lyy=result) delete(LyyT)
+
+	//Calculate gradient
+	company("sqrt(Lx*Lx+Ly*Ly)") convelems(result, "float", 4 | grad=result)
+
+	//Solve eigenproblem
+	Company("Lxx+Lyy") convelems(result, "float", 4 | trace=result)
+	Company("sqrt((Lxx-Lyy)*(Lxx-Lyy)+4*Lxy*Lxy)" | DeltaE=result)
+	Company("(trace+DeltaE)/2") convelems(result, "float", 4 | E1=result)
+	Company("(trace-DeltaE)/2") convelems(result, "float", 4 | E2=result)	
+} 
+
+///////////// Lower order internal procedures ///////
+
+proc BlurPass(double b1 explicit in "Kernel parameter", 
+	image image inout)
+[internal] Texture "Convolution with kernel (b1, 1-2*b1, b1) in y-dimension"
+{
+	set(b0=1.0-2*b1)
+	set(w=image.width, h=image.height)
+
+	//Blurring in y-dimension
+	Enlarge(1, BackgroundMethod="mirror", Image=image | imgL=image)
+	CropAny(imgL , vec(1,2), vec(1+w, 2+h) | up=result)
+	CropAny(imgL, vec(1,0), vec(1+w, h) | down=result)
+	company("b0*image+b1*(up+down)" | image=result)
+	
+}
+
+proc BlurDoublePass(double b1 explicit in "Kernel parameter", 
+	image image inout)
+[internal] Texture "Double convolution with kernel (b1, 1-2*b1, b1) in y-dimension"
+{
+	if(b1<0.0001) return() end()
+	BlurPass(b1, image)
+	BlurPass(b1, image)
+}
+
+proc ComplexPoleContribution(
+	double Re explicit in, 
+	double Im explicit in, 
+	double contribution out)
+[internal] Texture "A low-order internal procedure"
+{
+	set(r=Re, s=Im, q=Re-1)
+	set(tmp1=(r*q*q+2*q*s*s-r*s*s))
+	set(tmp2=q*q+s*s)
+	set(contribution=4*tmp1/(tmp2*tmp2))
+}
+
+
+proc ComplexPolesToRealCoefficients(
+	vector poles explicit in "Vector of complex poles. Each element is vec(Re, Im).",
+	vector bvec out "Vector of coefficients applied by forward and backward passes.")
+[internal] Texture "Internal procedure converting poles into coefficients of linear pass."
+{
+	set(poleorder=poles.length)
+	//Calculate product of complex pole values
+	set(product=vec(1,0))
+	foreach(poles, "pole")
+		set(product=vec(product[0]*pole[0]-product[1]*pole[1], product[0]*pole[1]+product[1]*pole[0]))
+	end()
+	//product[1] must be 0. Thus, bval=1/ product[0]
+	set(bval=1.0/product[0])
+
+	//Calculate the vector of coefficients bvec
+	Create("vector", "double", poleorder+1, 1 | bvec=vector)
+	set(tmp=-1)
+	foreach(1..poleorder, "i")
+		set(bvec[i]=tmp*bval)
+		set(tmp=-tmp)
+	end()
+//stop()
+
+	//bvec[poleorder] is correct already. Next we calculate the (poleorder-1)-th coefficient.
+	set(sum=poles[0][0])
+	foreach(1..poles.length-1, "i")
+		set(sum=sum+poles[i][0])
+	end()
+	set(bvec[poleorder-1]=bvec[poleorder-1]*sum)
+//stop()
+
+	//Next we calculate the (poleorder-2)-th coefficient.
+	set(resumi=0)
+	//set(imsumi=0)	//Delete after debugging!!!
+	foreach(1..poleorder-1, "i")
+		set(sumj=vec(0,0))
+		foreach(0..i-1, "j")
+			set(sumj=sumj+poles[j])
+		end()
+		set(resumi=resumi+poles[i][0]*sumj[0]-poles[i][1]*sumj[1])
+		//set(imsumi=imsumi+poles[i][0]*sumj[1]+poles[i][1]*sumj[0])	//Delete after debugging!!!
+	end()
+	set(bvec[poleorder-2]=bvec[poleorder-2]*resumi)
+//stop()
+
+	//If poleorder>3 we need to calculate the (poleorder-3)-th coefficient as well
+	if(poleorder>3)
+		set(resumi=0)
+		//set(imsumi=0)	//Delete after debugging!!!
+		foreach(2..poleorder-1, "i")
+			set(sumj=vec(0,0))
+			foreach(1..i-1, "j")
+				set(sumk=vec(0,0))
+				foreach(0..j-1, "k")
+					set(sumk=sumk+poles[k])
+				end()
+				set(sumj=sumj+vec(poles[j][0]*sumk[0]-poles[j][1]*sumk[1], poles[j][0]*sumk[1]+poles[j][1]*sumk[0]))
+			end()
+			set(resumi=resumi+poles[i][0]*sumj[0]-poles[i][1]*sumj[1])
+			//set(imsumi=imsumi+poles[i][0]*sumj[1]+poles[i][1]*sumj[0])	//Delete after debugging!!!
+		end()
+		set(bvec[poleorder-3]=bvec[poleorder-3]*resumi)
+	end()
+//stop()
+
+	//If poleorder>4 we need to calculate the (poleorder-4)-th coefficient as well
+	if(poleorder>4)
+		set(resumi=0)
+		//set(imsumi=0)	//Delete after debugging!!!
+		foreach(3..poleorder-1, "i")
+			set(sumj=vec(0,0))
+			foreach(2..i-1, "j")
+				set(sumk=vec(0,0))
+				foreach(1..j-1, "k")
+					set(sumn=vec(0,0))
+					foreach(0..k-1, "n")
+						set(sumn=sumn+poles[n])
+					end()
+					set(sumk=sumk+vec(poles[k][0]*sumn[0]-poles[k][1]*sumn[1], poles[k][0]*sumn[1]+poles[k][1]*sumn[0]))
+				end()
+				set(sumj=sumj+vec(poles[j][0]*sumk[0]-poles[j][1]*sumk[1], poles[j][0]*sumk[1]+poles[j][1]*sumk[0]))
+			end()
+			set(resumi=resumi+poles[i][0]*sumj[0]-poles[i][1]*sumj[1])
+			//set(imsumi=imsumi+poles[i][0]*sumj[1]+poles[i][1]*sumj[0])	//Delete after debugging!!!
+		end()
+		set(bvec[poleorder-4]=bvec[poleorder-4]*resumi)
+	end()
+	set(alpha=bvec.sum)
+	set(bvec[0]=alpha)
+//stop()
+}
+
+proc PoleParamsToComplexPoles(
+	vector PoleParams explicit in "Vector of optimized pole parameters for approximating the Gaussian transfer function",
+	vector poles out "Vector of complex poles. Each pole is represented as vec(Re, Im).")
+[internal] Texture "Internal procedure converting a set of real pole parameters into complex poles."
+{
+	set(npair=floor(PoleParams.length/2))
+	set(nreal=PoleParams.length-2*npair)
+	foreach(0..npair-1, "i")
+		set(Re=PoleParams[2*i])
+		set(Im=PoleParams[2*i+1])
+		push(poles, vec(Re, Im), vec(Re, -Im))
+	end()
+	if(nreal==1)
+		set(Re=PoleParams[PoleParams.length-1])
+		push(poles, vec(Re, 0))
+	end()
+}
+
+proc PoleParamsToVar(
+	vector PoleParams in,
+	double var out)
+[internal] Texture "A low order internal procedure"
+{
+	set(npair=floor(PoleParams.length/2))
+	set(nreal=PoleParams.length-2*npair)
+	set(var=0)
+	foreach(0..npair-1, "i")
+		set(Re=PoleParams[2*i])
+		set(Im=PoleParams[2*i+1])
+		ComplexPoleContribution(Re, Im)
+		set(var=var+contribution)
+	end()
+	if(nreal==1)
+		set(Re=PoleParams[PoleParams.length-1])
+		RealPoleContribution(Re)
+		set(var=var+contribution)
+	end()
+	//set(sigma=sqrt(sigma2))
+}
+
+proc RealPoleContribution(
+	double Re explicit in, 
+	double contribution out)
+[internal] Texture "A low order internal procedure"
+{
+	set(q=Re-1)
+	set(contribution=2*Re/(q*q))
+}
+
+proc RescaleComplexPole(
+	double scalefactor explicit in,
+	double Re explicit inout,
+	double Im explicit inout)
+[internal] Texture "A low order internal procedure"
+{
+	set(theta0=atan2(Im, Re))
+	set(modulus0=sqrt(Re*Re+Im*im))
+	set(modulus1=exp(ln(modulus0)/scalefactor))
+	set(theta1=theta0/scalefactor)
+	set(Re=modulus1*cos(theta1))
+	set(Im=modulus1*sin(theta1))
+}
+
+proc RescalePoleParams(
+	double scalefactor explicit in,
+	vector PoleParams inout)
+[internal] Texture "A low order internal procedure"
+{
+set(PoleParams_in=PoleParams)
+	set(npair=floor(PoleParams.length/2))
+	set(nreal=PoleParams.length-2*npair)
+	foreach(0..npair-1, "i")
+		set(Re=PoleParams[2*i])
+		set(Im=PoleParams[2*i+1])
+		RescaleComplexPole(scalefactor, Re, Im)
+		set(PoleParams[2*i]=Re)
+		set(PoleParams[2*i+1]=Im)
+	end()
+	if(nreal==1)
+		set(modulus0=PoleParams[PoleParams.length-1])
+		set(modulus1=exp(ln(modulus0)/scalefactor))
+		set(PoleParams[PoleParams.length-1]=modulus1)
+	end()
+//stop()
+}
+
+proc ScaleToPoleParams(
+	double scale explicit in "Measure of the width of the Gaussian transfer function.",
+	int order explicit in "Number of poles used in approximation of the Gaussian tranfer function.",
+	vector PoleParams out "Vector of optimized pole parameters for approximating the Gaussian transfer function",
+	double truescale out "True value of sclae parameter. Normally it is very close to the input scale value.")
+[internal] Texture "Internal procedure adjusting the values of pole parameters in correspondence with the scale."
+{
+	if(order==3)
+		set(PoleParams0=vec(1.41650, 1.00829, 1.86543))
+	else()
+		if(order==4)
+			set(PoleParams0=vec(1.13228, 1.28114, 1.78534, 0.46763))
+		else()
+			if(order==5)
+				set(PoleParams0=vec(0.77934, 1.41423, 1.50941, 0.80828, 1.77181))
+			else()
+				error("Order of PoleParams is out of range")
+				stop()
+			end()
+		end()
+	end()
+	PoleParamsToVar(PoleParams0)
+	set(sigmaE=sqrt(var))
+	set(sigma=scale)
+	set(xx=1)
+
+	foreach(0..50, "iter")
+		set(xx=xx*sigma/sigmaE)
+		RescalePoleParams(xx, PoleParams0)
+		PoleParamsToVar(PoleParams)
+		set(sigmaE=sqrt(var))
+		if(abs(sigma-sigmaE)<0.0001*sigma)
+			break()
+		end()
+	end()
+	set(truescale=sigmaE)
+}
+
+
