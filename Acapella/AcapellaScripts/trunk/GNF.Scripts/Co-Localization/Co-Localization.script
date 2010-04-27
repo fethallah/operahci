@@ -132,7 +132,6 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	set(nucChanMin=chanInfo.min[findElem("nucDetection",chanInfo.purpose).pos])
 	set(marker1ChanNum=chanInfo.number[SearchElem("marker",chanInfo.purpose,occurence=1).pos])
 	set(marker2ChanNum=chanInfo.number[SearchElem("marker",chanInfo.purpose,occurence=2).pos])
-	set(bckGndChannel=iif(cytoChanNum==-1,nucChanNum,cytoChanNum))
 
 	set(imageData=cnt())
 	if(images[nucChanNum].image.max>nucChanMin)
