@@ -7,7 +7,7 @@
 
   <prototype name="acapella" group="scripts" description="Acapella">
     <location link="acapella.hrc"/>
-    <filename>/\.(script|proc)$/i</filename>
+    <filename>/\.(script|proc|param|parameter)$/i</filename>
 	 <parameters>
       <param name="tabs-as-errors" value="false" description="Shows tabulation symbol as error"/>
       <param name="spaces-as-errors" value="false" description="Shows trailing spaces as error"/>
