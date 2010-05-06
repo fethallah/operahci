@@ -1,0 +1,16 @@
+SiteNr                  1
+sPlateOnSite            
+cTimestampPlateOnSite   1238773305
+sPlateOfStoredState     C7531421
+nRunState               3
+cTimestampRunState      1238773252
+sCurrentProcmethod      Read
+nCurrentStepIx          1
+cTimestampCurrentStep   1238684767
+bPresentingToRobot      0
+sRobAction,             RobotDroppedPlate
+sRobActionTargetDevice  Rack2
+nRobActionTargetSiteNr  21
+sRobActionPlate         C7531421
+cTimestampRobAction     1238773305
+

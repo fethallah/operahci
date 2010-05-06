@@ -1,0 +1,15 @@
+http://www.delphifaq.com/faq/windows_user/f919.shtml
+([a-zA-Z]{3})\s([a-zA-Z]{3})\s(\d{2})\s(\d{2}:\d{2}:\d{2})\s(\d{4})\s*(.+?)\s+.+\r\n
+
+Alltel	Boost Mobile	Cingular/AT&T	Sprint Nextel	Sprint PCS	T-Mobile	Verizon Wireless	Virgin Mobile USA
+message.alltel.com	myboostmobile.com	txt.att.net	messaging.nextel.com	messaging.sprintpcs.com	tmomail.net	vtext.com	vmobl.com
+
+
+Alltel	message.alltel.com
+Boost Mobile	myboostmobile.com
+Cingular/AT&T	txt.att.net
+Sprint Nextel	messaging.nextel.com
+Sprint PCS	messaging.sprintpcs.com
+T-Mobile	tmomail.net
+Verizon Wireless	vtext.com
+Virgin Mobile USA	vmobl.com
