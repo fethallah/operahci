@@ -59,10 +59,10 @@ proc CalcFractionEdgeContact(
 }
 
 proc getFeatures(
-	Objectlist objects in "Object list containing the features to calculate. Make sure that the Objectlist only contains stencil which you wish to use for intensity measurements.",
-	Vector images=none in  "Container containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objects. If no images are provided, or if the images is an empty vector, these features are not returned. Images should have the form images[channel].image & images[channel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack]).",
-	Objectlist objects out "Object list containing the newly calculated features.",
-	Container parentObjects=none in "Container with the different objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
+	Objectlist objects in "Object list contaning the features to calculate. Make sure that the Objectlist only contains stencil which you wish to use for intensity measurments.",
+	Vector images=none in  "Container containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objetcs. If no images are provided, or if the images is an empty vector, these features are not returned. Images should have the form images[chanel].image & images[chanel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack]).",
+	Objectlist objects out "Object list contaning the newly calculated features.",
+	Container parentObjects=none in "Container with the differnt objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
 	Vector parentNames=none in "Vector containing the names for the parents in the order for which the mapping should be done. Objects with name at a  higher Index contain objects with lower index (ex. Nuclei should have a lower index than WholeCells). use vec(\"name1\",\"name2\",...)",
 )object list attribute creation, Feature, Texture "Adds to an object all of the features that can be extracted. Generates the inputs necessary. Cf. CalcFeaturesInner()"
 {
@@ -87,36 +87,37 @@ proc CalcFeaturesInputs(
 	vector GaborScaleFactors out "Values by which MinScale is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
 	vector GaborWavelengthFactors out "Values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
 	int GaborAngleCount out "Number of orientations. Reasonable values are between 6 and 16",
+	string GaborNormalization="regional" out "Regional - denominator is mean intensity of each object; external - denominator is a precalculated norm-attribute; unnormalized is also an option",
 
 	int HaralickDistance=1 out "Distance between Haralick pixel pairs. NB Fractional distance values will be rounded to integers",
 )[Hidden] object list attribute creation, Features, Textures "Inputs requied for the CalcFeatures Module."
 {
 	input(CalcMorphologyFeatures, true, "Measure Morphology Information:Cell Features", "b", "Indicate whether or not you wish to collect morphology-based features (lenght, area etc.). This will moderatly impact runtime.")
 	input(CalcIntensityInfo, true, "Measure Intensity Information:Cell Features", "b", "Indicate whether or not you wish to collect intensity-based features (Intensity, CV, etc.). This will moderatly impact runtime.")
-	input(CalcCorrelationFeatures, false, "Measure Image Correlation:Cell Features", "b", "Indicate whether or not you wish to collect image correlation features (Perason Correlation). This will significantly impact runtime. Features are only Calculated on channels flagged as \"Marker\".")
+	input(CalcCorrelationFeatures, false, "Measure Image Correlation:Cell Features", "b", "Indicate whether or not you wish to collect image correlation features (Perason Correlation). This will significantly impact runtime.")
 
 	input(CalcTextureFeatures, "None" , "Measure Texture Information:Cell Features", "s", "Indicate which texture you wish to collect (TAS, SER, Gabor, Haralick). This will significantly impact runtime. Allowed values:  \"None\", \"All\", \"TAS\",\"SER\", \"Gabor\", \"Haralick\".")
 
 	input(TASbracket, 0.2, "TAS Texture Braket:Cell Features", "d", "Braket Factor : The value used will provide varying cutt-offs depending on the normalization method selected. This value, used in conjunction with the mean intensity of an object allows to establish 3 different thresholds. For a given object, the absolute thresholds are then calculated with: \"(mean object intensity)*(1+-bracket)\", when NormalizationMethod=\"Mean\"; \"(mean object intensity) +/- bracket x (StdDev object intensity)\" when NormalizationMethod=\"zScore\"; \"(mean object intensity) +/- bracketwhen\" when  NormalizationMethod=\"None\". This value should should be >0 when NormalizationMethod=\"None\" or \"zScore\" and be set between 0 and 1 when NormalizationMethod=\"Mean\". Allowed range: 0..100, step 0.05.")
 	input(TASnormalization, "Mean", "TAS Texture NormMode:Cell Features", "s", "Indicates which normalization should be used to normalize the object intensity. The following methods are accepetd: \"None\" in which case no normalization is provided and the bracket refferes to raw pixel values; \"Mean\", in which case the values are normalized by the mean value of the object and the bracket then reffers to a fold intensity above and bellow the mean value; \"zScore\" in which case each pixels is converted into a number of StdDev above and bellow the mean value and a Z-score reflects a cutt-off in this scale. Allowed values:  \"None\", \"Mean\", \"zScore\".")
 
-	input(SERscale, 100, "SER Texture Scale:Cell Features", "d", "Scale parameter for SER texture filtering. Use 100, if you wish to calculate a predefined arrary of SERscales {0,0.5,1,1.5,2.2.5,3,4,6}. Allowed range: 0..100, step 0.1.")
-	if(SERscale==100)
-		set(SERscale=vec(0,0.5,1.5,1,2,2.5,3))
-	else()
-		set(SERscale=vec(SERscale))
-	end()
+	input(SERscale,"0,0.5,1,1.5,2.2.5,3,4,6", "SER Texture Scale:Cell Features", "s", "Coma separated list of scale parameters for SER texture filtering.")
+	SplitString(RegexReplace(SERscale,"\s","").text,",")
+	set(SERscale=convElems(split,"double").result)
+
 	input(SERnormalization, "regional", "SER Texture NormMode:Cell Features", "s", "Normalization method used for SER texture.  Allowed values:  \"regional\", \"unnormalized\", \"kernel\".")
 
-	input(GaborMinScale, 0, "Gabor Min Scale:Cell Features", "d", "The lowest scale value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100, step 0.05.")
-	input(GaborMinWavelength, 0, "Gabor Min Wavelength:Cell Features", "d", "The lowest wavelength value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100, step 0.05.")
-	input(GaborScaleFactors, "1,", "Gabor Scale Factors:Cell Features", "s", "Comma delimited values by which MinScale is multipliedfor Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100.")
+	input(GaborMinScale, 2, "Gabor Min Scale:Cell Features", "d", "The lowest scale value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100, step 0.05.")
+	input(GaborMinWavelength, 2.5, "Gabor Min Wavelength:Cell Features", "d", "The lowest wavelength value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100, step 0.05.")
+	input(GaborScaleFactors, "1,", "Gabor Scale Factors:Cell Features", "s", "Coma delimited values by which MinScale is multipliedfor Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25. Allowed range: 0..100.")
 	SplitString(RegexReplace(GaborScaleFactors,"\s","").text,",")
-	rename(GaborScaleFactors=split)
-	input(GaborWavelengthFactors, "1,", "Gabor Wavelength Factors:Cell Features", "s", "Comma delimited values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.")
+	set(GaborScaleFactors=convElems(split,"double").result)
+	input(GaborWavelengthFactors, "1,", "Gabor Wavelength Factors:Cell Features", "s", "Coma delimited values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.")
 	SplitString(RegexReplace(GaborWavelengthFactors,"\s","").text,",")
-	rename(GaborWavelengthFactors=split)
+	set(GaborWavelengthFactors=convElems(split,"double").result)
 	input(GaborAngleCount, 8, "Gabor Angle Count:Cell Features", "i", "Number of orientations. Reasonable values are between 6 and 16. Allowed range: 4..20, step 1.")
+	input(GaborNormalization, "regional", "Gabor Texture NormMode:Cell Features", "s", "Normalization method used for Gabor texture.  Allowed values:  \"regional\", \"unnormalized\", \"external\", \"kernel\".")
+
 
 	input(HaralickDistance, 1, "Haralick Distance:Cell Features", "i", "Distance between Haralick pixel pairs. Allowed range: 1..100, step 1.")
 }
@@ -139,11 +140,11 @@ proc CalcFeatures(
 	vector SERscale=vec(1) in "Vector of scale parameters for SER texture filtering.",
 	string SERnormalization="regional" in "SER normalization methods. Select between unnormalized, kernel, regional.",
 
-	double GaborMinScale=2.0 explicit in "The lowest scale value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
-	double GaborMinWavelength=2.5 explicit in "The lowest wavelength value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
-	vector GaborScaleFactors=vec(1) explicit in "Values by which MinScale is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
-	vector GaborWavelengthFactors=vec(1) explicit in "Values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
-	int GaborAngleCount=8 explicit in "Number of orientations. Reasonable values are between 6 and 16",
+	double GaborMinScale=2.0  in "The lowest scale value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	double GaborMinWavelength=2.5  in "The lowest wavelength value used in Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	vector GaborScaleFactors=vec(1)  in "Values by which MinScale is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	vector GaborWavelengthFactors=vec(1)  in "Values by which MinWavelength is multiplied for Gabor features calculation. The value of \"Scale/Wavevelenght\" should be >0.25.",
+	int GaborAngleCount=8  in "Number of orientations. Reasonable values are between 6 and 16",
 
 	int HaralickDistance=1 explicit in "Distance between Haralick pixel pairs. NB Fractional distance values will be rounded to integers",
 
