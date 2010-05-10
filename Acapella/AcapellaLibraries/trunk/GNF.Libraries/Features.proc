@@ -59,10 +59,10 @@ proc CalcFractionEdgeContact(
 }
 
 proc getFeatures(
-	Objectlist objects in "Object list contaning the features to calculate. Make sure that the Objectlist only contains stencil which you wish to use for intensity measurments.",
-	Vector images=none in  "Container containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objetcs. If no images are provided, or if the images is an empty vector, these features are not returned. Images should have the form images[chanel].image & images[chanel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack]).",
-	Objectlist objects out "Object list contaning the newly calculated features.",
-	Container parentObjects=none in "Container with the differnt objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
+	Objectlist objects in "Object list containing the features to calculate. Make sure that the Objectlist only contains stencil which you wish to use for intensity measurements.",
+	Vector images=none in  "Container containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objects. If no images are provided, or if the images is an empty vector, these features are not returned. Images should have the form images[channel].image & images[channel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack]).",
+	Objectlist objects out "Object list containing the newly calculated features.",
+	Container parentObjects=none in "Container with the different objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
 	Vector parentNames=none in "Vector containing the names for the parents in the order for which the mapping should be done. Objects with name at a  higher Index contain objects with lower index (ex. Nuclei should have a lower index than WholeCells). use vec(\"name1\",\"name2\",...)",
 )object list attribute creation, Feature, Texture "Adds to an object all of the features that can be extracted. Generates the inputs necessary. Cf. CalcFeaturesInner()"
 {
@@ -117,7 +117,6 @@ proc CalcFeaturesInputs(
 	set(GaborWavelengthFactors=convElems(split,"double").result)
 	input(GaborAngleCount, 8, "Gabor Angle Count:Cell Features", "i", "Number of orientations. Reasonable values are between 6 and 16. Allowed range: 4..20, step 1.")
 	input(GaborNormalization, "regional", "Gabor Texture NormMode:Cell Features", "s", "Normalization method used for Gabor texture.  Allowed values:  \"regional\", \"unnormalized\", \"external\", \"kernel\".")
-
 
 	input(HaralickDistance, 1, "Haralick Distance:Cell Features", "i", "Distance between Haralick pixel pairs. Allowed range: 1..100, step 1.")
 }
