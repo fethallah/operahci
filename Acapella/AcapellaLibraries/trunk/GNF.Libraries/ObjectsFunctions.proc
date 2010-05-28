@@ -61,9 +61,6 @@ boolean overlap=true in "Optional input. Indicate whether the objects in \"Objec
 
 	if(overlap)
 		splitMyObjects(factor&">0")
-		And(iniOverlap,image=Objects[""&ObjectsStencil])
-		SetAttr("Overlap_"&ContainerStencil,image)
-		Eval("MassCentre(Overlap_"&ContainerStencil&",objects=objects)")
 	else()
 		splitMyObjects(factor&">=1")
 	end()
