@@ -86,7 +86,7 @@ proc Cytoplasm_Detection_Select(
 			Eval("Cytoplasm_Detection_"&CytoAlgorithm&"_inner(reference, Nuclei=Nuclei)",ForwardGrantLicense=true)
 		else()
 			if(CytoAlgorithm=="F"&&ScanParameter=="None")
-				Error("For cytoplasmic detection algortim \"F\", an image of the membrane components needs to be shown.")
+				Error("For cytoplasmic detection algorithm \"F\", an image of the membrane components needs to be shown.")
 			end()
 		end()
 		if(errorcode!=0)
