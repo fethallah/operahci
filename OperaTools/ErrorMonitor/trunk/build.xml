@@ -102,13 +102,12 @@
 		<manifest file="MANIFEST.MF">
 			<attribute name="Class-Path" value="${classPath}" />
 			<attribute name="Main-Class" value="${main.class}" />
-			<!-- This line puts your username into the manifest.
-						Maybe you don't want to do that. -->
+
 			<attribute name="Implementation-Title"
 			           value="${implementation.title}"
 			/>
 			<attribute name="Programed-By" value="${programer.name}" />
-			<attribute name="Programer-Email" value="${programer.email}" />
+			
 			<attribute name="Implementation-Vendor"
 			           value="${implementation.vendor}"
 			/>

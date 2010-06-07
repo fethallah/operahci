@@ -38,14 +38,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.text.MaskFormatter;
 
 import org.gnf.OperaErrorMonitor.OperaLogsParsers.DateUtils;
 import org.gnf.OperaErrorMonitor.OperaLogsParsers.Sleep;
-
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.TextLoader;
-
-import javax.swing.WindowConstants;
 
 /**
  * @author gbonamy
@@ -780,7 +777,9 @@ public class GUI {
 							      + foldAboveRegularReadTime
 							      + " times longer than average this strongly suggests that the instrument has crashed.\r\nAttached are the log files for the Bernstein software.";
 							File[] attachments = {logs.getBernsteinLogFile(),
-							      logs.getBernsteinStatusFile()};
+									logs.getBernsteinStatusFile(),
+									logs.getBernsteinHostLinkReaderFile(),
+									logs.getBernsteinHostLinkRobFile() };
 							String notificationResult = "";
 							if (notificationNumber > 0) {
 								em.setContactInfo(emailListField.getText(),
