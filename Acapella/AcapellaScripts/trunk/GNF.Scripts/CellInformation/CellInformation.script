@@ -144,10 +144,9 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 		set(nucImage=images[nucChanNum].image)
 		convert(bpp=1,image=nucImage)
 		//input(NucleiNormalization,3,"NucleiNormalization:Nuclei Detection","d","remove nuclei with a roundness or area which is x standard deviation above or bellow the mean value.")
-		Nuclei_Detection(image,fileDir=sourceDataProp.fileDir)
-		CalcIntensity(image=nucImage,objects=nuclei)	//Filtering of dim nuclei.
-		ObjectFilter(intensity>minNucIntensity)
-		rename(nuclei=objects)
+
+		set(minNucIntensity=images[nucChanNum].bckGndSubstracted)
+		Nuclei_Detection(image,fileDir=sourceDataProp.fileDir,minNucIntensity=minNucIntensity)
 		
 		if(cytoChanNum>=0)
 			set(cytoImage=images[cytoChanNum].image)
@@ -156,13 +155,16 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 			
 			Cytoplasm_Detection_Select(reference=image)
 			//normalizeObjects(NucleiNormalization,image=nucImage,objects=nuclei)
-			//CalcMassCentre()
-			//rename(nuclei=objects,objects=wholeCells)	
+
+			Stencil2Objects(nuclei.body, CalcArea=false)
+			CalcMassCentre()
+			rename(nuclei=objects,objects=wholeCells)	
 			
-			rename(objects=wholeCells)	
-			//CalcIntensity(image=Nuclei.body.mask.image)
-			//ObjectFilter(intensity>0)
-			DeleteAttr(Border,Centers_border,Cytoplasm_border,CytoplasmAndCenters,CytoplasmAndCenters_border,intensity)
+			Stencil2Objects(objects.body)
+			SetAttr(centers,objects.body&&nuclei.body.mask.image)
+			SetAttr(cytoplasm,objects.body&& !nuclei.body.mask.image)
+			CalcStat("sum",AttrName="NumberOfNuclei",image=Nuclei.masscentre.mask.image)		
+			
 			input(MembraneSize, 4, "MembraneSize: Membrane Region", "i", "Size of the membrane Unit is image pixel. . Allowed range: 0..20, step 2.")
 			if(MembraneSize>0)
 				Set(MembraneSize=Ceil(MembraneSize/2))
