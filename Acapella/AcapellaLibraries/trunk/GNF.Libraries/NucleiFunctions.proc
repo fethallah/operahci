@@ -103,9 +103,10 @@ proc autoNucleiAlgorithmSelection_inner(
 		rename(objects = Nuclei)
 		CalcIntensity(Image=original)
 		ObjectFilter(Intensity > minNucIntensity)
+		ObjectFilter(area > 0)
 		if(objects.count>15)
-			ObjectFilter(Intensity > objects.intensity.mean-3*objects.intensity.stddev)
-			ObjectFilter(area > objects.area.mean-3*objects.area.stddev)
+			ObjectFilter(Intensity > objects.intensity.mean-4*objects.intensity.stddev)
+			ObjectFilter(area > objects.area.mean-4*objects.area.stddev)
 			ObjectFilter(area < objects.area.median*5) //Remove artifacts that are 5x larger than the median value
 		end()
 		if(showIllustrations)
@@ -161,10 +162,11 @@ string NucleiDetectionAlgorithm out "Name of the nuclei detection algorithm used
 	rename(objects = Nuclei)
 
 	ObjectFilter(Intensity > minNucIntensity)
+	ObjectFilter(area > 0)
 	if(objects.count>15)
-		ObjectFilter(Intensity > objects.intensity.mean-3*objects.intensity.stddev)
-		ObjectFilter(area > objects.area.mean-3*objects.area.stddev)
-		ObjectFilter(area < objects.area.median*5) //Remove artifacts that are 5x larger than the median value
+		ObjectFilter(Intensity > objects.intensity.mean-4*objects.intensity.stddev)
+		ObjectFilter(area > objects.area.mean-4*objects.area.stddev)
+		ObjectFilter(area < objects.area.median*8) //Remove artifacts that are 8x larger than the median value
 	end()
 	if(ShowIllustrations)
 		imageview(objects.border, label="Nuclei", image=reference)
