@@ -1,14 +1,14 @@
 //#############################################################################################
-//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
 //# and libraries.
 //#
 //# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
 //# Authors:
 //#   * Ghislain M.C. Bonamy
-//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
 //#   * www.gnf.org
 //#
-//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
 //#
 //# This program is free software; you can redistribute it and/or modify
 //# it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 //*
 //*********************************************************************************************
 
-proc getChanInfo(memblock chanInfo out){
+Proc getChanInfo(memblock chanInfo out){
 
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
@@ -82,7 +82,7 @@ proc getChanInfo(memblock chanInfo out){
 }
 
 
-proc paramInit(memblock param out){
+Proc paramInit(memblock param out){
 
 	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
 	EnvInfo()
@@ -90,7 +90,7 @@ proc paramInit(memblock param out){
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
 	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
 	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
-	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\".")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 
 	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
 	if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")
@@ -100,7 +100,7 @@ proc paramInit(memblock param out){
 	keep(param)
 }
 
-proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+Proc imageAnalysis(memblock images in, memblock param in, container imageData out){
 
 	input(distanceTrimed,1,"Distance to Trim:Nuclear Translocation","i","Distance in pixels to remove from the nucleus and from the cytoplasm around the nuclear membrane.")
 	input(rimSize,3,"Donnut Size:Nuclear Translocation","i","Distance size in pixel of the donut around the nucleus. Default=3")
@@ -167,8 +167,7 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	//Filtering of nuclei. Then select corresponding cells
 		ObjectFilter(intensity>minNucIntensity,objects=nuclei)
 		normalizeObjects(NucleiNormalization,image=nucImage,keepCaluclatedAttributes=true)
-		Set(objects[images[nucChanNum].desc&"_Intensity"]=Objects.intensity)
-		DeleteAttr(intensity,contrast,AreaInGeneralUnits)
+		Stencil2Objects(objects.body)
 		CalcMassCentre()
 		rename(nuclei=objects,objects=wholeCells)				
 		CalcIntensity(image=Nuclei.MassCentre.mask.image)
@@ -203,14 +202,14 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		end()
 		//rename(positiveCells=objects)
 		assembleCompositObject(cnt(images[markerChanNum].desc&"_Positive"=objects),objects=wholeCells|wholeCells=compositObject)
-
-		CalcFeatures(objects=nuclei,images=vec(),parentNames=("WholeCells"),parentObjects=cnt("WholeCells"=WholeCells)|Nuclei=Objects)
+		
+		CalcFeatures(objects=nuclei,images=vec(images[nucChanNum]),parentNames=("WholeCells"),parentObjects=cnt("WholeCells"=WholeCells)|Nuclei=Objects)
 		keep(bckGndObjects,Nuclei,WholeCells)//,PositiveCells)
 		pack(imageData,*)
 	end()	
 }
 
-proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
+Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
 
 	set(wholeWellData=cnt())
 	set(numFieldsInFocus=0)
@@ -258,7 +257,7 @@ proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 }
 
 
-proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
+Proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
 	unpack(data)
 	delete(data)
 	if(Defined("singleCellData.Features"))

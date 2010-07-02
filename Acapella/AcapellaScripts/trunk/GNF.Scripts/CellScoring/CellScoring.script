@@ -1,14 +1,14 @@
 //#############################################################################################
-//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
 //# and libraries.
 //#
 //# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
 //# Authors:
 //#   * Ghislain M.C. Bonamy
-//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
 //#   * www.gnf.org
 //#
-//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
 //#
 //# This program is free software; you can redistribute it and/or modify
 //# it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@
 
 //TODO: add support for cytoplasmic detection, allow to select where the fluorescence is located
 
-proc getChanInfo(memblock chanInfo out){
+Proc getChanInfo(memblock chanInfo out){
 
 	input(name, "Exp1Cam3", "Nuc Channel", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
@@ -109,7 +109,7 @@ proc getChanInfo(memblock chanInfo out){
 }
 
 
-proc paramInit(memblock param out){
+Proc paramInit(memblock param out){
 
 	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
 	EnvInfo()
@@ -117,7 +117,7 @@ proc paramInit(memblock param out){
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
 	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
 	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
-	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\".")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of Cut-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
 	if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")
 		error("The Cut-Off type must be either  \"threshold\", \"folds\" or \"stddev\"")
@@ -126,7 +126,7 @@ proc paramInit(memblock param out){
 	keep(param)
 }
 
-proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+Proc imageAnalysis(memblock images in, memblock param in, container imageData out){
 	Unpack(param)
 	set(nucChanNum=chanInfo.number[findElem("nucDetection",chanInfo.purpose).pos])
 	set(nucChanMin=chanInfo.min[findElem("nucDetection",chanInfo.purpose).pos])
@@ -143,32 +143,27 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		RingRegion(stencil="body",WholeCells=nuclei,ShowIllustrations=false,ShowRegionBorder=false,VisualImage=nucImage|nuclei=wholeCells)
 		CalcIntensity(image=nucImage,objects=nuclei)
 		ObjectFilter(intensity>minNucIntensity)
-		set(safetyFactor=ceil((objects.area.max*4/PI)^0.5/100)) //make sure that the maximum diameter is less than 50.
-		CalcWidthLengthSafe(1)
-		
-		CalcAttr(roundness)
-		CalcArea(border)
-		RenameAttr(perimeter=border_area)
-		CalcAttr("perimeter_area",perimeter/area)
+		Set(Nuclei=objects)
+		Stencil2Objects(objects.RingRegion,CalcArea=false)
+		set(WholeCells=objects)
 		
 		Foreach(0..images.length-1)
 			set(image=images[i].image)
-			CalcIntensity(image=image,Stencil=RingRegion)
+			CalcIntensity(image=image)
 			if(showIllustrations && at("marker",images[i].purpose,1)>0)
-				CalcBorder(RingRegion)
-				ImageView(objects.RingRegion_border,label="RingBordChan-"&images[i].desc, title="Ring Borders for channel "&images[i].desc, image=images[i].image,  gamma=1)
-				GraphView(objects.RingRegion_intensity, label="RingIntChan-"&images[i].desc, title="Ring Intensity for channel "&images[i].desc)
+				//CalcBorder(RingRegion)
+				ImageView(objects.border,label="RingBordChan-"&images[i].desc, title="Ring Borders for channel "&images[i].desc, image=images[i].image,  gamma=1)
+				GraphView(objects.intensity, label="RingIntChan-"&images[i].desc, title="Ring Intensity for channel "&images[i].desc)
 			end()
-			Set(objects[images[i].desc&"_Intensity"]=objects.RingRegion_intensity)
-			delete(objects[RingRegion_intensity])
+			Eval("RenameAttr("&images[i].desc&"_Intensity=intensity)")
 		end()
-		rename(nuclei=objects)
+		rename(WholeCells=objects)
 		
 		set(Positive=cnt())
 		Foreach(0..images.length-1)
 			if(defined("images[i].purpose"))
 			if(searchElem("marker",images[i].purpose,0).pos>=0)
-				set(objects=nuclei)
+				set(objects=WholeCells)
 				if(cutOffType=="folds")
 					set(formula=images[i].desc&"_Intensity>"&(images[i].cutoff-1)&"*"&bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean)
 				else()if(cutOffType=="stddev")
@@ -180,14 +175,11 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				
 				SplitMyObjects(formula,objects=objects)
 				Foreach(0..images.length-1,"k")
-					SetAttr(images[k].desc&"_FoldAboveNegativeMedian",objects[images[k].desc&"_Intensity"]/remainder[images[k].desc&"_Intensity"].median)
+					SetAttr(images[k].desc&"_FoldAboveNegative",objects[images[k].desc&"_Intensity"]/remainder[images[k].desc&"_Intensity"].median)
 				end()
 				if(showIllustrations)
-					Calcborder(RingRegion)
 					CarryObjects(nuclei.border,images[i].image.max/4,image=images[i].image)
-					//Set(image=nuclei.border.mask.image*images[i].image.max)
-					//Paste(images[i].image,method="max",image=image)
-					ImageView(objects.RingRegion_border.mask,label="RingBorderPos"&images[i].desc, title="Ring Borders poditives for "&images[i].desc & ". White contours correspond to all the Nuclei, Red contours to the posiitive objects.",image=image,  gamma=2)
+					ImageView(objects.border.mask,label="RingBorderPos"&images[i].desc, title="Ring Borders poditives for "&images[i].desc & ". White contours correspond to all the Nuclei, Red contours to the positive objects.",image=image,  gamma=2)
 				end()
 				push(positiveObjectsDesc,images[i].desc)
 				set(positive[images[i].desc]=objects)
@@ -197,7 +189,7 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 						set(combinationName=positiveObjectsDesc[j]&"_"&images[i].desc)
 						SplitMyObjects(formula,objects=positive[positiveObjectsDesc[j]])
 							Foreach(0..images.length-1,"k")
-								SetAttr(images[k].desc&"_FoldAboveNegativeMedian",objects[images[k].desc&"_Intensity"]/remainder[images[k].desc&"_Intensity"].median)
+								SetAttr(images[k].desc&"_FoldAboveNegative",objects[images[k].desc&"_Intensity"]/remainder[images[k].desc&"_Intensity"].median)
 							end()
 						push(positiveObjectsDesc,combinationName)
 						set(positive[combinationName]=objects)
@@ -206,14 +198,15 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			end()
 			end()
 		end()
-		Set(WholeCells=Nuclei)
-		RenameAttr(Body=RingRegion)
 		assembleCompositObject(Positive,objects=WholeCells|WholeCells=compositObject)
-		keep(bckGndObjects,nuclei,WholeCells)
+		
+		Stencil2Objects(Nuclei.body, CalcArea=false)
+		calcFeatures(images=vec(images[nucChanNum]),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells), CalcMorphologyFeatures=true|Nuclei=objects)
+		keep(bckGndObjects,Nuclei,WholeCells)
 		pack(imageData,*)
 	end()	
 }
-proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
+Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
 
 	set(wholeWellData=cnt())
 	set(numFieldsInFocus=0)
@@ -262,7 +255,7 @@ proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 
 
 
-proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
+Proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
 	unpack(data)
 	delete(data)
 	if(Defined("singleCellData.Features"))
@@ -271,7 +264,7 @@ proc dataOutput(container data in, Container sourcedataprop in, int statValue="m
 	if(Defined("singleCellData.ROI"))
 		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellID,extension="roi",label="")
 	end()
-	outputMemblockData(wholeWellData)
+	outputMemblockData( wholeWellData)
 }
 
 
