@@ -76,9 +76,8 @@ Proc getChanInfo(memblock chanInfo out){
 	push(chanCutOff,cutOff)
 
 
-	create("table")
-	set(table.name=chanNames, table.desc=chanDesc,table.min=chanMin,table.purpose=chanPurpose, table.cutOff=chanCutOff)
-	rename(chanInfo=table)
+	set(chanInfo=tbl(name=chanNames, desc=chanDesc,min=chanMin,purpose=chanPurpose, cutOff=chanCutOff))
+
 }
 
 
