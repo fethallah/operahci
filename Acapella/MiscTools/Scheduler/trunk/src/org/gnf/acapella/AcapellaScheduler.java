@@ -126,7 +126,7 @@ public class AcapellaScheduler {
 		String[] values = parser.getRemainingArgs();
 		setImagesPath(new File(value = values[values.length - 1]));
 
-		setMaxBatchSize((Integer) parser.getOptionValue(batchSize, 0));
+		setMaxBatchSize((Integer) parser.getOptionValue(batchSize, 50));
 
 		int numProc = ((Integer) parser.getOptionValue(numProcessor, 1));
 		if (numProc == 1000) {
