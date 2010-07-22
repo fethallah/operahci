@@ -479,3 +479,40 @@ proc findChanNum(
 		end()
 	end()
 }
+
+proc autoContrast(
+	image image inout "image which you wish to have contrasted",
+	string method="percentile" in "Set black at the botom 50 percentile and white at the tope 5 percentile",
+	double bot=5 in  "Used with these methods: \"percentile\". Use this cut-off to set the pixels represented as black. For quantiles, provide the percentage (50=median).",	
+	double top=95 in "Used with these methods: \"percentile\". Use this cut-off to set the pixels represented as white. For quantiles, provide the percentage (50=median)",
+){
+
+	Set(image.factor=1)
+	set(bpp=image.bpp)
+	if(method=="percentile")
+		Set(top=quantile(dataset=image,alpha=top/100).quantile)
+		Set(bot=quantile(dataset=image,alpha=bot/100).quantile)
+	end()
+	set(image=(image-bot)*((2^bpp-1)/(top-bot)))
+	//set negative values to 0
+	Rangemap(-inf,0,0,0)
+	Rangemap(2^bpp-1,inf,2^bpp-1,2^bpp-1)
+	convert(bpp)
+	//Make sure that the factor remains 1
+	Set(image.factor=1)
+}
+
+proc keepNImages(
+	int n explicit in "number of images that should be kept. If n is bellow1, one image is retained, if n is above the number of images all images are retained.",
+	vector images inout "Vector of images obtained via imagesInitV2() that is trimmed to keep N images selected randomly",
+)
+{
+	Set(n=iif(n<1,1,n))
+	Set(n=iif(n>images.length-1,images.length-1,n))
+	//make n the number of images to remove
+	Set(n=images.length-1-n)
+	foreach(0..n,"index")
+		Set(indexToRemove=round((images.length-1)*rnd()))
+		pop(images,pos=indexToRemove)
+	end()	
+}
