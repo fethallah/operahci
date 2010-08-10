@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--example from: http://home.subnet.at/peter/2006/04/automatically-adding-version-information-into-a-java-manifest-file-with-ant/-->
+
+<project name="AcapellaScheduler" default="exe" basedir=".">
+
+	<!--
+		This initializes the ${DSTAMP} and ${TSTAMP} ant properties.
+		-->
+	<tstamp />
+
+	<!-- This file contains informations about the build and is
+		loaded automatically -->
+	<propertyfile file="build.properties">
+		<entry key="build.number"
+		       type="int"
+		       default="0001"
+		       operation="+"
+		       pattern="0000"
+		/>
+		<entry key="build.date"
+		       type="date"
+		       value="now"
+		       pattern="yyyymmdd-HHmm"
+		/>
+	</propertyfile>
+
+	<property file="build.properties" />
+
+	<!-- set global properties for this build -->
+	<property name="src" location="src" />
+	<property name="bin" location="bin" />
+	<property name="jar" location="jar" />
+	<property name="base.dir"
+	          location="${jar}/v${app.version}/${build.number}"
+	/>
+	<property name="base.name" location="${base.dir}/${ant.project.name}" />
+	<property name="main.class"
+	          value="org.gnf.${ant.project.name}.${ant.project.name}"
+	/>
+	<property name="jre" value="1.6" />
+
+
+
+
+
+	<path id="build-classpath">
+		<pathelement location="${bin}" />
+	</path>
+
+	<patternset id="all-classes">
+		<include name="${bin}" />
+	</patternset>
+
+	<patternset id="all-src">
+		<include name="${src}/*.*" />
+	</patternset>
+
+	<patternset id="other">
+		<include name="build.xml" />
+		<include name="build.properties" />
+	</patternset>
+
+	<target name="init">
+		<!-- depends="svn-info"> -->
+		<!-- Create the build directory structure used by compile -->
+		<mkdir dir="${bin}" />
+	</target>
+
+	<!--
+	<target name="svn-info">
+		<exec executable="./getlatestrepoversion.sh" outputproperty="svnrevision" />
+		<echo>Repository Version: ${svnrevision}</echo>
+	</target>
+-->
+
+	<target name="compile" depends="init" description="compile the source ">
+		<!-- Compile the java code from ${src} into ${bin} -->
+		<echo>Compiling Start...</echo>
+		<javac srcdir="${src}"
+		       destdir="${bin}"
+		       debug="on"
+		       optimize="on"
+		       compiler="javac1.6"
+		       source="${jre}"
+		       target="${jre}"
+		>
+
+		</javac>
+
+		<echo>Compiling Done...</echo>
+	</target>
+
+	<target name="makejar" depends="compile" description="Create the Jar file">
+		<!--depends="compile" -->
+		<mkdir dir="${base.dir}" />
+		<copy todir="${bin}/resources">
+			<fileset dir="${src}/resources" />
+		</copy>
+
+		<manifest file="MANIFEST.MF">
+			<attribute name="Class-Path" value="${classPath}" />
+			<attribute name="Main-Class" value="${main.class}" />
+
+			<attribute name="Implementation-Title"
+			           value="${implementation.title}"
+			/>
+			<attribute name="Programed-By" value="${programer.name}" />
+			
+			<attribute name="Implementation-Vendor"
+			           value="${implementation.vendor}"
+			/>
+			<attribute name="Implementation-VendorURL"
+			           value="${implementation.vendor.url}"
+			/>
+			<attribute name="Built-By" value="${user.name}" />
+			<attribute name="Version" value="${app.version}" />
+			<attribute name="Implementation-Version"
+			           value="${app.version}.${build.number}"
+			/>
+			<attribute name="Built-Date" value="${build.date}" />
+		</manifest>
+		<echo>Building jar file...</echo>
+		<jar jarfile="${base.name}.jar" manifest="manifest.mf">
+			<fileset dir="${bin}/">
+				<!--<patternset refid="all-classes" /> -->
+			</fileset>
+			<!-- <fileset dir="${src}/">
+				<patternset refid="all-src" />
+			</fileset> -->
+			<fileset dir=".">
+				<patternset refid="other" />
+			</fileset>
+			<dirset dir="${src}">
+
+			</dirset>
+		</jar>
+		<delete file="MANIFEST.MF" />
+	</target >
+
+	<!-- ======================================================= -->
+	<!-- Creates the exe wrapper bundles that users will use     -->
+	<!-- to actually launch ${ant.project.name}                  -->
+	<!-- NOTE - you MUST have launch4j installed on your system  -->
+	<!-- with the root of the file present in the system Path    -->
+	<!-- Info   http://launch4j.sourceforge.net/docs.html        -->
+	<!-- ======================================================= -->
+
+	<taskdef name="launch4j"
+	         classname="net.sf.launch4j.ant.Launch4jTask"
+	         classpath="${launch4j.dir}/launch4j.jar
+        :${launch4j.dir}/lib/xstream.jar"
+	         onerror="ignore"
+	/>
+
+	<target name="exe"
+	        depends="makejar"
+	        description="Wrapps the Jar in an .exe file for windows use"
+	>
+
+		<echo>
+            ---------------------------------------
+            Creating install4j bundles 
+            ---------------------------------------
+        	</echo>
+
+		<launch4j>
+			<config headerType="console"
+			        outfile="${base.name}.exe"
+			        dontWrapJar="false"
+			        jar="${base.name}.jar"
+			        icon="${src}\resources\icon.ico"
+			        downloadUrl="http://java.com/download"
+			        customProcName="true"
+			>
+				<classPath mainClass="${main.class}">
+					<cp>./*.jar</cp>
+					<cp>%USER_LIBS%/*.jar</cp>
+					<cp>./${base.name}.jar</cp>
+				</classPath>
+
+				<jre minVersion="${jre}.0">
+
+
+					<opt>-Dlaunch4j.exedir="%EXEDIR%"</opt>
+					<opt>-Dlaunch4j.exefile="%EXEFILE%"</opt>
+				</jre>
+
+				<singleInstance mutexName="${ant.project.name}.exe"
+				                windowTitle="${ant.project.name}"
+				/>
+				<!--  <splash		
+   			file="${src}\resources\About.bmp"
+			waitForWindow="true"
+			timeoutErr="false"/> -->
+
+				<versionInfo fileVersion="${app.version}.${build.number}"
+				             txtFileVersion="${app.version}.${build.number}-${build.date}"
+				             fileDescription="${app.description}"
+				             copyright="${programmer.name}"
+				             productVersion="${app.version}.${build.number}"
+				             txtProductVersion="${app.version}.${build.number}-${build.date}"
+				             productName="${implementation.title}"
+				             companyName="${implementation.vendor}"
+					
+				             internalName="${ant.project.name}"
+				             originalFilename="${ant.project.name}.exe"
+				/>
+
+			</config>
+		</launch4j>
+		<zip destfile="${base.name}.zip">
+			<fileset dir="${base.dir}" includes="*.exe" />
+			<fileset dir="." includes="Resources/*" />
+			<fileset dir="." includes="*.ini" />
+		</zip>
+		<delete includeemptydirs="true" deleteonexit="true">
+			<fileset dir="${base.dir}"
+			         excludes="*.zip"
+			         defaultexcludes="false"
+			/>
+		</delete>
+
+		<echo>
+            ---------------------------------------
+            Done creating launch4J bundles 
+            ---------------------------------------
+        	</echo>
+
+	</target>
+
+</project>

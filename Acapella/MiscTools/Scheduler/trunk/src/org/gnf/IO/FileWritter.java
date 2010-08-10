@@ -110,6 +110,8 @@ public class FileWritter {
 
 		try {
 			channel.write(out);
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 
 			if (lock != null && lock.isValid())

@@ -142,7 +142,9 @@ public class ScriptLoading {
 
 	private void removeComment() {
 		String text = script.toString();
-		text = text.replaceAll("(?m)^\\s*(.*\\)?)??\\s*+//.*$", "$1");
+		text = text.replaceAll("(?m)^\\s*", "");
+		text = text.replaceAll("(?m)//.*$", "");
+		text = text.replaceAll("(?m)\\s*$", "");
 		text = text.replaceAll("[\r\n]+", "\r\n");
 		script = new StringBuffer(text);
 	}

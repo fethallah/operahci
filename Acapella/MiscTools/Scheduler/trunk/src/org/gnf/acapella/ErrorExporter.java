@@ -61,22 +61,19 @@ public class ErrorExporter extends Thread implements Runnable {
 				String wellData = errors.remove(wellID);
 				String[] wellInfo = wellID.split("/");
 				// if (wellInfo.length == 2) {
-					data.append(wellInfo[0] + "," + wellInfo[1] + ",");
+				data.append(wellInfo[0] + "," + wellInfo[1] + ",");
 
-					Pattern pattern = Pattern.compile("(?m)^(\\d{3})(\\d{3})");
-					Matcher matcher = pattern.matcher(wellInfo[2]);
-					matcher.find();
-					int row = Integer.valueOf(matcher.group(1));
-					int col = Integer.valueOf(matcher.group(2));
-					data.append(BaseConverterUtil.toBase26(row - 1));
-					data.append(BaseConverterUtil.pad("" + col, "0", 2));
-					data.append(",");
-					data.append(AcapellaScheduler.getDataFile().getPath()
-							+ File.separator + wellInfo[2]);
+				Pattern pattern = Pattern.compile("(?m)^(\\d{3})(\\d{3})");
+				Matcher matcher = pattern.matcher(wellInfo[2]);
+				matcher.find();
+				int row = Integer.valueOf(matcher.group(1));
+				int col = Integer.valueOf(matcher.group(2));
+				data.append(BaseConverterUtil.toBase26(row - 1));
+				data.append(BaseConverterUtil.pad("" + col, "0", 2));
 				data.append(",");
-				// } else {
-				// data.append(wellInfo[0] + ",,,");
-				// }
+				data.append(File.separator + wellInfo[2]);
+				data.append(",");
+
 				data.append(wellData);
 				data.append(System.getProperty("line.separator"));
 				index++;

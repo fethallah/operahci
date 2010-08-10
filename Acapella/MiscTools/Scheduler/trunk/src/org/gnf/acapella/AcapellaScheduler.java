@@ -114,9 +114,9 @@ public class AcapellaScheduler {
 		setErrorFile(new File(getResultPath(), value));
 
 		if (isOverWrite()) {
-			if (!getDataFile().delete())
+			if (getDataFile().exists() && !getDataFile().delete())
 				error(new Exception("Could not overwrite the data file."));
-			if (!getErrorFile().delete())
+			if (getErrorFile().exists() && !getErrorFile().delete())
 				error(new Exception("Could not overwrite the error file."));
 		}
 
@@ -219,6 +219,7 @@ public class AcapellaScheduler {
 				multiProcessor[processIndex].setMeasID(path.getName());
 				multiProcessor[processIndex].setPlateID(path.getParentFile()
 						.getName());
+				multiProcessor[processIndex].setImageRootPath(getImagesPath());
 				multiProcessor[processIndex].start();
 
 				// loop around the different threads

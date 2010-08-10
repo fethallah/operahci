@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.gnf.IO.RelativePath;
 import org.gnf.baseconverter.BaseConverterUtil;
 
 /**
@@ -21,6 +22,7 @@ import org.gnf.baseconverter.BaseConverterUtil;
  */
 public class AcapellaJob extends Thread implements Runnable {
 
+	private File root;
 	private File imagePath;
 	private String plateID = "";
 	private String measID = "";
@@ -29,7 +31,8 @@ public class AcapellaJob extends Thread implements Runnable {
 	private Map<String, String> errors;
 	private File scriptPath;
 
-	public AcapellaJob(File scriptPath, File imagePath, String wellIDs,
+	public AcapellaJob(File scriptPath, File imagePath,
+			String wellIDs,
 			Map<String, Map<String, String>> results, Map<String, String> errors) {
 		// super(new ThreadGroup("test"),this);
 		new Thread(new ThreadGroup("test"), this);
@@ -48,6 +51,10 @@ public class AcapellaJob extends Thread implements Runnable {
 		this.measID = measID;
 	}
 
+	public void setImageRootPath(File root) {
+		this.root = root;
+	}
+	
 	@Override
 	public void run() {
 		super.run();
@@ -66,7 +73,7 @@ public class AcapellaJob extends Thread implements Runnable {
 			dataReader.setName(this.getName() + "-dataReader");
 			dataReader.setPlateID(plateID);
 			dataReader.setMeasID(measID);
-			dataReader.setFilePath(imagePath);
+			dataReader.setFilePath(RelativePath.getRelativePath(root,imagePath));
 			dataReader.start();
 			errorReader.setPlateID(plateID);
 			errorReader.setMeasID(measID);
@@ -87,7 +94,7 @@ class DataExtractor extends Thread implements Runnable {
 	private BufferedReader br;
 	private LinkedHashMap<String, String> wellResults = new LinkedHashMap<String, String>();
 	private Map<String, Map<String, String>> results;
-	private File imagePath;
+	private String imagePath;
 	private String plateID = "";
 	private String measID = "";
 
@@ -98,7 +105,7 @@ class DataExtractor extends Thread implements Runnable {
 		this.results = results;
 	}
 
-	public void setFilePath(File imagePath) {
+	public void setFilePath(String imagePath) {
 		this.imagePath = imagePath;
 	}
 
@@ -153,7 +160,7 @@ class DataExtractor extends Thread implements Runnable {
 						wellResults.put("Row", "" + row);
 						wellResults.put("Col", "" + col);
 
-						wellResults.put("filename", imagePath.getPath()
+						wellResults.put("filename", imagePath
 									+ File.separator + wellID);
 						if (!wellResults.isEmpty()) {
 							results.put(lineIndexIni + wellID, wellResults);

@@ -44,7 +44,7 @@ public class FileSeeker {
 					"The directory containing the images  to analyze: "
 							+ path.getPath() + " cannot be read.");
 
-		FileListFilter filter = new FileListFilter("\\d{1,3}_\\d{4,9}",
+		FileListFilter filter = new FileListFilter("(?:\\d{1,3}_)?\\d{4,9}",
 				EXTENSIONS);
 		Map<File, Vector<String>> fileSet = new LinkedHashMap<File, Vector<String>>();
 		Vector<String> wellSet = new Vector<String>();
