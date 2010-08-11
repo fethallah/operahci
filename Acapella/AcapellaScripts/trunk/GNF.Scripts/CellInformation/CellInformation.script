@@ -45,7 +45,7 @@ proc getChanInfo(
 	push(chanMin,minIntensity)
 	push(chanCutOff,0)
 
-	input(Name, "Exp1Cam2", "CytoplasmicChanelName", type="String", description="Channel containing the fluorescence from the cytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "CytoplasmicChanelName", type="String", description="Channel containing the fluorescence from the cytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "MGD", "Cytoplasmic StainDescription", type="String", description="Description of the Cytoplasmic stain.")
 	input(cutOff, 150, "Min Cytoplasmic Chanel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 1.")
 	if(cutOff<1)
