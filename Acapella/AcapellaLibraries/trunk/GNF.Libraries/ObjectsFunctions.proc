@@ -158,27 +158,27 @@ Memblock objects out "Objects that satisfy the criteria provided in \"formula\".
 
 proc bckGndDetection(
 //INPUT
-	image image inout "image to which background should be substracted",
+	image image inout "image to which background should be subtracted",
 	boolean showIllustrations = false in "indicate whether you wish to see the illustration of the area corresponding to the background.",
-	boolean minLevel = 0 in "Used to remove from the background object mask pixels bellow this value. Usefull to remove border of a well for instace. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded.",
-	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwriten by setting the input to true. Select depending on the background illustation.",
+	boolean minLevel = 0 in "Used to remove from the background object mask pixels bellow this value. Useful to remove border of a well for instance. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded.",
+	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwritten by setting the input to true. Select depending on the background illustration.",
 //OUTPUT
-	objectList objects out "Object represnting the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
-	double stdDevToSubstract=0 inout "Optional: Inducate how many standard deviation of the noise should be considered as background.",
+	objectList objects out "Object representing the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
+	double stdDevToSubstract=0 inout "Optional: Indicate how many standard deviation of the noise should be considered as background.",
 ) object list manipulations "This procedure detects the object containing the background pixels"
 {
 	set(imageIni=image)
 	if(minLevel==0)
-		input(minLevel,0,"Min Channel Level: Background detection",Type="i", description="Used to remove from the background object mask pixels bellow this value. Usefull to remove border of a well for instace. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded. Allowed range: 0..1000.")
+		input(minLevel,0,"Min Channel Level: Background detection",Type="i", description="Used to remove from the background object mask pixels bellow this value. Useful to remove border of a well for instace. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded. Allowed range: 0..1000.")
 	end()
 	input(BckGndFactor,5,"Background Factor: Background detection",Type="d", description="Setting to find pixels devoid of cells in the image. Adjust with \"Area considered as Background\". Lower value result in more pixels (ie. pixels of higher value) being considered as background. Allowed range: 0..100, step 0.1.")
 
-	input(includeBorderInput,true,"Include Borders: Background detection",Type="b", description="Enter Wether to use the objects touching the border as part of the background")
+	input(includeBorderInput,true,"Include Borders: Background detection",Type="b", description="Enter Whether to use the objects touching the border as part of the background")
 	if(Not(includeBorderInput))
 		set(includeBorders=includeBorderInput)
 	end()
 	if(stdDevToSubstract==0)
-		input(stdDevToSubstract,0,"NoiseSTDEV2Substract: Background detection",Type="d", description="Optional: Inducate how many standard deviation of the noise should be considered as background. Allowed range: 0..10, step 0.1.")
+		input(stdDevToSubstract,0,"NoiseSTDEV2Substract: Background detection",Type="d", description="Optional: Indicate how many standard deviation of the noise should be considered as background. Allowed range: 0..10, step 0.1.")
 	end()
 	
 
@@ -235,7 +235,8 @@ proc bckGndDetection(
 		if(scanning && showIllustrations)
 			set(TitleSufix=ScanParameter&"="&i)
 			set(label=":"&i)
-			imageview(objects.border, "bckGnd"&label, image=imageIni, gamma=2.6, title="Background detected for: "&TitleSufix)
+			imageview(objects.border, "bckGndBord"&label, image=imageIni, gamma=2.6, title="Border of the background detected for: "&TitleSufix)
+			imageview(objects.body,"bckGndBody"&label, image=imageIni, gamma=2.6, title="Body of the background detected for: "&TitleSufix)
 			
 			//TODO: Show images after substraction for varying StdDev removal.
 		end()
@@ -703,6 +704,13 @@ proc AssociateObject2Parents(
 	Vector parentNames=none in "Vector containing the names for the parents in the order for which the mapping should be done. Objects with name at a  higher Index contain objects with lower index (ex. Nuclei should have a lower index than WholeCells). use vec(\"name1\",\"name2\",...)",
 ) object list attribute creation "Adds to the object the linkage to parent objects. The object will be map to the parent objeclits with name parentNames[0], then to parentNames[1],etc. If no Parent object is provided or parentObjectsName a",
 {
+	//Add the proper columns to empty objects
+	if(objects.count==0)
+		Set(objects.ObjectID=vec())
+		Set(objects.ParentType=vec())
+		Set(objects.ParentID=vec())
+		return()
+	end()
 	set(oldData="")
 	if(not(Defined("parentObjects")))
 		Set(objects.ParentType=create("vector", 13, objects.count, "WholeWell").vector)
@@ -736,6 +744,8 @@ proc AssociateObject2Parents(
 			end()
 		end()
 	end()
+	
+	//Associating the rest of the objects with wholeWell.
 	if(Defined("objects"))
 	if(objects.count>0)
 		Set(objects.ParentType=create("vector", 13, objects.count, "WholeWell").vector)
