@@ -109,6 +109,7 @@
 				<word name="mempointer" />
 				<word name="string" />
 				<word name="memblock" />
+				<word name="boolean" />
 				<word name="text" />
 				<word name="vector" />
 				<word name="polytype" />
@@ -201,7 +202,8 @@
 			<block start="/(\bif\b)/i" end="/(\bend\(\))/i" scheme="acapella"
 				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
 				region11="PairEnd" />
-			<block start="/(\belse\(\))/i" end="/\M(\bend\(\))/i" scheme="acapella"
+				
+			<block start="/(\bif\b)/i" end="/(\bend\(\))/i" scheme="acapella"
 				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
 				region11="PairEnd" />
 

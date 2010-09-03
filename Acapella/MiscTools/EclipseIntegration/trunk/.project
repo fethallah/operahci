@@ -8,4 +8,11 @@
 	</buildSpec>
 	<natures>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>PE-Library</name>
+			<type>2</type>
+			<location>C:/PerkinElmerCTG/IMacro/StdLib</location>
+		</link>
+	</linkedResources>
 </projectDescription>

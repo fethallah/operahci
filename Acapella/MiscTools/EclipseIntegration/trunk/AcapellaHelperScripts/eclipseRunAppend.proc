@@ -1,0 +1,874 @@
+proc imageView
+(
+	memblock item in "The data item to output. Default: no default.",
+	string label in "The label of the image view pane. This should not coincide with labels used by output() modules, otherwise the view may be lost.",
+	float delay@s=0 in "Provided for compatibility with ImageView() not used here.",
+	int delayedsize@MB=256 in "Provided for compatibility with ImageView() not used here.",
+	string description="" in "Longer description of this view. You can use HTML markup in the description.",
+	memblock extra in "",
+	boolean fillrange=ture in "Fill the image dynamic range, so that brightest pixels appear white.",
+	float gamma=1 "The initial gamma factor (in range 1..10) for the "image" for better visualization.",
+	int highcut=100 in "The initial percent threshold of higher intensities in the "image" to remap to white for better visualization",
+	image imagein "The background image for the case if the item is not an image.",
+	memblock index in explicit "The stencil for displaying object information.",
+	int lowcut=0 "The initial percent of lower intensities in the \"image\" to remap to black for better visualization.",
+	string middlecolorin="rgb(0x7f,0x7f,0x7f)" explicit "Middle palette color when applying a gradual palette to a grayscale image."
+	image pixelsource=image "The image for displaying pixel intensity info.",
+	string title="" in "The image view title.",
+	string visualscript in "The visual script for preparing the display image. This script should carry \"item\" on \"image\", if \"item\" is not an image.",
+) data output,visualization "This procedure is used to overwrite the traditional ImageView() module and display images in "
+{
+ if(index.type!="stencil" && index.type!="image")
+ 	warning("The index value provided in \"Imageview()\" is not a stencil or an image. Imagview will not be displayed correctly.")
+ 	return()
+ end()
+
+	
+ 
+ 	writeimage("<<imagepng",imageformat="png",image=image)
+	set(html="""{<html>	<head></head>	<body>	<img src="&%u;/image/imagepng">	</body>	</html>	}")
+	htmlviewsession()
+	HtmlView(title,php=html)
+ 
+}
+
+
+
+
+
+
+
+// Implementation of the Acapella Player pane
+// (c) PerkinElmer, Inc 2007
+// (c) Evotec Technologies GmbH 2005-2006
+
+htmlviewsession()
+
+set(phpdata=cnt())
+set(datasets=cnt())
+set(hashmap=cnt())
+
+readreg("Software/Evotec/Acapella/Player/Datasets/Pos/active")
+if(regval != 0 && regval !=1) set(regval=0) end()
+set(datasets.pos= cnt(name = "Positive Control", active=regval))
+
+readreg("Software/Evotec/Acapella/Player/Datasets/Neg/active")
+if(regval != 0 && regval !=1) set(regval=0) end()
+set(datasets.neg = cnt(name= "Negative Control", active=regval))
+
+readreg("Software/Evotec/Acapella/Player/Datasets/Samples/active")
+if(regval != 0 && regval !=1) set(regval=0) end()
+set(datasets.samples=cnt(name= "Samples", active=regval))
+
+set(datasetkeys=vec("pos","neg","samples"))
+
+foreach(datasetkeys, "key")
+	set(hkey="_" & datasets[key].name.md5)
+	set(hashmap[hkey] = key)
+	readreg("Software/Evotec/Acapella/Player/Datasets/" & key & "/provider")
+	if(regval.length==0) set(regval="Disk Files") end()
+	set(lastprovider=regval)
+	sourcedatadefine(datasets[key].name, lastprovider)
+end()
+set(phpdata.datasets=datasets)
+set(phpdata.showsection=cnt())
+
+readreg("Software/Evotec/Acapella/Player/active_dataset")
+if(regval != "Samples" && regval != "Positive Control" && regval != "Negative Control" ) set(regval="Samples") end()
+sourcedatajump("first", regval)
+
+readreg("Software/Evotec/Acapella/Player/Batchmode")
+if(regval != 0 && regval !=1) set(regval=0) end()
+set(phpdata.batchmode=regval)
+
+input(display_views_in_player_html, true)
+set(phpdata.hosted=not display_views_in_player_html)
+
+// Output results table from RunMainScript module.
+set(output_data=tbl(label=vec(), value=vec()))
+
+// Output views table from RunMainScript module
+set(output_views= tbl(label=vec(), view_type=vec()))
+
+set(rerun_and_return_to_report=false)
+set(inputdetails = """{<html><head><title>Input definition details</title></head>
+<body bgcolor="#dddddd">
+<a href="&%u;">Back to Player</a> 
+<h3>Input definition details</h3><?php ?><table border=1>&%t:inputformtable;</table>
+<a href="&%u;">Back to Player</a> 
+</body></html>}")
+
+set(phpdata.hide_sliders=0)
+
+label("player_loop")
+
+ 	try()
+
+	sourcedataproviders()
+	set(phpdata.sourcedataproviders = sourcedataproviders)
+
+	sourcedatasets()
+	set(phpdata.active_dataset=active_dataset)
+
+// Mantis: #7028 
+
+	foreach(sourcedatasets)
+		sourcedatainfo(i)
+		set(key=hashmap["_" & i.md5])
+		set(datasets[key].html = dataset_info.html)
+		set(phpdata.datasets[key].provider = dataset_info.provider_name)
+		if(active_dataset==i) set(active_info=dataset_info) end()
+	end()
+
+	set(phpdata.dataset_pos = active_info.dataset_pos, 
+		phpdata.dataset_pos_label=active_info.dataset_pos_label,
+		phpdata.dataset_size=active_info.dataset_size,
+		phpdata.labels_menu = active_info.labels_menu,
+		phpdata.labels_menu_startpos = active_info.labels_menu_startpos,
+		)
+
+	try()
+		mainscriptinfo()
+		set(phpdata.scriptfilename = pathsplit(mainscript_filename).basename)
+	catch_error()
+		set(phpdata.scriptfilename = "{Invalid script}")
+	end()
+
+label("player_loop_nosourceinfo")
+
+	set(phpdata.view_label = output_views.label)
+	set(phpdata.view_type = output_views.view_type)
+
+	inputformtable()
+
+	if (inputform_override_extra_inputs!="") 
+		warning("Unused settings in the parameter file:\n" & inputform_override_extra_inputs, confirm=yes)
+	end()
+	if (inputform_override_missing_inputs!="") 
+		warning("Missing settings in the parameter file:\n" & inputform_override_missing_inputs, confirm=yes)
+	end()
+	if (inputform_override_missing_section_names!="") 
+		warning("Section names missing in the parameter file:\n" & inputform_override_missing_section_names, confirm=yes)
+	end()
+	
+	
+	// Sort according to positions and sections. Order sections according to the minimal position inside the section.
+	sort_prepare(inputformtable.pos)
+	reorder(inputformtable | inputformtable=result)
+	uniq_prepare(inputformtable.section)
+	reorder(tbl(section=inputformtable.section, pos=inputformtable.pos) | section_pos=result)
+	set(stringmap=cnt())
+	foreach(section_pos.section)
+		set(stringmap[i]=section_pos.pos[foreach_index])
+	end()
+	convelems(inputformtable.section, "double", stringmap=stringmap | section_pos=result)
+	sort_prepare( vec(section_pos, inputformtable.pos))
+	reorder(inputformtable | inputformtable=result)
+	quote(inputformtable.section, "name")
+	set(inputformtable.section_id = lower(quoted))
+
+	if(rerun_and_return_to_report)
+		set(rerun_and_return_to_report=false)
+		goto("report")
+	end()
+
+	php(":/inputform.php", cnt(inputformtable=inputformtable, inputformvlists=inputformvlists, showsection=phpdata.showsection, hide_sliders=phpdata.hide_sliders))
+	set(inputform_html = html)
+	set(phpdata.run_scriptname = run_scriptname)
+	
+	// dumpcontainer(phpdata)
+	htmlview("Player", ":/player.php", runbutton_id="__player__run__", activate=false, helpurl="#Player_Window")
+
+	writereg("Software/Evotec/Acapella/Player/Datasets/Samples/active",phpdata.datasets.samples.active)
+	writereg("Software/Evotec/Acapella/Player/Datasets/Pos/active",phpdata.datasets.pos.active)
+	writereg("Software/Evotec/Acapella/Player/Datasets/Neg/active",phpdata.datasets.neg.active)
+	writereg("Software/Evotec/Acapella/Player/active_dataset",phpdata.active_dataset)
+	writereg("Software/Evotec/Acapella/Player/Batchmode",phpdata.batchmode)
+
+	// Enh 20.01.2006: ensure that input data changes get saved, but only if they are changed.
+	if (phpdata._inputs_changed) 
+		inputformapply()
+	end()
+
+	set(phpdata.errors = "")
+	set(phpdata.errorcode = 0)
+	
+	if (phpdata.act!="report")
+		// flush the obsolete data
+		set(output_data=tbl(label=vec(), value=vec()))
+		set(output_views=tbl(label=vec(), view_type=vec()))
+	end()
+	
+	// dumpcontainer(phpdata)
+	// debug(phpdata.act)
+	
+	goto(phpdata.act, "player_loop_error")
+
+	label("providerchanged_samples")
+		sourcedatadefine("Samples", phpdata.datasets.samples.provider)
+		writereg("Software/Evotec/Acapella/Player/Datasets/Samples/provider", phpdata.datasets.samples.provider)
+		goto("player_loop")
+		
+	label("providerchanged_neg")
+		sourcedatadefine("Negative Control", phpdata.datasets.neg.provider)
+		writereg("Software/Evotec/Acapella/Player/Datasets/Neg/provider", phpdata.datasets.neg.provider)
+		goto("player_loop")
+		
+	label("providerchanged_pos")
+		sourcedatadefine("Positive Control", phpdata.datasets.pos.provider)
+		writereg("Software/Evotec/Acapella/Player/Datasets/Pos/provider", phpdata.datasets.pos.provider)
+		goto("player_loop")
+
+	label("saveparams")
+		getfile("Save parameter settings", AbortOnCancel=false, AllowNew=true, mask="*.parameter;*.settings;*.par", maskdescription="Parameter files (*.par,*.parameter,*.settings)")
+		if (filename.length>0) 
+			// Immediately after start there is no settings string (InputFormApply() module not yet called).
+			if (!defined("settings_string")) set(settings_string="") end()
+			write(settings_string, filename)
+			writereg("Software/Evotec/UIMacro/Player/LastSettingsFile", filename)
+		end()
+		goto("player_loop_nosourceinfo")		
+		
+	label("loadparams")
+		readreg("Software/Evotec/UIMacro/Player/LastSettingsFile" | filename=regval)
+		getfile("Load parameter settings", filename=filename, AbortOnCancel=false, AllowNew=false, mask="*.parameter;*.settings;*.par;*.mpr", maskdescription="Parameter files (*.par,*.parameter,*.settings,*.mpr)")
+		if (filename.length>0)
+			writereg("Software/Evotec/UIMacro/Player/LastSettingsFile", filename)
+			InputFormTable(settingsfilename=filename)
+			goto("loadparams_common")
+		end()
+		goto("player_loop_nosourceinfo")
+
+	label("loadparams_from_override")
+		// Parameter settings have been loaded by EvoShell. Call InputFormTable() to import them:
+		InputFormTable()
+		goto("loadparams_common")
+
+	label("loadparams_common")		
+		if (errorcode!=0)
+			set(phpdata.errorcode=errorcode, phpdata.errors=errors)
+			printf("%s\n", errors)
+		end()
+		if (inputform_override_extra_inputs!="") 
+			warning("Unused settings in the parameter file:\n" & inputform_override_extra_inputs, confirm=yes)
+		end()
+		if (inputform_override_missing_inputs!="") 
+			warning("Missing settings in the parameter file:\n" & inputform_override_missing_inputs, confirm=yes)
+		end()
+		if (inputform_override_missing_section_names!="") 
+			warning("Section names missing in the parameter file:\n" & inputform_override_missing_section_names, confirm=yes)
+		end()
+
+		// settings file may have modified sourcedata settings, go to full loop to accommodate these
+		goto("player_loop")
+		
+		
+	label("resetparams")
+		set(inputformtable.value = inputformtable.defaultvalue)
+		set(phpdata.__inputform__ = cnt())
+		inputformapply()
+		goto("player_loop")		
+	
+	label("inputformapply")
+		inputformapply()
+		goto("player_loop")		
+
+	label("prev") 
+		sourcedatajump("prev")
+		goto("check_jump_errors")
+	
+	label("next") 
+		sourcedatajump("next")
+		goto("check_jump_errors")
+
+	label("first") 
+		sourcedatajump("first")
+		goto("check_jump_errors")
+
+	label("last") 
+		sourcedatajump("last")
+		goto("check_jump_errors")
+		
+	label("jump")
+		if (phpdata.jump_to == "prevpage" || phpdata.jump_to == "nextpage") 
+			if (phpdata.jump_to == "prevpage") 
+				set(k=phpdata.labels_menu_startpos - phpdata.labels_menu.length/2)
+			else()
+				set(k=phpdata.labels_menu_startpos + phpdata.labels_menu.length*3/2)
+			end()			
+			if (k<0) set(k=0) end()
+			if (k>=phpdata.dataset_size) set(k=phpdata.dataset_size-1) end()
+			sourcedatajump(k)
+			if (errorcode!=0) 
+				set(phpdata.errors = "Jump failed: " & errors, phpdata.errorcode = errorcode)
+				goto("player_loop")
+			end()
+			set(phpdata.dataset_pos = dataset_pos, 
+				phpdata.dataset_pos_label=dataset_pos_label,
+				phpdata.dataset_size=dataset_size)
+			goto("player_loop")
+		else()
+			sourcedatajump(phpdata.jump_to)
+			goto("check_jump_errors")
+		end()
+	
+
+	label("check_jump_errors")
+		if (errorcode!=0) 
+			set(phpdata.errors = "Jump failed: " & errors, phpdata.errorcode = errorcode)
+			goto("player_loop")
+		end()
+		if (dataset_jump_out_of_range) 
+			printfopen()
+			printf("Script not started: %s\n", errors)
+			if (dataset_pos>=dataset_size)
+				set(dataset_pos=dataset_size-1)
+			end()
+		end()
+		set(phpdata.dataset_pos = dataset_pos, 
+			phpdata.dataset_pos_label=dataset_pos_label,
+			phpdata.dataset_size=dataset_size)
+			
+		if (dataset_jump_out_of_range) 
+			goto("player_loop")
+		end()
+		// fall through
+	label("run") 
+		if(phpdata.batchmode) goto("run_batch") end()
+		set(singlewellprop = cnt(
+			active_dataset=active_dataset, 
+			dataset_pos=dataset_pos, 
+			dataset_size=dataset_size, 
+			batchmode=false, 
+			batch_pos=0,
+			batch_size=1,
+			datasets=datasets))
+
+		RunMainScript()
+		eval(execverb("bring_to_top")|)
+		
+		// 05.10.2006: For conformance with the batch mode, rename the Value column to the wellindex value (Mantis #6252)
+		// 06.12.2006: Do not rename if the script did not call SingleWell (Mantis #6668)
+		if (singlewell_was_called)
+			// 24.08.2007 (Mantis #7001): remove .flex suffix from the label, to avoid confusions.
+			if (substr(dataset_pos_label, dataset_pos_label.length-4, 5)==".flex")
+				set(dataset_pos_label = substr(dataset_pos_label, 1, dataset_pos_label.length-5))
+			end()
+			if (substr(dataset_pos_label, dataset_pos_label.length-3, 4)==".pev")
+				set(dataset_pos_label = substr(dataset_pos_label, 1, dataset_pos_label.length-4))
+			end()
+			quote(dataset_pos_label, "name")
+			set(output_data[quoted]=output_data.value)
+			delete(output_data.value)
+		else()
+			set(output_data.Results=output_data.value)
+			delete(output_data.value)
+		end()
+		
+		set(phpdata.errorcode=errorcode, phpdata.errors=errors)
+		if (!phpdata.hosted) 
+			AdjustViewImages()
+		end()
+
+		// Bugfix 17.01.2006: check if the script has changed the active dataset
+		sourcedatajump("current")
+		if(active_dataset!=dataset_name || dataset_pos!=phpdata.dataset_pos)
+			goto("player_loop")
+		end()			
+
+		if (not phpdata.batchmode && phpdata.labels_menu.length < phpdata.dataset_size 
+			&& (phpdata.dataset_pos < phpdata.labels_menu_startpos+1 ||
+			    phpdata.dataset_pos > phpdata.labels_menu_startpos+phpdata.labels_menu.length-2)) 
+			goto("player_loop")
+		else()
+			goto("player_loop_nosourceinfo")
+		end()
+
+	label("run_batch")
+		create("table")
+		rename(output_data=table)
+		create("vector","string",0)
+		set(output_data.label=vector)
+
+		// find out the batch total size
+		set(batch_size=0, act_dset_count=0)
+		foreach(datasetkeys)
+			if(phpdata.datasets[i].active)
+				sourcedatajump("first", datasets[i].name)
+				set(batch_size=batch_size+dataset_size)
+				set(act_dset_count=act_dset_count+1)
+			end()
+		end()
+		
+		set(batch_pos=0)
+		timer(name="player_batch")
+		foreach(datasetkeys)
+			if(phpdata.datasets[i].active)
+				sourcedatajump("first", datasets[i].name)
+ 				if (errorcode!=0) 
+ 					set(phpdata.errors = "Jump failed: " & errors, phpdata.errorcode = errorcode)
+ 					goto("player_loop")
+ 				end()
+				set(singlewellprop = cnt(
+					active_dataset=datasets[i].name, 
+					dataset_pos=0, 
+					dataset_size=dataset_size, 
+					batchmode=true, 
+					batch_pos=batch_pos,
+					batch_size=batch_size,
+					datasets=datasets))
+				// If more than one dataset involved, include dataset name in the well index, to avoid collisions (Mantis #6541)
+				set(wellindex_prefix = iif(act_dset_count<=1, "", datasets[i].name & " | "))
+				RunDataset(output_data)
+ 				if (errorcode!=0) 
+ 					set(phpdata.errors = "Batch run failed: DataSet \"" & datasets[i].name & "\": " & errors, phpdata.errorcode = errorcode)
+ 					goto("player_loop")
+ 				end()
+			end()
+			set(batch_pos=batch_pos+dataset_size)
+		end()
+		timer(false, name="player_batch")
+		printf("Batch run completed: %.2g s (%s), well average: %.2g s\n", duration, __time__, duration/batch_size)
+		eval(execverb("bring_to_top")|)
+		sourcedatajump("first", phpdata.active_dataset)
+		set(phpdata.dataset_pos = dataset_pos, 
+			phpdata.dataset_pos_label= dataset_pos_label,
+			phpdata.dataset_size= dataset_size)
+		if (!phpdata.hosted) 
+			AdjustViewImages()
+		end()
+		goto("player_loop_nosourceinfo")
+
+	label("sourcedataapply") 
+		sourcedataapply()
+		// Bugfix 19.05.2008 (Mantis #8497): refresh dataset_pos_label correctly.
+		goto("datasetchanged")
+		
+	label("datasetchanged") 
+		sourcedatajump("first", phpdata.active_dataset)
+		goto("player_loop")
+		
+	label("report")
+		try()
+			// Pass dataset info
+			set(rerun_and_return_to_report=false)
+			set(dataset_info_html = "")
+			foreach(datasetkeys)
+				if(phpdata.datasets[i].active)
+					sourcedatainfo(datasets[i].name)
+					set(dataset_info.dataset_name = datasets[i].name) 
+					php(":/datasetdescr.php", dataset_info)
+					set(dataset_info_html = dataset_info_html & html)
+				end()
+			end()
+			// Carry input parameter values from phpdata to inputformtable
+			ReportView(inputformtable, output_data, output_views, phpdata.batchmode)
+			if(rerun_and_return_to_report)
+				goto("run")
+			end()
+			
+		catch_error()
+			set(phpdata.errors = "Report failed: " & catch_message, phpdata.errorcode = catch_errorcode)
+		end()
+		goto("player_loop")
+
+	label("player_loop_error") 
+		set(phpdata.errors = "Error in player script loop: no such label: " & phpdata.act)
+		goto("player_loop")
+
+
+	label("hide_sliders") 
+		set(phpdata.hide_sliders=1)
+		goto("player_loop")
+
+	catch_abort()
+		// check if the user wanted to abort the whole player
+		if (at("abort_player", catch_message, 1)==0) 
+			// no, continue
+			printf("Script run aborted by the user.\n")
+			goto("player_loop")
+		end()
+		printf("Player aborted.\n")
+	end()
+	
+	
+label("quit") 
+//set(phpdata.errors="Player terminated normally", phpdata.errorcode=0, phpdata.batchmode=-1)
+
+try()
+	htmlview("Player", """{
+		<html><head><title>Player</title></head>
+		<body bgcolor="#dddddd"><h3>Player terminated normally</h3><form></form></body></html>}"
+		, timeout=1)
+catch_error()
+end()
+CloseView("player")
+
+
+proc RunDataset(
+	table output_data inout, 
+	bool display_views_in_player_html in, 
+	table inputformtable in, 
+	table output_views out, 
+	int errorcode out, 
+	string errors out, 
+	polytype htmlviewsession in,
+	container singlewellprop in,
+	string wellindex_prefix="" in
+) {
+	rename(total_outputs=output_data)
+	sourcedatajump("first")
+	set(errorcode=0)
+	create("table")
+	rename(output_views=table)
+	set(output_views.label=vec(), output_views.view_type=vec())
+	
+	// Bugfix 23.01.2007 (Mantis #6783): take into account the display-views registry setting.
+	readreg("Software/Evotec/UIMacro/Esplayer/DisplayImagesDuringAssayRun")
+	if(regval != 0 && regval !=1) set(regval=1) end()
+	set(forward_views = regval!=0, dataset_jump_out_of_range=false)
+	
+	while(dataset_pos<dataset_size && errorcode==0 && !dataset_jump_out_of_range)
+		RunMainScript(forward_views=forward_views)
+		// if (run_aborted) 
+			
+		if (errorcode==0)
+			// 24.08.2007 (Mantis #7001): remove .flex suffix from the label, to avoid confusions.
+			if (substr(dataset_pos_label, dataset_pos_label.length-4, 5)==".flex")
+				set(dataset_pos_label = substr(dataset_pos_label, 1, dataset_pos_label.length-5))
+			end()
+			if (substr(dataset_pos_label, dataset_pos_label.length-3, 4)==".pev")
+				set(dataset_pos_label = substr(dataset_pos_label, 1, dataset_pos_label.length-4))
+			end()
+			set(wellindex = wellindex_prefix & dataset_pos_label)
+			quote(wellindex, "name")
+			set(output_data[quoted]=output_data.value)
+			delete(output_data.value)
+			TableMerge(total_outputs, output_data, "label")
+			rename(total_outputs=table)
+			write(total_outputs, "<buff", "html")
+			timer(true, name="player_batch")
+			set(estimated_time_left = (duration/(total_outputs.columncount-1))*(singlewellprop.batch_size-(total_outputs.columncount-1)))
+			if (estimated_time_left>3600) 
+				set(estimated_time_left = int(estimated_time_left/3600) & " hours " & round((estimated_time_left~3600)/60) & " min")
+			else()
+				if (estimated_time_left>60) 
+					set(estimated_time_left = int(estimated_time_left/60) & " min " & round(estimated_time_left~60) & "s")
+				else()
+					set(estimated_time_left = round(estimated_time_left) & "s")
+				end()
+			end()
+				
+			htmlview("Player", """{
+				<body bgcolor="#dddddd" onLoad="document.forms[0].submit()">
+				<div id=title style="border: solid 2px #0F0;"><b>Processing, please wait...</b></div><br>
+				<table border="0" width="100%">
+				<tr bgcolor="#999999">
+				<td>
+				<table border="0" width="}" & int(100*(total_outputs.columncount-1)/singlewellprop.batch_size) & """{%" cellspacing="1" bgcolor="#0033FF">
+				<tr>
+				<td><font size="1">&nbsp;</font></td>
+				</tr>
+				</table>
+				</td>
+				</tr>
+				<form action="&%u;" method=post></form>
+				<tr><td><center>Estimated time left: &%s:estimated_time_left;</center></tr>
+				</table>
+				<p>}"
+				& buff &
+				"</body>",
+				activate=false)
+			sourcedatajump("next")
+			set(singlewellprop.dataset_pos=singlewellprop.dataset_pos+1)
+			set(singlewellprop.batch_pos=singlewellprop.batch_pos+1)
+		else()
+			set(errors = "Well \"" & wellindex_prefix & dataset_pos_label & "\": " & errors)
+		end()
+	end()
+	rename(output_data=total_outputs)
+}
+
+proc ReportView(
+	table inputformtable in, 
+	table output_data in, 
+	table output_views in, 
+	bool batchmode in, 
+	polytype htmlviewsession in, 
+	string HtmlView_URL in, 
+	string dataset_info_html="" in,
+	bool rerun_and_return_to_report out
+	) {
+
+	// Excel does not like more than 255 columns.
+	// Usually there are less inputs and more wells.
+	// Thus, transpose the table, unless it has more than 255 inputs.
+	set(using_better_excel=false) // set this to true if you have an Excel that supports more than 255 columns!
+	if (output_data.rowcount<256 || using_better_excel)
+		tabletranspose(output_data, "label", "WellIndex")
+		rename(output_data=table)
+		unquote(output_data.wellindex, "name")
+		// Extract dataset names into a separate column
+		if (at("|", text[0], 1)>0)
+			splitstringintwo(text, "|")
+			set(output_data.wellindex = split2)
+			insert_at(output_data, split1, "Dataset" | output_data=table)
+			
+			// Calculate Z' if possible (Mantis #6491)
+			tablefilter("""{dataset=="Positive Control"}", table=output_data | pos_table = table)
+			tablefilter("""{dataset=="Negative Control"}", table=output_data | neg_table = table)
+			if (pos_table.rowcount>0 && neg_table.rowcount>0) 
+				set(negmean=cnt(dataset="ZPrim", wellindex="Negative mean"))
+				set(posmean=cnt(dataset="ZPrim", wellindex="Positive mean"))
+				set(negstddev=cnt(dataset="ZPrim", wellindex="Negative stddev"))
+				set(posstddev=cnt(dataset="ZPrim", wellindex="Positive stddev"))
+				set(zprimcnt=cnt(dataset="ZPrim", wellindex="Z prim"))
+				
+				foreach(pos_table.columns)
+					typeinfo(pos_table[i])
+					if (typeinfo.elemclass=="integral" || typeinfo.elemclass=="floating")
+						if (typeinfo.elemclass=="integral")
+							// convert to double for accommodation of z'-related data
+							convelems(output_data[i], type="double")
+							set(output_data[i] = result)
+						end()
+						zprim(neg_table[i], pos_table[i])
+						set(negmean[i]=lmean, negstddev[i]=lsigma, posmean[i]=hmean, posstddev[i]=hsigma, zprimcnt[i]=zprim)
+					end()
+				end()
+				set(output_data.@appendrow = posmean)
+				set(output_data.@appendrow = posstddev)
+				set(output_data.@appendrow = negmean)
+				set(output_data.@appendrow = negstddev)
+				set(output_data.@appendrow = zprimcnt)
+			end()
+			
+		else()
+			set(output_data.wellindex = text)
+		end()
+	end()
+	
+	set(phpdata=cnt())
+	readreg("Software/Evotec/Acapella/Player/Report/showinputs", default="1")
+	set(phpdata.showinputs = regval==1)
+	readreg("Software/Evotec/Acapella/Player/Report/showdatasets", default="1")
+	set(phpdata.showdatasets = regval==1)
+	readreg("Software/Evotec/Acapella/Player/Report/showoutputs", default="1")
+	set(phpdata.showoutputs = regval==1)
+	readreg("Software/Evotec/Acapella/Player/Report/showviews_" & iif(batchmode, "batchmode", "singlestep"), default="1")
+	set(phpdata.showviews = regval==1)
+	readreg("Software/Evotec/Acapella/Player/Report/showscript", default="1")
+	set(phpdata.showscript = regval==1)
+	readreg("Software/Evotec/Acapella/Player/Report/invert_dark", default="1")
+	set(phpdata.invert_dark = regval==1)
+	readreg("Software/Evotec/Acapella/Player/Report/decimalpoint", default="by_locale")
+	set(decimalpoint=regval)
+	if (decimalpoint!="dot" && decimalpoint!="comma" && decimalpoint!="by_locale") 
+		set(decimalpoint="by_locale")
+	end()
+	readreg("Software/Evotec/Acapella/Player/Report/excel_decimalpoint", default="autodetect")
+	set(phpdata.excel_decimalpoint = regval)
+	set(phpdata.decimalpoint = decimalpoint, phpdata.act="none")
+
+	readreg("Software/Evotec/Acapella/Player/Report/precision", default="12")
+	set(precision=regval)
+	if (precision<3 || precision>35)
+		set(precision=12)
+	end()
+	set(phpdata.precision = precision)
+
+	readreg("Software/Evotec/Acapella/Player/Report/syntax_highlighting", default="1")
+	set(phpdata.syntax_highlighting = regval==1)
+
+	readreg("Software/Evotec/Acapella/Player/Report/line_numbers", default="1")
+	set(phpdata.line_numbers = regval==1)
+
+	readreg("Software/Evotec/Acapella/Player/Report/module_links", default="1")
+	set(phpdata.module_links = regval==1)
+
+
+	set(phpdata.view_label = output_views.label)
+	set(phpdata.view_type = output_views.view_type)
+	set(phpdata.saving_to_disk=false, phpdata.saving_dir=false)
+	
+	readreg("Software/Evotec/UIMacro/ExploreView/ColorScale", default="gray")
+	set(middlecolor = iif(regval=="blue", 0x000000ff, 0x007f7f7f))
+	set(bluegrayinput = "provideinput(\"__middlecolor\"," & middlecolor & ")")
+	
+	set(invert_if_dark_script = """{
+		if(defined("_main.output_views.content[" & key & "].inverted_image")) 
+			keep(inverted_image=_main.output_views.content[key].inverted_image)
+		else()
+			apply_script_to_container("typeinfo(image)if (image.mean<typeinfo.elemmax/2)inverse()end()" & _main.bluegrayinput & _main.output_views.content[key].visualscript, _main.output_views.content[key])
+			set(_main.output_views.content[key].inverted_image=results.image)
+			keep(inverted_image=results.image)
+		end()
+	}")
+	set(straight_imageview_script = """{
+		if(defined("_main.output_views.content[" & key & "].straight_image")) 
+			keep(straight_image=_main.output_views.content[key].straight_image)
+		else()
+			apply_script_to_container(_main.bluegrayinput & _main.output_views.content[key].visualscript, _main.output_views.content[key])
+			set(_main.output_views.content[key].straight_image=results.image)
+			keep(straight_image=results.image)
+		end()
+	}")
+	mainscriptinfo()
+	set(phpdata.scriptname = mainscript_filename)
+	set(phpdata.dataset_info_html = dataset_info_html, phpdata.inputformtable=inputformtable)
+	set(rerun_and_return_to_report=false)
+
+	label("report_loop")
+		
+
+		if (phpdata.showviews) 
+			AdjustViewImages()
+		end()
+		if (phpdata.showscript)
+			prettyprint("<mainscript_text", syntax_highlighting=phpdata.syntax_highlighting, line_numbers=phpdata.line_numbers, module_links=phpdata.module_links)
+			set(phpdata.scripttext = html)
+		end()
+
+		// compose the report by current settings
+		php("<report.php>", phpdata, decimalpoint=phpdata.decimalpoint, precision=phpdata.precision)
+		rename(report_html=html)
+	
+		htmlview("Report preview", "<reportmain.php>", runbutton_id="__player__run__", helpurl="#Report_Generation")
+		
+		goto(phpdata.act, "report_loop_error")
+	
+	label("open")
+		libcall("shell32", "ShellExecute", "iissssi", 0, "open", HtmlView_URL & "/text/html/report_html", "", "", 0)
+		goto("report_loop")
+		
+	label("save") 
+		readreg("Software/Evotec/Acapella/Player/Report/last_filename")
+		set(last_filename=regval)
+		getfile("Report file", AllowNew=true, AbortOnCancel=false, filename=last_filename, mask="*.html", maskdescription="HTML files")
+		if (filename=="") 
+			goto("report_loop")
+		end()
+		writereg("Software/Evotec/Acapella/Player/Report/last_filename", filename)
+		
+		set(report_decpoint = phpdata.decimalpoint)
+		SaveReportToDiskFile(filename, report_decpoint)
+		goto("report_loop")
+		
+	label("word")
+		set(report_decpoint = phpdata.decimalpoint)
+		set(appname="msword")
+		goto("open_in_app")
+		
+	label("excel")
+		set(appname="msexcel")
+		if (phpdata.excel_decimalpoint == "autodetect")
+			set(report_decpoint = "by_locale")
+			try()
+				// try to find out Excel decimal point setting
+				readreg("Excel.Application/CurVer/","HKCR")
+				set(curver = substr(regval, at(".",regval,-1)+1))
+				readreg("Software/Microsoft/Office/" & curver & ".0/Excel/Options/UseSystemSeparators", default="1")
+				if (!regval) 
+					readreg("Software/Microsoft/Office/" & curver & ".0/Excel/Options/DecimalSeparator", default=".")
+					set(report_decpoint = iif(regval==",", "comma", "dot"))
+				end()
+			catch_error()
+			end()
+		else()
+			set(report_decpoint = phpdata.excel_decimalpoint)
+		end()		
+		goto("open_in_app")
+
+	label("open_in_app")
+		MakeTempFileName("html", "yes")
+		SaveReportToDiskFile(filename, report_decpoint)
+		openfile(filename, appname)
+		goto("report_loop")
+				
+	label("settings")
+		goto("report_loop")
+
+	label("report_loop_error")
+		set(phpdata.msg = "Error in player.script: no such label: " & phpdata.act)
+		goto("report_loop")
+		
+
+	label("run")
+		set(rerun_and_return_to_report=yes)
+		goto("quit")
+	
+	label("quit")
+	
+	writereg("Software/Evotec/Acapella/Player/Report/showinputs", phpdata.showinputs)
+	writereg("Software/Evotec/Acapella/Player/Report/showoutputs", phpdata.showoutputs)
+	writereg("Software/Evotec/Acapella/Player/Report/showviews_" & iif(batchmode, "batchmode", "singlestep"), phpdata.showviews)
+	writereg("Software/Evotec/Acapella/Player/Report/showscript", phpdata.showscript)
+	writereg("Software/Evotec/Acapella/Player/Report/invert_dark", phpdata.invert_dark)
+	writereg("Software/Evotec/Acapella/Player/Report/decimalpoint", phpdata.decimalpoint)
+	writereg("Software/Evotec/Acapella/Player/Report/precision", phpdata.precision)
+	writereg("Software/Evotec/Acapella/Player/Report/syntax_highlighting", phpdata.syntax_highlighting)
+	writereg("Software/Evotec/Acapella/Player/Report/line_numbers", phpdata.line_numbers)
+	writereg("Software/Evotec/Acapella/Player/Report/module_links", phpdata.module_links)
+	writereg("Software/Evotec/Acapella/Player/Report/excel_decimalpoint", phpdata.excel_decimalpoint)
+}	
+
+
+proc AdjustViewImages(table output_views inout) {
+	foreach(output_views.view_type)
+		if (i=="graphview" && !defined("output_views.content[" & foreach_index & "].image"))
+			// plot the missing graphs
+			graphplot(output_views.content[foreach_index].item)
+			set(output_views.content[foreach_index].image=content)
+		end()
+	end()
+}
+
+proc SaveReportToDiskFile(string filename in, string report_decpoint in, table inputformtable in, table output_data in, table output_views in, container phpdata in, string bluegrayinput in) {
+	set(phpdata.saving_to_disk=true)
+	pathsplit(filename)
+	if (extension=="") 
+		set(filename = filename & ".html")
+	end()
+	set(phpdata.saving_dir = propername)
+	
+	// Transform some numeric columns beforehand to use comma, if needed; php() does not have any glue which data needs to be translated.
+	if (report_decpoint=="comma" || (report_decpoint=="by_locale" && readreg("Control Panel/International/sDecimal").regval==","))
+		set(phpdata.inputformtable.value=ApplyCommaToNumerics(phpdata.inputformtable.value).v)
+	end()
+	
+	php("<report.php>", phpdata, decimalpoint=report_decpoint, precision=phpdata.precision)
+	write(html, filename, "binary")
+	
+	mkdir(dirname & propername)
+	AdjustViewImages()
+	foreach(output_views.view_type)
+		if (i=="imageview") 
+			if (phpdata.invert_dark==0)
+				if(defined("output_views.content[" & foreach_index & "].straight_image")) 
+					set(image = output_views.content[foreach_index].straight_image)
+				else()
+					apply_script_to_container(bluegrayinput & output_views.content[foreach_index].visualscript, output_views.content[foreach_index])
+					set(image=results.image)
+				end()
+			else()
+				if(defined("output_views.content[" & foreach_index & "].inverted_image")) 
+					set(image=output_views.content[foreach_index].inverted_image)
+				else()
+					apply_script_to_container("typeinfo(image)if (image.mean<typeinfo.elemmax/2)inverse()end()" & bluegrayinput & output_views.content[foreach_index].visualscript, output_views.content[foreach_index])
+					set(image=results.image)
+				end()
+			end()
+			writeimage( dirname & propername & "/image" & foreach_index & ".png", imageformat="png")
+		end()
+		if (i=="graphview") 
+			write(output_views.content[foreach_index].image, dirname & propername & "/image" & foreach_index & ".gif", "binary")
+		end()
+	end()
+}
+
+// For each vector element, detects if it is a number or numeric string, if yes, then replaces possible decimal dot with comma.
+proc ApplyCommaToNumerics(vector v inout) {
+	foreach(v.range) 
+		set(v[i] = iif("x"==eval("v[i]+0", "x"), v[i], rep(v[i], ".", ",")))
+	end()
+}

@@ -109,6 +109,7 @@
 				<word name="mempointer" />
 				<word name="string" />
 				<word name="memblock" />
+				<word name="boolean" />
 				<word name="text" />
 				<word name="vector" />
 				<word name="polytype" />
@@ -177,7 +178,8 @@
 			<regexp match="/\\[0-7]{1,12}/" region="StringEscape" />
 			<regexp match="/\%[\-\+\#0]*?[\d\*]*(\.[\d\*]+)?[Ll]?[SsCcsuidopxXnEefgG]/"
 				region="StringEscape" />
-			<regexp match="/&#34;&#34;/" region="String" />
+			<regexp match="/[^\\\&#34;]$/" region="def:Error" />
+			<inherit scheme="TabsAsErrors" />
 			<inherit scheme="def:NetAddresses" />
 			<inherit scheme="def:Path" />
 		</scheme>

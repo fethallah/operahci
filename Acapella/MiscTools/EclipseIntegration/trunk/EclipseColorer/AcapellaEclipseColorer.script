@@ -55,8 +55,10 @@ end()
 WriteFile(filename,RegexReplace(content,"<!-- InsertModulesHere -->",replacement).text)
 }
 
+
 //#######################
 // Program Start
 //#######################
 
-GenerateTextPadSynFile("C:/Eclipse/plugins/net.sf.colorer_0.8.0/colorer/hrc/acapella/acapella.hrc")
+GenerateTextPadSynFile("C:/Eclipse/plugins/net.sf.colorer_*/colorer/hrc/acapella/acapella.hrc")
+GenerateTextPadSynFile("./acapella/acapella.hrc")
