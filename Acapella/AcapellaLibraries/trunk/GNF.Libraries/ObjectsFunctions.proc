@@ -235,7 +235,7 @@ proc bckGndDetection(
 		if(scanning && showIllustrations)
 			set(TitleSufix=ScanParameter&"="&i)
 			set(label=":"&i)
-			imageview(objects.border, "bckGndBord"&label, image=imageIni, gamma=2.6, title="Border of the background detected for: "&TitleSufix)
+			imageview(objects.border, "bckGndBorder"&label, image=imageIni, gamma=2.6, title="Border of the background detected for: "&TitleSufix)
 			imageview(objects.body,"bckGndBody"&label, image=imageIni, gamma=2.6, title="Body of the background detected for: "&TitleSufix)
 			
 			//TODO: Show images after substraction for varying StdDev removal.
