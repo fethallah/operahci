@@ -164,7 +164,8 @@ proc chainedCytoplasm_Detection(
 	rename(objects=wholeCells)
 	addContainedObjectsInfo(nuclei,outputStencil="centers")
 	AddCytoplasmAttributesOneNucleus()
-	RenameAttr(NumberOfNuclei=centers_count)
+	RenameAttr(NumberOfNuclei=centers_count)	
+	ObjectFilter(NumberOfNuclei > 0)
 	CalcIntensity(image=original)
 	rename(WholeCells=objects)
 
