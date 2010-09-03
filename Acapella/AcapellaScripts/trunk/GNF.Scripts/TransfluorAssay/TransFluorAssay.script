@@ -1,14 +1,14 @@
 //#############################################################################################
-//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
 //# and libraries.
 //#
 //# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
 //# Authors:
 //#   * Ghislain M.C. Bonamy
-//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
 //#   * www.gnf.org
 //#
-//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
 //#
 //# This program is free software; you can redistribute it and/or modify
 //# it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 //*********************************************************************************************
 
 
-proc getChanInfo(memblock chanInfo out){
+Proc getChanInfo(memblock chanInfo out){
 
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
@@ -94,14 +94,14 @@ proc getChanInfo(memblock chanInfo out){
 		push(chanMin,0)
 		push(chanCutOff,0)//cutOff)
 	end()
-	
-	
-	set(chanInfo=tbl(name=chanNames, desc=chanDesc,min=chanMin,purpose=chanPurpose, cutOff=chanCutOff))
 
+	create("table")
+	set(table.name=chanNames, table.desc=chanDesc,table.min=chanMin,table.purpose=chanPurpose, table.cutOff=chanCutOff)
+	rename(chanInfo=table)
 }
 
 
-proc paramInit(memblock param out){
+Proc paramInit(memblock param out){
 
 	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
 	EnvInfo()
@@ -109,7 +109,7 @@ proc paramInit(memblock param out){
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
 	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
 	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
-	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\".")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 	//input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
 	//if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")
 	//	error("The Cut-Off type must be either  \"threshold\", \"folds\" or \"stddev\"")
@@ -118,7 +118,7 @@ proc paramInit(memblock param out){
 	keep(param)
 }
 
-proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+Proc imageAnalysis(memblock images in, memblock param in, container imageData out){
 
 	input(distanceTrimed,0,"Distance to Trim:Transfluor Assay","i","Distance in pixels to remove from the nucleus and from the cytoplasm around the nuclear membrane.")
 	input(rimSize,30,"Donnut Size:Transfluor Assay","i","Distance size in pixel of the donut around the nucleus.")
@@ -143,9 +143,10 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		
 		if(cytoChanNum>=0)
 			set(minCytoIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[cytoChanNum].desc&"_StdDevIntensity"].mean)
-			convert(bpp=1,image=images[cytoChanNum].image)
+			set(cytoImage=images[cytoChanNum].image)
+			convert(bpp=1,image=cytoImage)
 			Cytoplasm_Detection_Select(reference=image)
-			CalcIntensity(image=images[cytoChanNum].image,objects=WholeCells)
+			CalcIntensity(image=cytoImage,objects=WholeCells)
 			ObjectFilter(intensity>minCytoIntensity,objects=objects|WholeCells=objects)
 		end()
 		if(useDonutModel || cytoChanNum==-1)
@@ -170,11 +171,7 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			Delete(Temp)
 			if(showIllustrations)
 				ImageView(objects.centers_border,label="Centers-"&images[nucChanNum].desc, title="Area used for the centers for channel "&images[nucChanNum].desc &" ajust per \"Distance to Trim\"", image=images[nucChanNum].image,  gamma=1)
-				if(cytoChanNum==-1)
-					set(chan=nucChanNum)
-				else()
-					set(chan=cytoChanNum)
-				end()
+				set(chan=iif(cytoChanNum==-1,nucChanNum,cytoChanNum))
 				ImageView(objects.cytoplasm_border,label="Donut-"&images[chan].desc, title="Ring Borders for channel "&images[chan].desc &"adjust per \"Donnut Size\"", image=images[chan].image,  gamma=1)
 			end()
 			rename(wholeCells=objects)
@@ -231,8 +228,26 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			rename(objects=spots)
 			DeleteAttr(CellIntensity, ContrastOK, ReferenceIntensity, ReferenceRegions, ReferenceRegions_area, ReferenceRegions_intensity, SpotToCellIntensityOK)
 			set(Spots=objects)
-			containedObjects(nuclei,objects, overlap=false)
+			containedObjects(nuclei,objects, objectsStencil="SpotCenters", overlap=false)
 			rename(spotsInNuclei=objects,spotsInCytoplasm=remainder)
+			
+			if(showIllustrations)
+				Set(image=NucImage)
+				If(cytoChanNum!=-1)
+					Paste(cytoImage,0,0,"Average")
+				end()
+				CalcBorder(cytoplasm, objects=wholeCells)
+				Gamma(2.6)
+				carrypixels(image=image, mask=spotsInCytoplasm.border.mask, data=image.max)
+				carrypixels(image=image, mask=spotsInNuclei.border.mask, data=image.max)
+				carrypixels(image=image, mask=objects.cytoplasm_border.mask, data=image.max*0.3)
+				
+				carrypixels(image=image, mask=spotsInCytoplasm.border.mask, data="green")
+				carrypixels(image=image, mask=spotsInNuclei.border.mask, data="red")
+				carrypixels(image=image, mask=objects.cytoplasm_border.mask, data="blue")
+				imageview(image, "SpotLocation",  gamma=1, title="Spot compartment Association", description="Red: Nuclear Spots ; Green: Cytoplasmic Spots; Blue: Cytoplasm outlines.")
+				delete(image, objects)
+			end()
 			assembleCompositObject(cnt("Nuclear"=spotsInNuclei,"Cytoplasmic"=spotsInCytoplasm),objects=Spots|Spots=compositObject)
 			Set(imageData["Spots_"&images[markerChanNum].desc]=Spots)
 			Delete(Spots)
@@ -241,7 +256,7 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		Set(imageData.bckGndObjects=bckGndObjects,imageData.Nuclei=Nuclei,ImageData.WholeCells=WholeCells)
 	end()	
 }
-proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
+Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
 
 	set(wholeWellData=cnt())
 	set(numFieldsInFocus=0)
@@ -287,7 +302,7 @@ proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
 	pack(data,wholeWellData,singleCellData)
 }
-proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
+Proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
 	unpack(data)
 	delete(data)
 	if(Defined("singleCellData.Features"))
