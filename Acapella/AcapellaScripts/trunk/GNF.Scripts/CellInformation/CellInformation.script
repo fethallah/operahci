@@ -188,7 +188,7 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 			SetAttr(centers,objects.body&&nuclei.body.mask.image)
 			SetAttr(cytoplasm,objects.body&& !nuclei.body.mask.image)
 			CalcStat("sum",AttrName="NumberOfNuclei",image=Nuclei.masscentre.mask.image)
-			input(MembraneSize, 4, "MembraneSize: Membrane Region", "i", "Size of the membrane Unit is image pixel. . Allowed range: 0..20, step 2.")
+			input(MembraneSize, 0, "MembraneSize: Membrane Region", "i", "Size of the membrane Unit is image pixel. . Allowed range: 0..20, step 2.")
 			input(Region,"Nuclei","Spots Region: Spot Detection",type="s",description="Specifies the region in which the spots should be located. Allowed values:\"Nuclei\",\"Cytoplasm\",\"WholeCells\".")
 			if(MembraneSize>0)
 				Set(MembraneSize=Ceil(MembraneSize/2))
