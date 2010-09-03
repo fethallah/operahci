@@ -36,7 +36,7 @@
 	/>
 	<property name="base.name" location="${base.dir}/${ant.project.name}" />
 	<property name="main.class"
-	          value="org.gnf.${ant.project.name}.${ant.project.name}"
+	          value="org.gnf.acapella.${ant.project.name}"
 	/>
 	<property name="jre" value="1.6" />
 

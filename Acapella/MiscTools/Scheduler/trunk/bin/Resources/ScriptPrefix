@@ -1,0 +1,13 @@
+provideinput("showIllustrations", "1", ver=2)
+	
+SourcedataInfo()
+foreach(dataset_info.labels_menu,"WellID")
+Try()
+	WellMask2DataAnalysis(_) Catch_Error() // test
+	Write("ERROR: "& WellID &"\t="& catch_last_module&"("&catch_last_line&") - "&catch_message,"stderr","ascii")
+end()
+	Output( WellID  ,"WellEnd")
+	SourcedataJump("next")
+end()
+
+Proc WellMask2DataAnalysis(Memblock _ in){

@@ -422,11 +422,11 @@ public class AcapellaScheduler {
 	}
 
 	/**
-	 * @param wellMask2
+	 * @param wellMask
 	 *            the wellMask to set
 	 */
-	public static void setWellMask(WellMask wellMask2) {
-		AcapellaScheduler.wellMask = wellMask2;
+	public static void setWellMask(WellMask wellMask) {
+		AcapellaScheduler.wellMask = wellMask;
 	}
 
 	/**

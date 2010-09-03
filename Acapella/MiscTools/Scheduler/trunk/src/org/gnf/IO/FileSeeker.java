@@ -20,7 +20,7 @@ import org.gnf.acapella.WellMask;
  * 
  */
 public class FileSeeker {
-
+	private final static String nameFilter = "(?:\\d{1,3}_)?\\d{4,9}";
 	private final static String[] EXTENSIONS = { "tiff", "tif", "flex" };
 
 	public static Map<File, Vector<String>> getFilesToAnalyze(File path)
@@ -44,7 +44,7 @@ public class FileSeeker {
 					"The directory containing the images  to analyze: "
 							+ path.getPath() + " cannot be read.");
 
-		FileListFilter filter = new FileListFilter("(?:\\d{1,3}_)?\\d{4,9}",
+		FileListFilter filter = new FileListFilter(nameFilter,
 				EXTENSIONS);
 		Map<File, Vector<String>> fileSet = new LinkedHashMap<File, Vector<String>>();
 		Vector<String> wellSet = new Vector<String>();
