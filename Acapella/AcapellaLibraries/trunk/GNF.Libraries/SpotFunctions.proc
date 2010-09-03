@@ -515,15 +515,15 @@ double minSpotsArea out "Parasite: Keep only parasites which are larger than the
 )
 {
 
-	input(SpotMinimumDistance,3.0 , "ParasiteMinimumDistance: Parasite Detection","d", "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite.")
-	input(SpotPeakRadius, 1.0, "ParasitePeakRadius: Parasite Detection","d", "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Typically 0 or 1.")
+	input(SpotMinimumDistance,3.0 , "ParasiteMinimumDistance: Parasite Detection","d", "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite. Allowed range: 1..100, step 1.")
+	input(SpotPeakRadius, 1.0, "ParasitePeakRadius: Parasite Detection","d", "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Allowed range: 1..8, step 1.")
 
-	input(SpotReferenceRadius, 5.0,  "ParasiteReferenceRadius: Parasite Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Parasite center. Typical range  2.0 .. 5.0.")
-	input(SpotMinimumContrast,0.5, "ParasiteMinimumContrast: Parasite Detection", "d","Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa. Allowed range: 0..1.")
-	input(SpotMinimumToCellIntensity, 10.0, "ParasiteMinimumToCellIntensity: Parasite Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..oo.")
+	input(SpotReferenceRadius, 5.0,  "ParasiteReferenceRadius: Parasite Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Parasite center.  Allowed range: 1..8, step 1.")
+	input(SpotMinimumContrast,0.5, "ParasiteMinimumContrast: Parasite Detection", "d","Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa. Allowed range: 0..1, step 0.05.")
+	input(SpotMinimumToCellIntensity, 10.0, "ParasiteMinimumToCellIntensity: Parasite Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..500, step 0.1.")
 
-	input(minSpotsIntensity, 100, "Min Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite.")
-	input(minSpotsArea,10,"Minimum Parasite Area: Parasite Detection","i","Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview.")
+	input(minSpotsIntensity, 100, "Min Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. Allowed range: 1..3000, step 1.")
+	input(minSpotsArea,10,"Minimum Parasite Area: Parasite Detection","i","Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview. Allowed range: 1..3000, step 1.")
 }
 
 proc ParasiteDetection_inner
@@ -593,7 +593,7 @@ bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before per
 
 
 	if(showIllustrations)
-		ImageView(objects.border, label="Parasites Borders",title="Adjust per Parasite Threshold Adjustment and Parasite Individual Threshold Adjustmen",image=image, gamma=2.0, )
+		ImageView(objects.border, label="Parasites Borders",title="Adjust per Minimum Parasite Area, Parasite Minimum Intensity and Parasite minimum Distance.",image=image, gamma=2.0, )
 	end()
 	Rename(parasites=objects)
 	keep(parasites)
@@ -615,7 +615,7 @@ proc ParasiteCytoDetection_parameters(
 string CytoAlgorithm out "Parasite: Select the algorithm you wish to use for detecting the \"cytoplas\" of the parasite.",
 double CytoplasmThresholdAdjustment out "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite.",
 double CytoplasmIndividualThresholdAdjustment out "Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview.",
-string scan="None" out "Parasite: Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition.",
+string ScanParameter="None" out "Parasite: Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition.",
 )
 {
 	input(CytoAlgorithm,"A","Cytoplasm Detection Algorithm: Parasite Cytoplasm Detection",type="s",description="Specifies the cytoplasm detection algorithm from the OCDL. Allowed values:\"A\",\"B\",\"C\",\"D\",\"E\".")
@@ -635,7 +635,7 @@ proc ParasiteCytoDetection_inner(
 	string CytoAlgorithm="A" in "Parasite: Select the algorithm you wish to use for detecting the \"cytoplas\" of the parasite.",
 	double CytoplasmThresholdAdjustment=0.45 in "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite.",
 	double CytoplasmIndividualThresholdAdjustment=0.15 in "Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview.",
-	string scan="None" in "Parasite: Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition.",
+	string ScanParameter="None" in "Parasite: Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition.",
 )  "Extends the centers for the parasites detected in the image provided. Thereby defining the cytoplasmic area of the cytoplasm."
 {
 	rename(nuclei=parasite)
