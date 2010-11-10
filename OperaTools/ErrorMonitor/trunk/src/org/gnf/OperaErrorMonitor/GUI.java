@@ -52,36 +52,34 @@ public class GUI {
 	/**
 	 * 
 	 */
-	private static final long          serialVersionUID       = 1L;
-	//  @jve:decl-index=0:
-	private static JFrame              jFrame                 = null;                              //  @jve:decl-index=0:visual-constraint="218,62"
-	private JPanel                     mainPannel             = null;
-	private static JLabel              emailListLabel         = null;
-	private static JFormattedTextField emailListField         = null;
-	private JPanel                     jPanel                 = null;
-	private static JLabel              statusBar              = null;
-	private JButton                    executeButton          = null;
-	private Panel                      statusPane             = null;
-	private static JProgressBar        progressBar            = null;
-	public static String               homeDir                = System
-	                                                                .getProperty("user.dir");      //  @jve:decl-index=0:
-	public static String               separtor               = System
-	                                                                .getProperty("file.separator"); //  @jve:decl-index=0:
-	private JPanel                     emailPannel            = null;
-	private JPanel                     cellPhonePannel        = null;
-	private JLabel                     cellPhoneLabel         = null;
-	private static JFormattedTextField cellPhoneTextField     = null;
-	private static JTextArea           logTextArea            = null;
+	private static final long serialVersionUID = 1L;
+	// @jve:decl-index=0:
+	private static JFrame jFrame = null; // @jve:decl-index=0:visual-constraint="218,62"
+	private JPanel mainPannel = null;
+	private static JLabel emailListLabel = null;
+	private static JFormattedTextField emailListField = null;
+	private JPanel jPanel = null;
+	private static JLabel statusBar = null;
+	private static JButton executeButton = null;
+	private Panel statusPane = null;
+	private static JProgressBar progressBar = null;
+	public static String homeDir = System.getProperty("user.dir"); // @jve:decl-index=0:
+	public static String separtor = System.getProperty("file.separator"); // @jve:decl-index=0:
+	private JPanel emailPannel = null;
+	private JPanel cellPhonePannel = null;
+	private JLabel cellPhoneLabel = null;
+	private static JFormattedTextField cellPhoneTextField = null;
+	private static JTextArea logTextArea = null;
 
-	Thread                             monitor                = null;
-	private JLabel                     cellProviderLabel      = null;
-	protected static boolean           done                   = true;
-	private static JComboBox           providerComboBox       = null;
-	private JScrollPane                logScrollPane          = null;
-	protected static int               maxNumNotifications    = 5;
-	protected static double            errorNotificationDelay = 2.5;
-	protected static long              delay                  = 120;
-	protected static long              resendDelay            = 30 * 60;
+	Thread monitor = null;
+	private JLabel cellProviderLabel = null;
+	protected static boolean done = true;
+	private static JComboBox providerComboBox = null;
+	private JScrollPane logScrollPane = null;
+	protected static int maxNumNotifications = 5;
+	protected static double errorNotificationDelay = 2.5;
+	protected static long delay = 120;
+	protected static long resendDelay = 30 * 60;
 
 	public GUI() {
 		try {
@@ -107,7 +105,7 @@ public class GUI {
 			try {
 				jFrame = new JFrame();
 				jFrame
-				      .setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+						.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 				jFrame.setFont(new Font("Arial", Font.PLAIN, 12)); // Generated
 				jFrame.setResizable(true);
 				jFrame.setSize(new Dimension(600, 250));
@@ -128,10 +126,10 @@ public class GUI {
 					public void windowClosing(java.awt.event.WindowEvent e) {
 
 						int exit = JOptionPane
-						      .showConfirmDialog(
-						            jFrame,
-						            "Are you sure you wish to exit the Opera Monitoring tool?",
-						            "Quit?", JOptionPane.YES_NO_OPTION);
+								.showConfirmDialog(
+										jFrame,
+										"Are you sure you wish to exit the Opera Monitoring tool?",
+										"Quit?", JOptionPane.YES_NO_OPTION);
 						if (exit == JOptionPane.YES_OPTION) {
 							OperaErrorMonitor.exit("Exit Requested by User.");
 						}
@@ -195,7 +193,7 @@ public class GUI {
 				emailListLabel.setText("Email Address:"); // Generated
 				emailListLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 				emailListLabel
-				      .setToolTipText("Enter your email adress or your GNF user name.");
+						.setToolTipText("Enter your email adress or your GNF user name.");
 				emailListLabel.setPreferredSize(new Dimension(84, 20));
 				emailListLabel.setFont(new Font("Arial", Font.PLAIN, 12)); // Generated
 				GridBagConstraints gridBagConstraints = new GridBagConstraints();
@@ -230,8 +228,8 @@ public class GUI {
 		if (emailListField == null) {
 			try {
 				Pattern emailPattern = Pattern.compile("\\w+@\\w+\\.\\w{2,4}");
-				emailListField = new JFormattedTextField(new RegexPatternFormatter(
-				      emailPattern));
+				emailListField = new JFormattedTextField(
+						new RegexPatternFormatter(emailPattern));
 				emailListField.setFont(new Font("Arial", Font.PLAIN, 12)); // Generated
 				emailListField.setPreferredSize(new Dimension(80, 20));
 				emailListField.setToolTipText("Enter your email address.");
@@ -287,39 +285,48 @@ public class GUI {
 				executeButton.setToolTipText("Start/Stop the Monitoring");
 				executeButton.setText("Start"); // Generated
 				executeButton
-				      .addActionListener(new java.awt.event.ActionListener() {
+						.addActionListener(new java.awt.event.ActionListener() {
 
-					      public void actionPerformed(java.awt.event.ActionEvent e) {
-						      if (monitor == null || !monitor.isAlive()) {
-							      MonitorOpera opMon = new MonitorOpera();
-							      monitor = new Thread(opMon);
-							      executeButton.setText("Stop");
-							      done = false;
-							      statusBar
-							            .setText("Monitoring is started. Click stop to terminate monitoring.");
-							      statusBar.repaint();
-							      OperaErrorMonitor.writeLog("\r\n"
-							            + DateUtils.now(OperaLogsParsers.timeFormat)
-							            + " - MONITORING IS STARTED", logTextArea);
-							      monitor.start();
-							      executeButton.setSelected(true);
+							public void actionPerformed(
+									java.awt.event.ActionEvent e) {
+								if (monitor == null || !monitor.isAlive()) {
+									MonitorOpera opMon = new MonitorOpera();
+									monitor = new Thread(opMon);
+									executeButton.setText("Stop");
+									done = false;
+									statusBar
+											.setText("Monitoring is started. Click stop to terminate monitoring.");
+									statusBar.repaint();
+									OperaErrorMonitor
+											.writeLog(
+													"\r\n"
+															+ DateUtils
+																	.now(OperaLogsParsers.timeFormat)
+															+ " - MONITORING IS STARTED",
+													logTextArea);
+									monitor.start();
+									executeButton.setSelected(true);
 
-						      } else {
-							      executeButton.setText("Start");
-							      monitor.interrupt();
-							      monitor = null;
-							      done = true;
-							      statusBar
-							            .setText("Monitoring is completed. Click start to restart monitoring.");
-							      statusBar.repaint();
-							      OperaErrorMonitor.writeLog("\r\n"
-							            + DateUtils.now(OperaLogsParsers.timeFormat)
-							            + " - MONITORING IS STOPPED", logTextArea);
-							      executeButton.setSelected(true);
-						      }
-					      }
+								} else {
+									executeButton.setText("Start");
+									monitor.interrupt();
+									monitor = null;
+									done = true;
+									statusBar
+											.setText("Monitoring is completed. Click start to restart monitoring.");
+									statusBar.repaint();
+									OperaErrorMonitor
+											.writeLog(
+													"\r\n"
+															+ DateUtils
+																	.now(OperaLogsParsers.timeFormat)
+															+ " - MONITORING IS STOPPED",
+													logTextArea);
+									executeButton.setSelected(true);
+								}
+							}
 
-				      });
+						});
 			} catch (java.lang.Throwable e) {
 				// TODO: Something
 			}
@@ -402,9 +409,9 @@ public class GUI {
 		Dimension screen = tk.getScreenSize();
 
 		// Make the frame 1/4th size of screen.
-		//int fw =  (int) (screen.getWidth ()/4);
-		//int fh =  (int) (screen.getWidth ()/4);
-		//f.setSize (fw,fh);
+		// int fw = (int) (screen.getWidth ()/4);
+		// int fh = (int) (screen.getWidth ()/4);
+		// f.setSize (fw,fh);
 
 		// And place it in center of screen.
 		int lx = (int) ((screen.getWidth() / 2.0) - (f.getWidth() / 2.0));
@@ -474,7 +481,7 @@ public class GUI {
 			cellProviderLabel.setPreferredSize(new Dimension(57, 20));
 			cellProviderLabel.setFont(new Font("Arial", Font.PLAIN, 12));
 			cellProviderLabel
-			      .setToolTipText("Select your Cell phone carrier from the list");
+					.setToolTipText("Select your Cell phone carrier from the list");
 			cellProviderLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 			GridBagConstraints gridBagConstraints12 = new GridBagConstraints();
 			gridBagConstraints12.insets = new Insets(5, 5, 5, 5);
@@ -493,7 +500,7 @@ public class GUI {
 			cellPhoneLabel = new JLabel();
 			cellPhoneLabel.setText("Cell Phone#:");
 			cellPhoneLabel
-			      .setToolTipText("Enter your cell phone number ex. (XXX) XXX-XXXX.\nNote: this is optional and you may be charged by your company for SMS.");
+					.setToolTipText("Enter your cell phone number ex. (XXX) XXX-XXXX.\nNote: this is optional and you may be charged by your company for SMS.");
 			cellPhoneLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 			cellPhoneLabel.setHorizontalTextPosition(SwingConstants.TRAILING);
 			cellPhoneLabel.setPreferredSize(new Dimension(75, 20));
@@ -517,7 +524,7 @@ public class GUI {
 		if (cellPhoneTextField == null) {
 			try {
 				cellPhoneTextField = new JFormattedTextField(new MaskFormatter(
-				      "(###) ###-####"));
+						"(###) ###-####"));
 
 			} catch (ParseException e) {
 				// TODO Auto-generated catch block
@@ -526,7 +533,7 @@ public class GUI {
 			;
 			cellPhoneTextField.setPreferredSize(new Dimension(80, 20));
 			cellPhoneTextField
-			      .setToolTipText("Enter your cell phone number ex. (XXX) XXX-XXXX.\r\nNote: this is optional and you may be charged by your company for SMS.");
+					.setToolTipText("Enter your cell phone number ex. (XXX) XXX-XXXX.\r\nNote: this is optional and you may be charged by your company for SMS.");
 			cellPhoneTextField.setFont(new Font("Arial", Font.PLAIN, 12));
 		}
 		return cellPhoneTextField;
@@ -544,7 +551,7 @@ public class GUI {
 			logTextArea.setLineWrap(true);
 			logTextArea.setEnabled(true);
 			logTextArea
-			      .setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+					.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
 			logTextArea.setToolTipText("Application log.");
 			logTextArea.setEditable(false);
 			logTextArea.setFont(new Font("Courier New", Font.PLAIN, 10));
@@ -559,11 +566,11 @@ public class GUI {
 	 */
 	private JComboBox getJComboBox() {
 		if (providerComboBox == null) {
-			providerComboBox = new JComboBox((new TreeSet<String>(ErrorManagment
-			      .getCellProvider().keySet())).toArray());
+			providerComboBox = new JComboBox((new TreeSet<String>(
+					ErrorManagment.getCellProvider().keySet())).toArray());
 			providerComboBox.setFont(new Font("Arial", Font.PLAIN, 12));
 			providerComboBox
-			      .setToolTipText("Select your Cell phone carrier from the list");
+					.setToolTipText("Select your Cell phone carrier from the list");
 			providerComboBox.setPreferredSize(new Dimension(80, 20));
 
 		}
@@ -580,9 +587,9 @@ public class GUI {
 			logScrollPane = new JScrollPane();
 			logScrollPane.setBorder(null);
 			logScrollPane
-			      .setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+					.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 			logScrollPane
-			      .setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+					.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 			logScrollPane.setViewportView(getLogTextArea());
 		}
 		return logScrollPane;
@@ -592,7 +599,7 @@ public class GUI {
 	 * Application entry point.
 	 * 
 	 * @param args
-	 *           String[]
+	 *            String[]
 	 */
 	public static void main(String[] args) {
 
@@ -600,24 +607,24 @@ public class GUI {
 	}
 
 	public static class MonitorOpera implements Runnable {
-		OperaLogsParsers         logs                  = null;
-		private Vector<String[]> bernsteinStatus       = new Vector<String[]>();
-		private Vector<String[]> bernsteinLog          = new Vector<String[]>();
-		String                   lastLogEntry          = "";
-		String                   lastLogEntryDate      = "";
-		int                      lastActivationIndex   = 0;
-		int                      lastDeActivationIndex = 0;
-		Date                     firstPlateDate        = new Date();
-		Date                     lastPlateDate         = new Date();
-		long                     averagePlateReadTime  = 0;
-		long                     currentPlateReadTime  = 0;
-		int                      notificationNumber    = 0;
+		OperaLogsParsers logs = null;
+		private Vector<String[]> bernsteinStatus = new Vector<String[]>();
+		private Vector<String[]> bernsteinLog = new Vector<String[]>();
+		String lastLogEntry = "";
+		String lastLogEntryDate = "";
+		int lastActivationIndex = 0;
+		int lastDeActivationIndex = 0;
+		Date firstPlateDate = new Date();
+		Date lastPlateDate = new Date();
+		long averagePlateReadTime = 0;
+		long currentPlateReadTime = 0;
+		int notificationNumber = 0;
 
-		//private long             delay                 = 120;
-		//private int              maxNumNotifications   = 5;
+		// private long delay = 120;
+		// private int maxNumNotifications = 5;
 
 		public MonitorOpera() {
-		// TODO Auto-generated constructor stub
+			// TODO Auto-generated constructor stub
 		}
 
 		public void run() {
@@ -625,26 +632,33 @@ public class GUI {
 			getProgressBar().setValue(0);
 			progressBar.repaint();
 			boolean bernsteinReady = false;
+			boolean readTimeOutputed = false;
+
 			while (!done) {
 				long currentDelay = delay;
 				try {
 					logs = new OperaLogsParsers();
-					bernsteinLog = logs.getBernsteinLog();
-					bernsteinStatus = logs.getBernsteinStatus();
-
 				} catch (IOException e) {
 					e.printStackTrace();
 					logs = null;
 					OperaErrorMonitor.error(e.getMessage(), jFrame);
 					done = true;
 					statusBar
-					      .setText("Monitoring is completed. Click start to restart monitoring.");
+							.setText("Unable To Start Monitoring. Click start to try monitoring again.");
 					statusBar.repaint();
+					executeButton.setText("Start");
+					executeButton.setSelected(true);
 					OperaErrorMonitor.writeLog("\r\n"
-					      + DateUtils.now(OperaLogsParsers.timeFormat)
-					      + " - MONITORING IS STOPPED", logTextArea);
+							+ DateUtils.now(OperaLogsParsers.timeFormat)
+							+ " - " + e.getMessage(), logTextArea);
+					OperaErrorMonitor.writeLog("\r\n"
+							+ DateUtils.now(OperaLogsParsers.timeFormat)
+							+ " - MONITORING IS STOPPED", logTextArea);
 					return;
 				}
+				bernsteinLog = logs.getBernsteinLog();
+				bernsteinStatus = logs.getBernsteinStatus();
+
 				if (bernsteinStatus.size() == 0) {
 					if (!bernsteinReady) {
 						Sleep.delay(currentDelay);
@@ -652,173 +666,221 @@ public class GUI {
 					}
 					bernsteinReady = false;
 					statusBar.setText("Berstein Status: "
-					      + DateUtils.now(OperaLogsParsers.timeFormat)
-					      + " No Plates to read.");
+							+ DateUtils.now(OperaLogsParsers.timeFormat)
+							+ " No Plates to read.");
 					statusBar.repaint();
-					OperaErrorMonitor.writeLog(DateUtils
-					      .now(OperaLogsParsers.timeFormat)
-					      + " - Bernstein not yet initialized. No plates to read.",
-					      logTextArea);
+					OperaErrorMonitor
+							.writeLog(
+									DateUtils.now(OperaLogsParsers.timeFormat)
+											+ " - Bernstein not yet initialized. No plates to read.",
+									logTextArea);
 					Sleep.delay(currentDelay);
 					continue;
 				}
-				if (logs.countDonePlates(bernsteinStatus) == bernsteinStatus.size()) {
+				if (logs.countDonePlates(bernsteinStatus) == bernsteinStatus
+						.size()) {
 					if (!bernsteinReady) {
 						Sleep.delay(currentDelay);
 						continue;
 					}
 					bernsteinReady = false;
 					statusBar.setText("Berstein Status: "
-					      + DateUtils.now(OperaLogsParsers.timeFormat)
-					      + " Last plate done reading.");
+							+ DateUtils.now(OperaLogsParsers.timeFormat)
+							+ " Last plate done reading.");
 					statusBar.repaint();
 					OperaErrorMonitor.writeLog(DateUtils
-					      .now(OperaLogsParsers.timeFormat)
-					      + " - The last plate was successfully read.", logTextArea);
+							.now(OperaLogsParsers.timeFormat)
+							+ " - The last plate was successfully read.",
+							logTextArea);
 					ErrorManagment em = new ErrorManagment();
-					em.setContactInfo(emailListField.getText(), null, null);
+					String email = emailListField.getText();
+					email = email.isEmpty() ? System.getProperty("user.name")
+							+ "@gnf.org" : email;
+					em.setContactInfo(email, null, null);
 					String subject = "OPERA SUCCESS";
-					String message = "The Opera successfully read the last plate.";
+					String message = "The Opera successfully read the last plate. Remember to Shuttdown the instrument.";
 					String notificationResult = em.sendNotification(subject,
-					      message, null);
+							message, null);
 
 					OperaErrorMonitor.writeLog(notificationResult, logTextArea);
+					InstrumentShutdown.InstrumentShutdown();
 
 					Sleep.delay(currentDelay);
 					continue;
 				}
 				if (bernsteinStatus.size() > 0) {
 					getProgressBar().setValue(
-					      100 * logs.countDonePlates(bernsteinStatus)
-					            / bernsteinStatus.size());
-					//getProgressBar().repaint();
+							100 * logs.countDonePlates(bernsteinStatus)
+									/ bernsteinStatus.size());
+					// getProgressBar().repaint();
 				}
 				if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
-				      .equals(lastLogEntry) && bernsteinLog
-				      .get(bernsteinLog.size() - 1)[0].equals(lastLogEntryDate))
-				      || lastLogEntry.equals("")) {
-					//enter the info in the log if was not previously placed.
+						.equals(lastLogEntry) && bernsteinLog.get(bernsteinLog
+						.size() - 1)[0].equals(lastLogEntryDate))
+						|| lastLogEntry.equals("")) {
+					// enter the info in the log if was not previously placed.
 					lastLogEntry = bernsteinLog.get(bernsteinLog.size() - 1)[1];
-					lastLogEntryDate = bernsteinLog.get(bernsteinLog.size() - 1)[0];
-					statusBar.setText("Berstein Status: " + lastLogEntryDate + " "
-					      + lastLogEntry);
+					lastLogEntryDate = bernsteinLog
+							.get(bernsteinLog.size() - 1)[0];
+					statusBar.setText("Berstein Status: " + lastLogEntryDate
+							+ " " + lastLogEntry);
 					statusBar.repaint();
+
 					OperaErrorMonitor.writeLog(DateUtils
-					      .now(OperaLogsParsers.timeFormat)
-					      + " - Last log Entry: "
-					      + lastLogEntryDate
-					      + " - "
-					      + lastLogEntry, logTextArea);
+							.now(OperaLogsParsers.timeFormat)
+							+ " - Last log Entry: "
+							+ lastLogEntryDate
+							+ " - "
+							+ lastLogEntry, logTextArea);
+					readTimeOutputed = false;
+
 				}
 
 				if (lastLogEntry.equals("BERNSTEIN-TERMINATION")
-				      || lastLogEntry.equals("DEACTIVATION")
-				      || bernsteinStatus.size() == 0) {
+						|| lastLogEntry.equals("DEACTIVATION")
+						|| bernsteinStatus.size() == 0) {
 					Sleep.delay(currentDelay);
 					continue;
 				}
 				lastActivationIndex = logs.getLastActivationIndex(bernsteinLog);
-				lastDeActivationIndex = logs.getLastDeActivationIndex(bernsteinLog);
+				lastDeActivationIndex = logs
+						.getLastDeActivationIndex(bernsteinLog);
 				if (lastActivationIndex < lastDeActivationIndex) {
 					Sleep.delay(currentDelay);
 					continue;
 				}
 
 				bernsteinReady = true;
-				if (lastActivationIndex < bernsteinLog.size() - 2) {//average the time spend reading the plate on at least one plate (activation done and 2 plates
+
+				if (lastActivationIndex < bernsteinLog.size() - 2) {
+					// average the time spend reading the plate on at least one
+					// plate (activation done and 1 plates read)
 					statusBar.setText("Berstein Status: " + lastLogEntry);
 					statusBar.repaint();
 					SimpleDateFormat sdf = new SimpleDateFormat(
-					      OperaLogsParsers.timeFormat);
+							OperaLogsParsers.timeFormat);
+					if (averagePlateReadTime != 0 && !readTimeOutputed) {
+						OperaErrorMonitor
+								.writeLog(
+										DateUtils
+												.now(OperaLogsParsers.timeFormat)
+												+ " - PlateReadTime="
+												+ Math
+														.round(currentPlateReadTime / 100.0 / 60.0)
+												/ 10
+												+ " - AverageReadTime="
+												+ Math
+														.round(averagePlateReadTime / 100.0 / 60.0)
+												/ 10 + " minutes.", logTextArea);
+						averagePlateReadTime = 0;
+						readTimeOutputed = true;
+					}
 					try {
 						firstPlateDate = sdf.parse(bernsteinLog
-						      .get(lastActivationIndex + 1)[0]);
+								.get(lastActivationIndex + 1)[0]);
 						lastPlateDate = sdf.parse(bernsteinLog.get(bernsteinLog
-						      .size() - 1)[0]);
+								.size() - 1)[0]);
 
-						averagePlateReadTime = DateUtils.difference(lastPlateDate,
-						      firstPlateDate)
-						      / (bernsteinLog.size() - (lastActivationIndex + 1) - 1);
-						currentPlateReadTime = DateUtils.difference(DateUtils.now(),
-						      lastPlateDate);
+						averagePlateReadTime = DateUtils.difference(
+								lastPlateDate, firstPlateDate)
+								/ (bernsteinLog.size()
+										- (lastActivationIndex + 1) - 1);
+						currentPlateReadTime = DateUtils.difference(DateUtils
+								.now(), lastPlateDate);
 						statusBar.setText(statusBar.getText()
-						      + ". Average read time=" + averagePlateReadTime / 1000
-						      / 60 + " minutes.");
-						double foldAboveRegularReadTime = (double) Math
-						      .round(((double) currentPlateReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
+								+ ". Average read time=" + averagePlateReadTime
+								/ 1000 / 60 + " minutes.");
 
-						if (foldAboveRegularReadTime >= errorNotificationDelay
-						      && notificationNumber <= maxNumNotifications) {
+						double foldAboveRegularReadTime = (double) Math
+								.round(((double) currentPlateReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
+
+						if (foldAboveRegularReadTime < errorNotificationDelay) {
+							notificationNumber = 0;
+							statusBar.repaint();
+							currentDelay = delay;
+						} else if (notificationNumber <= maxNumNotifications) {
 							OperaErrorMonitor.writeLog(DateUtils
-							      .now(OperaLogsParsers.timeFormat)
-							      + " - Error: plate read time "
-							      + foldAboveRegularReadTime
-							      + " times above average (Read time="
-							      + currentPlateReadTime / 1000 / 60 + " minutes).",
-							      logTextArea);
+									.now(OperaLogsParsers.timeFormat)
+									+ " - Error: plate read time "
+									+ foldAboveRegularReadTime
+									+ " times above average (Read time="
+									+ currentPlateReadTime
+									/ 1000
+									/ 60
+									+ " minutes).", logTextArea);
 
 							ErrorManagment em = new ErrorManagment();
 
-							if (notificationNumber == 2) try {
-								em.setContactInfo("managers");
-							} catch (Exception e) {
-								e.printStackTrace();
-								OperaErrorMonitor.writeLog(e.getMessage(), null);
-							}
-							if (notificationNumber > 1) try {
-								em.setContactInfo("operators");
-							} catch (Exception e) {
-								e.printStackTrace();
-								OperaErrorMonitor.writeLog(e.getMessage(), null);
-							}
+							if (notificationNumber == 2)
+								try {
+									em.setContactInfo("managers");
+								} catch (Exception e) {
+									e.printStackTrace();
+									OperaErrorMonitor.writeLog(e.getMessage(),
+											null);
+								}
+							if (notificationNumber > 1)
+								try {
+									em.setContactInfo("operators");
+								} catch (Exception e) {
+									e.printStackTrace();
+									OperaErrorMonitor.writeLog(e.getMessage(),
+											null);
+								}
 							String subject = "OPERA ERROR - INSTRUMENT IDLE SINCE "
-							      + lastPlateDate;
+									+ lastPlateDate;
 							String message = "The instrument has been idle "
-							      + foldAboveRegularReadTime
-							      + " times longer than average this strongly suggests that the instrument has crashed.\r\nAttached are the log files for the Bernstein software.";
-							File[] attachments = {logs.getBernsteinLogFile(),
+									+ foldAboveRegularReadTime
+									+ " times longer than average this strongly suggests that the instrument has crashed.\r\nAttached are the log files for the Bernstein software.";
+							File[] attachments = { logs.getBernsteinLogFile(),
 									logs.getBernsteinStatusFile(),
 									logs.getBernsteinHostLinkReaderFile(),
 									logs.getBernsteinHostLinkRobFile() };
 							String notificationResult = "";
 							if (notificationNumber > 0) {
-								em.setContactInfo(emailListField.getText(),
-								      cellPhoneTextField.getText().replaceAll("[^0-9]",
-								            ""), (String) providerComboBox
-								            .getSelectedItem());
-								notificationResult = em.sendNotification(subject,
-								      message, attachments);
-								currentDelay = resendDelay; // set wait time before re-sending notification before proceeding.
+								
+								String email=emailListField.getText();
+								email=email.isEmpty()?System.getProperty("user.name")+"@gnf.org":email;
+								em.setContactInfo(email,
+										cellPhoneTextField.getText()
+												.replaceAll("[^0-9]", ""),
+										(String) providerComboBox
+												.getSelectedItem());
+								notificationResult = em.sendNotification(
+										subject, message, attachments);
+								currentDelay = resendDelay; // set wait time
+								// before re-sending
+								// notification
+								// before
+								// proceeding.
 							} else {
 								try {
 									em.setContactInfo("managers");
 								} catch (Exception e1) {
 									e1.printStackTrace();
-									OperaErrorMonitor.writeLog(e1.getMessage(), null);
+									OperaErrorMonitor.writeLog(e1.getMessage(),
+											null);
 								}
 
 								try {
 									notificationResult = em
-									      .rebootAnalyzers("Analysis taking longer than usual. Current read times is "
-									            + foldAboveRegularReadTime
-									            + " times above average ("
-									            + currentPlateReadTime
-									            / 1000
-									            / 60
-									            + " minutes). Possible faulty connection");
+											.rebootAnalyzers("Analysis taking longer than usual. Current read times is "
+													+ foldAboveRegularReadTime
+													+ " times above average ("
+													+ currentPlateReadTime
+													/ 1000
+													/ 60
+													+ " minutes). Possible faulty connection");
 								} catch (Exception e) {
 									notificationResult += e.getMessage();
 									e.printStackTrace();
 								}
-								currentDelay = 180; //wait 3 minutes before trying again
+								currentDelay = 180; // wait 3 minutes before
+								// trying again
 							}
-							OperaErrorMonitor
-							      .writeLog(notificationResult, logTextArea);
+							OperaErrorMonitor.writeLog(notificationResult,
+									logTextArea);
 							notificationNumber++;
-						} else {
-							notificationNumber = 0;
-							statusBar.repaint();
-							currentDelay = delay;
 						}
 
 					} catch (ParseException e) {
