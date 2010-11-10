@@ -78,22 +78,29 @@ public class OperaLogsParsers {
 			throws IOException {
 
 		Vector<String[]> bernsteinStatus = new Vector<String[]>();
-		if (!bernsteinStatusFile.exists())
-			throw new IOException(
-					"The file containing the info about the bernstein status:\r\n\""
-							+ bernsteinStatusFile.getPath()
-							+ "\" does not exist.");
-		/*
-		 * int repeats=0; while(!bernsteinStatusFile.canRead()&& repeats<10) {
-		 * Sleep.delay(5); repeats++; }
-		 */
-		if (!bernsteinStatusFile.canRead())
-			throw new IOException(
-					"The file containing the info about the bernstein status:\r\n\""
-							+ bernsteinStatusFile.getPath()
-							+ "\" is locked and cannot be read.");
 
 		int repeats = 0;
+
+		while (!bernsteinStatusFile.exists()) {
+			if (repeats > 10)
+				throw new IOException(
+						"The file containing the info about the bernstein status:\r\n\""
+								+ bernsteinStatusFile.getPath()
+								+ "\" does not exist.");
+			Sleep.delay(100);
+		}
+
+		repeats = 0;
+		while (!bernsteinStatusFile.canRead()) {
+			if (repeats > 10)
+				throw new IOException(
+						"The file containing the info about the bernstein status:\r\n\""
+								+ bernsteinStatusFile.getPath()
+								+ "\" is locked and cannot be read.");
+			Sleep.delay(100);
+		}
+		repeats = 0;
+
 		while (bernsteinStatus.isEmpty() && repeats < 10) {
 			try {
 				BufferedReader filein = getFileStream(bernsteinStatusFile);
@@ -117,7 +124,7 @@ public class OperaLogsParsers {
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				if (repeats < 10) {
-					Sleep.delay(5);
+					Sleep.delay(100);
 					repeats++;
 					continue;
 				}
@@ -131,21 +138,26 @@ public class OperaLogsParsers {
 			throws IOException {
 
 		Vector<String[]> bernsteinLog = new Vector<String[]>();
-		if (!bernsteinLogFile.exists())
-			throw new IOException(
-					"The file containing the info about the bernstein status:\r\n\""
-							+ bernsteinLogFile.getPath() + "\" does not exist.");
-		/*
-		 * int repeats=0; while(!bernsteinStatusFile.canRead()&& repeats<10) {
-		 * Sleep.delay(5); repeats++; }
-		 */
-		if (!bernsteinLogFile.canRead())
-			throw new IOException(
-					"The file containing the info about the bernstein status:\r\n\""
-							+ bernsteinLogFile.getPath()
-							+ "\" is locked and cannot be read.");
-
 		int repeats = 0;
+		while (!bernsteinLogFile.exists()) {
+			if (repeats > 10)
+				throw new IOException(
+						"The file containing the info about the bernstein status:\r\n\""
+								+ bernsteinLogFile.getPath()
+								+ "\" does not exist.");
+			Sleep.delay(100);
+		}
+
+		repeats = 0;
+		while (!bernsteinLogFile.canRead()) {
+			if (repeats > 10)
+				throw new IOException(
+						"The file containing the info about the bernstein status:\r\n\""
+								+ bernsteinLogFile.getPath()
+								+ "\" is locked and cannot be read.");
+			Sleep.delay(100);
+		}
+		repeats = 0;
 		while (bernsteinLog.isEmpty()) {
 			try {
 				BufferedReader filein = getFileStream(bernsteinLogFile);
