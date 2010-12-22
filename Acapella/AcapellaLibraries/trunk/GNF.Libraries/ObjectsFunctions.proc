@@ -258,12 +258,14 @@ proc bckGndDetection_Inner(
 	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwriten by setting the input to true. Select depending on the background illustation."
 ) object list manipulations "This procedure detects the object containing the background pixels"
 {
-	set(initImage=image)
-	convert(bpp=1,image=image)
+		set(initImage=image)
+	Set(image=image+1)
+	cut(threshold=minLevel)
 	set(BckGndFactorInit=BckGndFactor)
 	mean(3,Faster=true)
-	cut(threshold=minLevel)
 	Remap(0,image.max,0,image.max)
+	//convert(bpp=1,image=image-1)
+	Set(image=image-1)
 	set(smoothed=image)
 	ThresholdXX(BckGndFactor)
 	Mask()
@@ -899,7 +901,7 @@ proc normalizeObjects(
 		if(stencil=="")
 			Set(stencil="body")
 		end()
-		if(! defined("objects[stencil]") || ! defined("objects[stencil].type"))
+		if(! defined("objects[stencil]") || ! defined("objects[stencil].@type"))
 			Error("The stencil Provided: "&stencil&" does not exist")
 		end()
 		if(objects[stencil].type!="stencil")

@@ -162,7 +162,7 @@ proc outputMemblockData(
 		if(data.elemtype==13) //printout all of the values for a string.
 			SprintfLoop("value", "%s;", data)
 		else()if(defined("data[statValue]"))
-			if(at(DataName,"NumberOf",1)>0||at(DataName,"_Count",1)>0)
+			if(at("NumberOf",DataName,1)>0||at(DataName,"_Count",1)>0)
 				Set(statValue="Mean")
 			end()
 			set(value=data[statValue])
@@ -270,12 +270,12 @@ proc GZipData(
 ) data output "Write your data in a compressed text file. This requires to have the Java installed along with the GZip.jar file.",
 {
 	set(extension=RegexReplace(extension,"^\\.","").text)
-	if(defined("data.class"))
-		if(data.class=="objectlist"||data.class=="table")
-			if(data.class=="objectlist")
+	if(defined("data.@class"))
+		if(data.@class=="objectlist"||data.@class=="table")
+			if(data.@class=="objectlist")
 				Objectlist2Table(data|data=table)
 			end()
-			if(data.class=="table")
+			if(data.@class=="table")
 				WriteObjectsTable(data,"<data")
 			end()
 		else()
@@ -291,18 +291,19 @@ proc GZipData(
 	set(path=regexReplace(path,"archive(\W+)Opera", "projects$1Opera$1SingleCellData").text)	
 	set(path=regexReplace(path,"RFS(\W+)Opera", "projects$1Opera$1SingleCellData").text)
 	MkDir(path)
+	set(path=& path & name &"."& extension&".gz")
 	//FIX end
 	
-	set(path=& path & name &"."& extension & ".gz")
 	if(version().version>=2&&version().subversion>=1)
-		write(data,path,"ascii")
+		//FIX Acapella 2.1 gzip compression bug linux
+		write(data,path,"ascii",append=false)
 	else()
+		//FIX Acapella 2.0 gzip compression bug
 		Run("java -jar //projects/Opera/Libraries/StdLib/GZip.jar stdin \""& path &"\"", stdin="<data",stderr ="<error")
 		if(Error!="")
 			Error("The file could not be compressed due to the following error: "&error)
 		end()
 	end()
-
 	if(label!="")
 		Output(path,label)
 	end()
