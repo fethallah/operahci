@@ -200,7 +200,7 @@ class ErrorExtractor extends Thread implements Runnable {
 	}
 
 	public void setWellIDs(String wellIDs) {
-		// TODO Auto-generated method stub
+		this.wellIDs = wellIDs;
 
 	}
 	public void run() {
@@ -216,7 +216,8 @@ class ErrorExtractor extends Thread implements Runnable {
 							output[1]);
 
 				} else if (line.startsWith("Error in obtaining")) {
-					errors.put("Licensing/" + wellIDs.replaceAll(",", ";"),
+					errors.put(lineIndexIni + wellIDs.replaceAll(",", ";")
+							+ "/Licensing",
 							line);
 				}
 

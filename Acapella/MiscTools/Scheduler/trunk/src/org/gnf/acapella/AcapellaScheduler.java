@@ -182,6 +182,7 @@ public class AcapellaScheduler {
 			maxBatchSize = maxBatchSize == 0 ? numberOfWells : maxBatchSize;
 			int batchSize = Math.min(maxBatchSize, (int) Math
 					.ceil((double) numberOfWells / (double) numProcessor));
+			System.out.print("Start Analyzing: " + path);
 			while (toIndex < wellIndexList.size()) {
 
 				fromIndex = toIndex;
@@ -221,13 +222,14 @@ public class AcapellaScheduler {
 						.getName());
 				multiProcessor[processIndex].setImageRootPath(getImagesPath());
 				multiProcessor[processIndex].start();
-
+				System.out.print(".");
 				// loop around the different threads
 				processIndex = (processIndex + 1) % numProcessor;
 			}
 			for (AcapellaJob job : multiProcessor) {
 				job.join();
 			}
+			System.out.print("done\r\n");
 		}
 		resultExporter.terminate();
 		errrorExporter.terminate();

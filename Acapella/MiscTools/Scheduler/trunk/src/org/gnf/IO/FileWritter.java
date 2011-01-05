@@ -61,8 +61,10 @@ public class FileWritter {
 				data.append(text);
 				data.append(System.getProperty("line.separator"));
 
-				if (lineIndex > 1536) {
+				if (lineIndex >= 1535) {
 					writeFile(file, data, true);
+					data = new StringBuffer();
+					lineIndex = 0;
 				}
 				lineIndex++;
 			}

@@ -70,7 +70,7 @@ public class ResultsExporter extends Thread implements Runnable {
 					initialized = true;
 				}
 
-				int index = 0;
+				// int index = 0;
 				for (String wellID : wells) {
 					newFeaturesAdded |= featuresNames.addAll(results
 							.get(wellID).keySet());
@@ -86,10 +86,10 @@ public class ResultsExporter extends Thread implements Runnable {
 						data.append(value + ",");
 					}
 					data.append(System.getProperty("line.separator"));
-					index++;
+					// index++;
 
-					if (index > 12 && !terminate)
-						break;
+					// if (index > 12 && !terminate)
+					// break;
 				}
 				try {
 					if (newFeaturesAdded) {

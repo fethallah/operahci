@@ -1,11 +1,12 @@
-provideinput("showIllustrations", "1", ver=2)
+provideinput("showIllustrations", "0", ver=2)
 	
-SourcedataInfo()
+SourcedataInfo(max_menu_length = 15360)
 foreach(dataset_info.labels_menu,"WellID")
-Try()
-	WellMask2DataAnalysis(_) Catch_Error() // test
-	Write("ERROR: "& WellID &"\t="& catch_last_module&"("&catch_last_line&") - "&catch_message,"stderr","ascii")
-end()
+	Try()
+		WellMask2DataAnalysis(_)
+	Catch_Error() // test
+		Write("ERROR: "& WellID &"\t="& catch_last_module&"("&catch_last_line&") - "&catch_message,"stderr","ascii")
+	end()
 	Output( WellID  ,"WellEnd")
 	SourcedataJump("next")
 end()
