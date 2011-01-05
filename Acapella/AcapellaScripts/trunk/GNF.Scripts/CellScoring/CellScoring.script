@@ -254,7 +254,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 
 
 
-Proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
+Proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
 	unpack(data)
 	delete(data)
 	if(Defined("singleCellData.Features"))
