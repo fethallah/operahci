@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
@@ -80,6 +81,9 @@ public class GUI {
 	protected static double errorNotificationDelay = 2.5;
 	protected static long delay = 120;
 	protected static long resendDelay = 30 * 60;
+	private JLabel shuttdownLabel = null;
+	private static JCheckBox shuttdownCheckBox = null;
+	private JPanel operaShuttdownPannel = null;
 
 	public GUI() {
 		try {
@@ -152,6 +156,20 @@ public class GUI {
 
 		if (mainPannel == null) {
 			try {
+				GridBagConstraints gridBagConstraints41 = new GridBagConstraints();
+				gridBagConstraints41.anchor = GridBagConstraints.CENTER;
+				gridBagConstraints41.insets = new Insets(5, 5, 5, 5);
+				gridBagConstraints41.gridheight = 1;
+				gridBagConstraints41.gridwidth = 1;
+				gridBagConstraints41.gridx = 1;
+				gridBagConstraints41.gridy = 4;
+				gridBagConstraints41.weightx = 1.0;
+				gridBagConstraints41.fill = GridBagConstraints.HORIZONTAL;
+				GridBagConstraints gridBagConstraints21 = new GridBagConstraints();
+				gridBagConstraints21.gridx = -1;
+				gridBagConstraints21.anchor = GridBagConstraints.CENTER;
+				gridBagConstraints21.fill = GridBagConstraints.BOTH;
+				gridBagConstraints21.gridy = 4;
 				GridBagConstraints gridBagConstraints31 = new GridBagConstraints();
 				gridBagConstraints31.fill = GridBagConstraints.BOTH;
 				gridBagConstraints31.weighty = 1.0;
@@ -172,15 +190,6 @@ public class GUI {
 				gridBagConstraints91.weightx = 1.0;
 				GridBagConstraints gridBagConstraints51 = new GridBagConstraints();
 				gridBagConstraints51.gridx = 2;
-				GridBagConstraints gridBagConstraints11 = new GridBagConstraints();
-				gridBagConstraints11.gridx = 0; // Generated
-				gridBagConstraints11.anchor = GridBagConstraints.CENTER; // Generated
-				gridBagConstraints11.insets = new Insets(5, 5, 5, 5); // Generated
-				gridBagConstraints11.fill = GridBagConstraints.HORIZONTAL; // Generated
-				gridBagConstraints11.gridwidth = 2; // Generated
-				gridBagConstraints11.gridheight = 0; // Generated
-				gridBagConstraints11.weightx = 1.0;
-				gridBagConstraints11.gridy = 5; // Generated
 				GridBagConstraints gridBagConstraints5 = new GridBagConstraints();
 				gridBagConstraints5.gridx = 0; // Generated
 				gridBagConstraints5.insets = new Insets(2, 10, 2, 0); // Generated
@@ -193,7 +202,7 @@ public class GUI {
 				emailListLabel.setText("Email Address:"); // Generated
 				emailListLabel.setHorizontalAlignment(SwingConstants.TRAILING);
 				emailListLabel
-						.setToolTipText("Enter your email adress or your GNF user name.");
+						.setToolTipText("Enter your email address or your GNF user name.");
 				emailListLabel.setPreferredSize(new Dimension(84, 20));
 				emailListLabel.setFont(new Font("Arial", Font.PLAIN, 12)); // Generated
 				GridBagConstraints gridBagConstraints = new GridBagConstraints();
@@ -210,7 +219,8 @@ public class GUI {
 				mainPannel.add(getEmailPannel(), gridBagConstraints91);
 				mainPannel.add(getCellPhonePannel(), gridBagConstraints10);
 				mainPannel.add(getLogScrollPane(), gridBagConstraints31);
-				mainPannel.add(getExecuteButton(), gridBagConstraints11);
+				mainPannel.add(getOperaShuttdownPannel(), gridBagConstraints21);
+				mainPannel.add(getExecuteButton(), gridBagConstraints41);
 			} catch (java.lang.Throwable e) {
 				// TODO: Something
 			}
@@ -596,6 +606,48 @@ public class GUI {
 	}
 
 	/**
+	 * This method initializes shuttdownCheckBox
+	 * 
+	 * @return javax.swing.JCheckBox
+	 */
+	private static JCheckBox getShuttdownCheckBox() {
+		if (shuttdownCheckBox == null) {
+			shuttdownCheckBox = new JCheckBox();
+			shuttdownCheckBox.setSelected(true);
+			shuttdownCheckBox
+					.setToolTipText("If selected the lasers will be turned off (on the Opera QEHS), the Evoshell will be closed and the user will be logged off. Do not select if you wish to resume a different run afterwards.");
+		}
+		return shuttdownCheckBox;
+	}
+
+	/**
+	 * This method initializes operaShuttdownPannel
+	 * 
+	 * @return javax.swing.JPanel
+	 */
+	private JPanel getOperaShuttdownPannel() {
+		if (operaShuttdownPannel == null) {
+			GridBagConstraints gridBagConstraints18 = new GridBagConstraints();
+			gridBagConstraints18.gridx = -1;
+			gridBagConstraints18.gridy = -1;
+			GridBagConstraints gridBagConstraints17 = new GridBagConstraints();
+			gridBagConstraints17.gridx = -1;
+			gridBagConstraints17.gridy = -1;
+			operaShuttdownPannel = new JPanel();
+			operaShuttdownPannel.setLayout(new GridBagLayout());
+			shuttdownLabel = new JLabel();
+			shuttdownLabel.setText("Shutdown Opera when finished?");
+			shuttdownLabel
+					.setToolTipText("If selected the lasers will be turned off (on the Opera QEHS), the Evoshell will be closed and the user will be logged off. Do not select if you wish to resume a different run afterwards.");
+			shuttdownLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+			operaShuttdownPannel.add(shuttdownLabel, gridBagConstraints17);
+			operaShuttdownPannel.add(getShuttdownCheckBox(),
+					gridBagConstraints18);
+		}
+		return operaShuttdownPannel;
+	}
+
+	/**
 	 * Application entry point.
 	 * 
 	 * @param args
@@ -694,25 +746,32 @@ public class GUI {
 							logTextArea);
 					ErrorManagment em = new ErrorManagment();
 					String email = emailListField.getText();
-					email = email.isEmpty() ? System.getProperty("user.name")
-							+ "@gnf.org" : email;
-					em.setContactInfo(email, null, null);
+					em.setContactInfo(email, cellPhoneTextField.getText()
+							.replaceAll("[^0-9]", ""),
+							(String) providerComboBox.getSelectedItem());
+					if (!email.equals(System.getProperty("user.name")
+							+ "@gnf.org"))
+						em.setContactInfo(System.getProperty("user.name")
+								+ "@gnf.org", null, null);
 					String subject = "OPERA SUCCESS";
 					String message = "The Opera successfully read the last plate. Remember to Shuttdown the instrument.";
 					String notificationResult = em.sendNotification(subject,
 							message, null);
 
 					OperaErrorMonitor.writeLog(notificationResult, logTextArea);
-					InstrumentShutdown.InstrumentShutdown();
 
-					Sleep.delay(currentDelay);
+					getProgressBar().setValue(0);
+					getProgressBar().repaint();
+					if (getShuttdownCheckBox().isSelected())
+						InstrumentShutdown.InstrumentShutdown();
+
 					continue;
 				}
 				if (bernsteinStatus.size() > 0) {
 					getProgressBar().setValue(
 							100 * logs.countDonePlates(bernsteinStatus)
 									/ bernsteinStatus.size());
-					// getProgressBar().repaint();
+					getProgressBar().repaint();
 				}
 				if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
 						.equals(lastLogEntry) && bernsteinLog.get(bernsteinLog
@@ -838,14 +897,18 @@ public class GUI {
 									logs.getBernsteinHostLinkRobFile() };
 							String notificationResult = "";
 							if (notificationNumber > 0) {
-								
-								String email=emailListField.getText();
-								email=email.isEmpty()?System.getProperty("user.name")+"@gnf.org":email;
-								em.setContactInfo(email,
-										cellPhoneTextField.getText()
-												.replaceAll("[^0-9]", ""),
+
+								String email = emailListField.getText();
+								em.setContactInfo(email, cellPhoneTextField
+										.getText().replaceAll("[^0-9]", ""),
 										(String) providerComboBox
 												.getSelectedItem());
+								if (!email.equals(System
+										.getProperty("user.name")
+										+ "@gnf.org"))
+									em.setContactInfo(System
+											.getProperty("user.name")
+											+ "@gnf.org", null, null);
 								notificationResult = em.sendNotification(
 										subject, message, attachments);
 								currentDelay = resendDelay; // set wait time
