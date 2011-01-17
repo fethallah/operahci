@@ -27,6 +27,8 @@ public class OperaErrorMonitor {
 	private static String       maxNumNotif;
 	static File                 MONITOR_LOG_FILE;
 	static String               INSTRUMENT;
+	static final File RESOURCES = new File(System.getProperty("java.io.tmpdir")
+			+ "/OperaErrorMonitor");
 
 	/**
 	 * @param args
@@ -74,7 +76,16 @@ public class OperaErrorMonitor {
 	}
 
 	public static void main(String[] args) throws Exception {
-
+		RESOURCES.mkdirs();
+		RESOURCES.deleteOnExit();
+		try {
+			Directory.copyDirectory(new File("./Resources"), new File(
+					RESOURCES, "Resources"));
+			System.getProperty("user.dir");
+		} catch (IOException x) {
+			// Print the error but continue
+			System.err.println(x);
+		}
 		new OperaErrorMonitor();
 
 		GUI window;
@@ -187,6 +198,8 @@ public class OperaErrorMonitor {
 	static void exit(String log) {
 		writeLog(DateUtils.now(OperaLogsParsers.timeFormat)
 		      + " - MONITORING TOOL EXITED. Message=" + log, null);
+		new Directory();
+		boolean deleteDirectory = Directory.deleteDirectory(RESOURCES);
 		System.exit(0);
 
 	}

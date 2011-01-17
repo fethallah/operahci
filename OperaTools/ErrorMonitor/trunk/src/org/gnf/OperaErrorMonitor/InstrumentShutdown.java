@@ -3,7 +3,10 @@
  */
 package org.gnf.OperaErrorMonitor;
 
+import java.io.File;
 import java.io.IOException;
+
+import org.gnf.OperaErrorMonitor.OperaLogsParsers.Sleep;
 
 /**
  * @author gbonamy
@@ -14,13 +17,16 @@ public class InstrumentShutdown {
 	/**
 	 * 
 	 */
+	private static final File SHUTDOWN_SOFT = new File(System
+			.getProperty("user.dir"), "Resources/OperaShutdown.exe");
+
 	public static void InstrumentShutdown() {
 
 		Process process = null;
 
 		try {
-			process = Runtime.getRuntime()
-					.exec("./Resources/OperaShutdown.exe");
+			Sleep.delay(10);
+			process = Runtime.getRuntime().exec(SHUTDOWN_SOFT.getPath());
 			process.waitFor();
 			System.exit(0);
 		} catch (final InterruptedException e) {

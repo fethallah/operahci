@@ -7,39 +7,41 @@ package org.gnf.OperaErrorMonitor;
  * @author ghislain
  * 
  */
-import java.awt.Image;
-import java.awt.Toolkit;
-import java.io.*;
-import java.net.URL;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Vector;
 
 public class RegQuery {
 
-	public static final String REG_SZ_TOKEN        = "REG_SZ";
-	public static final String REG_BINARY_TOKEN    = "REG_BINARY";
-	public static final String REG_DWORD_TOKEN     = "REG_DWORD";
-	public static final String REG_HEX_TOKEN       = "REG_HEX";
-	public static final String REG_MULTI_SZ_TOKEN  = "REG_MULTI_SZ";
+	public static final String REG_SZ_TOKEN = "REG_SZ";
+	public static final String REG_BINARY_TOKEN = "REG_BINARY";
+	public static final String REG_DWORD_TOKEN = "REG_DWORD";
+	public static final String REG_HEX_TOKEN = "REG_HEX";
+	public static final String REG_MULTI_SZ_TOKEN = "REG_MULTI_SZ";
 	public static final String REG_EXPAND_SZ_TOKEN = "REG_EXPAND_SZ";
-	private static final File  REG_EXE             = new File(
-	                                                     "./resources/reg.exe");
+	private static final File REG_EXE = new File(
+			System.getProperty("user.dir"), "Resources/reg.exe");
 
 	RegQuery() throws IOException {
 		if (!REG_EXE.exists())
-		   throw new IOException("Could not find reg.exe in the resources");
+			throw new IOException("Could not find reg.exe in the resources");
 		if (!REG_EXE.canExecute())
-		   throw new IOException("Could not execute reg.exe in the resources");
+			throw new IOException("Could not execute reg.exe in the resources");
 	}
 
 	public static Object getKey(String keyPath, String keyName, String regToken)
-	      throws IOException {
+			throws IOException {
 		new RegQuery();
 		String data = null;
 		try {
-			if (regToken == null) return null;
+			if (regToken == null)
+				return null;
 			Process process = Runtime.getRuntime().exec(
-			      "./resources/reg.exe query \"" + keyPath + "\" /v " + keyName);
+					REG_EXE.getPath() + " query \"" + keyPath + "\" /v "
+							+ keyName);
 			StreamReader reader = new StreamReader(process.getInputStream());
 
 			reader.start();
@@ -49,15 +51,16 @@ public class RegQuery {
 			data = reader.getResult();
 			int p = data.indexOf(regToken);
 
-			if (p == -1) return null;
+			if (p == -1)
+				return null;
 			if (regToken.equals(REG_DWORD_TOKEN)) {
 				String temp = data.substring(p + regToken.length()).trim();
 				return (Integer.parseInt(temp.substring("0x".length()).trim()
-				      .toUpperCase(), 16));
+						.toUpperCase(), 16));
 			}
 			if (regToken.equals(REG_MULTI_SZ_TOKEN))
-			   return data.substring(p + regToken.length()).trim().replace("\\0",
-			         "\r\n");
+				return data.substring(p + regToken.length()).trim().replace(
+						"\\0", "\r\n");
 
 			return data.substring(p + regToken.length()).trim();
 		} catch (Exception e) {
@@ -79,7 +82,7 @@ public class RegQuery {
 		try {
 			keySet = new Vector<String>();
 			Process process = Runtime.getRuntime().exec(
-			      "./resources/reg.exe query \"" + keyPath);
+					REG_EXE.getPath() + " query \"" + keyPath);
 			StreamReader reader = new StreamReader(process.getInputStream());
 
 			reader.start();
@@ -89,8 +92,9 @@ public class RegQuery {
 			String[] data = reader.getResult().split("\\r\\n");
 			for (int i = 0; i < data.length; i++) {
 				if (!data[i].endsWith(keyPath.replaceFirst("H.*\\\\", ""))
-				      && data[i].contains(keyPath.replaceFirst("H.*\\\\", "")))
-				   keySet.add(data[i]);
+						&& data[i]
+								.contains(keyPath.replaceFirst("H.*\\\\", "")))
+					keySet.add(data[i]);
 
 			}
 
@@ -109,13 +113,13 @@ public class RegQuery {
 	 * @return
 	 */
 	public static Vector<HashMap<String, String>> getValueSet(String keyPath)
-	      throws IOException {
+			throws IOException {
 		new RegQuery();
 		Vector<HashMap<String, String>> valueSet = null;
 		try {
 			valueSet = new Vector<HashMap<String, String>>();
 			Process process = Runtime.getRuntime().exec(
-			      "./resources/reg.exe query \"" + keyPath);
+					REG_EXE.getPath() + " query \"" + keyPath);
 			StreamReader reader = new StreamReader(process.getInputStream());
 
 			reader.start();
@@ -135,7 +139,8 @@ public class RegQuery {
 						value.put("type", v[2]);
 						if (v.length > 3)
 							value.put("value", v[3]);
-						else value.put("value", "");
+						else
+							value.put("value", "");
 						valueSet.add(value);
 					}
 				}
@@ -148,7 +153,7 @@ public class RegQuery {
 	}
 
 	static class StreamReader extends Thread {
-		private InputStream  is;
+		private InputStream is;
 		private StringWriter sw;
 
 		StreamReader(InputStream is) {
@@ -174,14 +179,15 @@ public class RegQuery {
 	public static void main(String s[]) {
 
 		try {
-	      System.out.println(getKeySet("HKEY_LOCAL_MACHINE\\SOFTWARE\\Evotec"));
-	      System.out
-	            .println(getValueSet("HKEY_LOCAL_MACHINE\\SOFTWARE\\Evotec"));
-	      System.out.println(getKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Evotec",
-	            "EVOHOMEDIR", REG_SZ_TOKEN));
-      } catch (IOException e) {
-	      e.printStackTrace();
-      }
+			System.out
+					.println(getKeySet("HKEY_LOCAL_MACHINE\\SOFTWARE\\Evotec"));
+			System.out
+					.println(getValueSet("HKEY_LOCAL_MACHINE\\SOFTWARE\\Evotec"));
+			System.out.println(getKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Evotec",
+					"EVOHOMEDIR", REG_SZ_TOKEN));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

@@ -668,6 +668,7 @@ public class GUI {
 		int lastDeActivationIndex = 0;
 		Date firstPlateDate = new Date();
 		Date lastPlateDate = new Date();
+		Date beforeLastPlateDate = new Date();
 		long averagePlateReadTime = 0;
 		long currentPlateReadTime = 0;
 		int notificationNumber = 0;
@@ -684,7 +685,6 @@ public class GUI {
 			getProgressBar().setValue(0);
 			progressBar.repaint();
 			boolean bernsteinReady = false;
-			boolean readTimeOutputed = false;
 
 			while (!done) {
 				long currentDelay = delay;
@@ -754,7 +754,7 @@ public class GUI {
 						em.setContactInfo(System.getProperty("user.name")
 								+ "@gnf.org", null, null);
 					String subject = "OPERA SUCCESS";
-					String message = "The Opera successfully read the last plate. Remember to Shuttdown the instrument.";
+					String message = "The Opera successfully read the last plate. Remember to shutdown the instrument.";
 					String notificationResult = em.sendNotification(subject,
 							message, null);
 
@@ -773,44 +773,6 @@ public class GUI {
 									/ bernsteinStatus.size());
 					getProgressBar().repaint();
 				}
-				if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
-						.equals(lastLogEntry) && bernsteinLog.get(bernsteinLog
-						.size() - 1)[0].equals(lastLogEntryDate))
-						|| lastLogEntry.equals("")) {
-					// enter the info in the log if was not previously placed.
-					lastLogEntry = bernsteinLog.get(bernsteinLog.size() - 1)[1];
-					lastLogEntryDate = bernsteinLog
-							.get(bernsteinLog.size() - 1)[0];
-					statusBar.setText("Berstein Status: " + lastLogEntryDate
-							+ " " + lastLogEntry);
-					statusBar.repaint();
-
-					OperaErrorMonitor.writeLog(DateUtils
-							.now(OperaLogsParsers.timeFormat)
-							+ " - Last log Entry: "
-							+ lastLogEntryDate
-							+ " - "
-							+ lastLogEntry, logTextArea);
-					readTimeOutputed = false;
-
-				}
-
-				if (lastLogEntry.equals("BERNSTEIN-TERMINATION")
-						|| lastLogEntry.equals("DEACTIVATION")
-						|| bernsteinStatus.size() == 0) {
-					Sleep.delay(currentDelay);
-					continue;
-				}
-				lastActivationIndex = logs.getLastActivationIndex(bernsteinLog);
-				lastDeActivationIndex = logs
-						.getLastDeActivationIndex(bernsteinLog);
-				if (lastActivationIndex < lastDeActivationIndex) {
-					Sleep.delay(currentDelay);
-					continue;
-				}
-
-				bernsteinReady = true;
-
 				if (lastActivationIndex < bernsteinLog.size() - 2) {
 					// average the time spend reading the plate on at least one
 					// plate (activation done and 1 plates read)
@@ -818,34 +780,37 @@ public class GUI {
 					statusBar.repaint();
 					SimpleDateFormat sdf = new SimpleDateFormat(
 							OperaLogsParsers.timeFormat);
-					if (averagePlateReadTime != 0 && !readTimeOutputed) {
-						OperaErrorMonitor
-								.writeLog(
-										DateUtils
-												.now(OperaLogsParsers.timeFormat)
-												+ " - PlateReadTime="
-												+ Math
-														.round(currentPlateReadTime / 100.0 / 60.0)
-												/ 10
-												+ " - AverageReadTime="
-												+ Math
-														.round(averagePlateReadTime / 100.0 / 60.0)
-												/ 10 + " minutes.", logTextArea);
-						averagePlateReadTime = 0;
-						readTimeOutputed = true;
+
+					if (lastLogEntry.equals("BERNSTEIN-TERMINATION")
+							|| lastLogEntry.equals("DEACTIVATION")
+							|| bernsteinStatus.size() == 0) {
+						Sleep.delay(currentDelay);
+						continue;
 					}
+					lastActivationIndex = logs
+							.getLastActivationIndex(bernsteinLog);
+					lastDeActivationIndex = logs
+							.getLastDeActivationIndex(bernsteinLog);
+					if (lastActivationIndex < lastDeActivationIndex) {
+						Sleep.delay(currentDelay);
+						continue;
+					}
+
+					bernsteinReady = true;
+
 					try {
 						firstPlateDate = sdf.parse(bernsteinLog
 								.get(lastActivationIndex + 1)[0]);
+						beforeLastPlateDate = sdf.parse(bernsteinLog
+								.get(bernsteinLog.size() - 2)[0]);
 						lastPlateDate = sdf.parse(bernsteinLog.get(bernsteinLog
 								.size() - 1)[0]);
-
 						averagePlateReadTime = DateUtils.difference(
 								lastPlateDate, firstPlateDate)
 								/ (bernsteinLog.size()
 										- (lastActivationIndex + 1) - 1);
-						currentPlateReadTime = DateUtils.difference(DateUtils
-								.now(), lastPlateDate);
+						currentPlateReadTime = DateUtils.difference(
+								lastPlateDate, beforeLastPlateDate);
 						statusBar.setText(statusBar.getText()
 								+ ". Average read time=" + averagePlateReadTime
 								/ 1000 / 60 + " minutes.");
@@ -949,6 +914,49 @@ public class GUI {
 					} catch (ParseException e) {
 						e.printStackTrace();
 						OperaErrorMonitor.writeLog(e.getMessage(), null);
+					}
+
+
+					if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
+							.equals(lastLogEntry) && bernsteinLog
+							.get(bernsteinLog.size() - 1)[0]
+							.equals(lastLogEntryDate))
+							|| lastLogEntry.equals("")) {
+						if (averagePlateReadTime != 0
+								&& currentPlateReadTime != 0) {
+							OperaErrorMonitor
+									.writeLog(
+											DateUtils
+													.now(OperaLogsParsers.timeFormat)
+													+ " - PlateReadTime="
+													+ Math
+															.round(currentPlateReadTime / 100.0 / 60.0)
+													/ 10
+													+ " - AverageReadTime="
+													+ Math
+															.round(averagePlateReadTime / 100.0 / 60.0)
+													/ 10 + " minutes.",
+											logTextArea);
+							averagePlateReadTime = 0;
+							currentPlateReadTime = 0;
+						}
+						// enter the info in the log if was not previously
+						// placed.
+						lastLogEntry = bernsteinLog
+								.get(bernsteinLog.size() - 1)[1];
+						lastLogEntryDate = bernsteinLog
+								.get(bernsteinLog.size() - 1)[0];
+						statusBar.setText("Berstein Status: "
+								+ lastLogEntryDate + " " + lastLogEntry);
+						statusBar.repaint();
+
+						OperaErrorMonitor.writeLog(DateUtils
+								.now(OperaLogsParsers.timeFormat)
+								+ " - Last log Entry: "
+								+ lastLogEntryDate
+								+ " - " + lastLogEntry, logTextArea);
+
+
 					}
 				}
 

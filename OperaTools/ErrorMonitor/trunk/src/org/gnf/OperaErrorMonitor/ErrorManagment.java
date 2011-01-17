@@ -20,7 +20,7 @@ public class ErrorManagment {
 	long plateReadTimeAverage = 0;
 	static Vector<HashMap<String, String>> contactInfo = new Vector<HashMap<String, String>>();
 	public final static File INI_FILE = new File(
-			"./Resources/OperaErrorMonitor.ini");
+			System.getProperty("user.dir"), "Resources/OperaErrorMonitor.ini");
 	private final static String AnalyzerRegPath = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Evotec\\OperaPI\\2.0\\Distribution\\Connections";
 	OperaLogsParsers log;
 	static final String RMCA_PARAMETERS_KEY = "RMCARebootSettings";
@@ -38,6 +38,8 @@ public class ErrorManagment {
 	private static final String[] INI_SUPORTED_TYPES = { "current",
 			"operators", "managers" };
 	private static String FROM = "OPERA@NoReply.org";
+	private static final File RESTART_SOFT = new File(System
+			.getProperty("user.dir"), "Resources/RMCARestart.exe");
 
 	public ErrorManagment() {
 		contactInfo = new Vector<HashMap<String, String>>();
@@ -87,7 +89,7 @@ public class ErrorManagment {
 					result += DateUtils.now(OperaLogsParsers.timeFormat)
 							+ " - Restaring: \\\\" + computerName + " ... ";
 					StreamReader reader;
-					String[] command = { "./Resources/RMCARestart.exe ",
+					String[] command = { RESTART_SOFT.getPath() + " ",
 							computerName, userID, pwd };
 					try {
 						process = Runtime.getRuntime().exec(command);
