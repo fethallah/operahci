@@ -816,7 +816,8 @@ public class GUI {
 								/ 1000 / 60 + " minutes.");
 
 						double foldAboveRegularReadTime = (double) Math
-								.round(((double) currentPlateReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
+								.round(((double) DateUtils.difference(DateUtils
+										.now(), lastPlateDate) / (double) averagePlateReadTime) * 10.0) / 10.0;
 
 						if (foldAboveRegularReadTime < errorNotificationDelay) {
 							notificationNumber = 0;
