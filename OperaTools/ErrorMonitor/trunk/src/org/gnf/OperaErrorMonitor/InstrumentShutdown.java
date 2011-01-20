@@ -28,7 +28,6 @@ public class InstrumentShutdown {
 			Sleep.delay(10);
 			process = Runtime.getRuntime().exec(SHUTDOWN_SOFT.getPath());
 			process.waitFor();
-			System.exit(0);
 		} catch (final InterruptedException e) {
 			System.exit(0);
 			e.printStackTrace();
