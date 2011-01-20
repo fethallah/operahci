@@ -22,8 +22,9 @@
 	<property name="src" location="src" />
 	<property name="bin" location="bin" />
 	<property name="jar" location="jar" />
-	<property name="base.dir" location="${jar}/v${app.version}/${build.number}" />
-	<property name="base.name" location="${base.dir}/${ant.project.name}" />
+	<property name="base.dir" location="${jar}/v${app.version}" />
+	<property name="base.name" location="${base.dir}/${ant.project.name}_${app.version}-${build.number}" />
+	<property name="base.nameTemp" location="${base.dir}/Temp/${ant.project.name}" />	
 	<property name="main.class" value="org.gnf.${ant.project.name}.${ant.project.name}" />
 	<property name="jre" value="1.6" />
 
@@ -74,7 +75,7 @@
 
 	<target name="makejar" depends="compile" description="Create the Jar file">
 		<!--depends="compile" -->
-		<mkdir dir="${base.dir}" />
+		<mkdir dir="${base.dir}/Temp" />
 		<copy todir="${bin}/resources">
 			<fileset dir="${src}/resources" />
 		</copy>
@@ -95,7 +96,7 @@
 			<attribute name="Built-Date" value="${build.date}" />
 		</manifest>
 		<echo>Building jar file...</echo>
-		<jar jarfile="${base.name}.jar" manifest="manifest.mf">
+		<jar jarfile="${base.nameTemp}.jar" manifest="manifest.mf">
 			<fileset dir="${bin}/">
 				<!--<patternset refid="all-classes" /> -->
 			</fileset>
@@ -157,11 +158,11 @@ Creating install4j bundles
         </echo>
 
 		<launch4j>
-			<config headerType="gui" outfile="${base.name}.exe" dontWrapJar="false" jar="${base.name}.jar" icon="${src}\resources\icon.ico" downloadUrl="http://java.com/download" customProcName="true">
+			<config headerType="gui" outfile="${base.nameTemp}.exe" dontWrapJar="false" jar="${base.nameTemp}.jar" icon="${src}\resources\icon.ico" downloadUrl="http://java.com/download" customProcName="true">
 				<classPath mainClass="${main.class}">
 					<cp>./*.jar</cp>
 					<cp>%USER_LIBS%/*.jar</cp>
-					<cp>./${base.name}.jar</cp>
+					<cp>./${base.nameTemp}.jar</cp>
 				</classPath>
 
 				<jre minVersion="${jre}.0">
@@ -182,12 +183,12 @@ Creating install4j bundles
 			</config>
 		</launch4j>
 		<zip destfile="${base.name}.zip">
-			<fileset dir="${base.dir}" includes="*.exe" />
+			<fileset dir="${base.dir}/Temp" includes="*.exe" />
 			<fileset dir="." includes="Resources/*" />
 			<fileset dir="." includes="*.ini" />
 		</zip>
 		<delete includeemptydirs="true" deleteonexit="true">
-			<fileset dir="${base.dir}" excludes="*.zip" defaultexcludes="false" />
+			<fileset dir="${base.dir}/Temp" excludes="*.zip" defaultexcludes="false" />
 		</delete>
 
 		<echo>
