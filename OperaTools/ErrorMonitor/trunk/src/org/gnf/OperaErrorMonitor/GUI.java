@@ -770,7 +770,7 @@ public class GUI {
 					getProgressBar().setValue(
 							100 * logs.countDonePlates(bernsteinStatus)
 									/ bernsteinStatus.size());
-					// getProgressBar().repaint();
+					getProgressBar().repaint();
 				}
 				if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
 						.equals(lastLogEntry) && bernsteinLog.get(bernsteinLog
@@ -843,10 +843,10 @@ public class GUI {
 						statusBar.setText(statusBar.getText()
 								+ ". Average read time=" + averagePlateReadTime
 								/ 1000 / 60 + " minutes.");
-
+						long currentReadTime = DateUtils.difference(DateUtils
+								.now(), lastPlateDate);
 						double foldAboveRegularReadTime = (double) Math
-								.round(((double) DateUtils.difference(DateUtils
-										.now(), lastPlateDate) / (double) averagePlateReadTime) * 10.0) / 10.0;
+								.round(((double) currentReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
 
 						if (foldAboveRegularReadTime < errorNotificationDelay) {
 							if (notificationNumber <= maxNumNotifications) {
@@ -860,7 +860,7 @@ public class GUI {
 									+ " - Error: plate read time "
 									+ foldAboveRegularReadTime
 									+ " times above average (Read time="
-									+ currentPlateReadTime
+									+ currentReadTime
 									/ 1000
 									/ 60
 									+ " minutes).", logTextArea);
