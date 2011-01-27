@@ -772,38 +772,7 @@ public class GUI {
 									/ bernsteinStatus.size());
 					getProgressBar().repaint();
 				}
-				if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
-						.equals(lastLogEntry) && bernsteinLog.get(bernsteinLog
-						.size() - 1)[0].equals(lastLogEntryDate))
-						|| lastLogEntry.equals("")) {
-					lastLogEntry = bernsteinLog.get(bernsteinLog.size() - 1)[1];
-					lastLogEntryDate = bernsteinLog
-							.get(bernsteinLog.size() - 1)[0];
-					statusBar.setText("Berstein Status: " + lastLogEntryDate
-							+ " " + lastLogEntry);
-					statusBar.repaint();
-					if (averagePlateReadTime != 0 && currentPlateReadTime != 0) {
-						OperaErrorMonitor.writeLog(DateUtils
-								.now(OperaLogsParsers.timeFormat)
-												+ " - PlateReadTime="
-												+ Math
-														.round(currentPlateReadTime / 100.0 / 60.0)
-												/ 10
-												+ " - AverageReadTime="
-												+ Math
-														.round(averagePlateReadTime / 100.0 / 60.0)
-												/ 10 + " minutes.", logTextArea);
-						averagePlateReadTime = 0;
-						currentPlateReadTime = 0;
-					}
-					OperaErrorMonitor.writeLog(DateUtils
-							.now(OperaLogsParsers.timeFormat)
-							+ " - Last log Entry: "
-							+ lastLogEntryDate
-							+ " - "
-							+ lastLogEntry, logTextArea);
 
-				}
 				if (lastLogEntry.equals("BERNSTEIN-TERMINATION")
 						|| lastLogEntry.equals("DEACTIVATION")
 						|| bernsteinStatus.size() == 0) {
@@ -948,7 +917,32 @@ public class GUI {
 						OperaErrorMonitor.writeLog(e.getMessage(), null);
 					}
 				}
+				if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
+						.equals(lastLogEntry) && bernsteinLog.get(bernsteinLog
+						.size() - 1)[0].equals(lastLogEntryDate))
+						|| lastLogEntry.equals("")) {
+					lastLogEntry = bernsteinLog.get(bernsteinLog.size() - 1)[1];
+					lastLogEntryDate = bernsteinLog
+							.get(bernsteinLog.size() - 1)[0];
+					statusBar.setText("Berstein Status: " + lastLogEntryDate
+							+ " " + lastLogEntry);
+					statusBar.repaint();
+					OperaErrorMonitor.writeLog(DateUtils
+							.now(OperaLogsParsers.timeFormat)
+							+ " - PlateReadTime="
+							+ Math.round(currentPlateReadTime / 100.0 / 60.0)
+							/ 10
+							+ " - AverageReadTime="
+							+ Math.round(averagePlateReadTime / 100.0 / 60.0)
+							/ 10 + " minutes.", logTextArea);
+					OperaErrorMonitor.writeLog(DateUtils
+							.now(OperaLogsParsers.timeFormat)
+							+ " - Last log Entry: "
+							+ lastLogEntryDate
+							+ " - "
+							+ lastLogEntry, logTextArea);
 
+				}
 				Sleep.delay(currentDelay);
 			}
 
