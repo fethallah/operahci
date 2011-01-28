@@ -777,12 +777,13 @@ public class GUI {
 				lastDeActivationIndex = logs
 						.getLastDeActivationIndex(bernsteinLog);
 
-				bernsteinReady = true;
 				averagePlateReadTime = lastPlateReadTime = currentReadTime = 0;
 				foldAboveRegularReadTime = 0;
 
-				if (lastActivationIndex < bernsteinLog.size() - 2) {
+				if (lastDeActivationIndex < lastActivationIndex
+						&& lastActivationIndex < bernsteinLog.size() - 2) {
 					// Make sure that at least 1 plate went through the system
+					// and that Bernstein was not deactivated
 					SimpleDateFormat sdf = new SimpleDateFormat(
 							OperaLogsParsers.timeFormat);
 
@@ -811,6 +812,7 @@ public class GUI {
 					foldAboveRegularReadTime = averagePlateReadTime == 0 ? 0
 							: (double) Math
 									.round(((double) currentReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
+					bernsteinReady = true;
 				}
 
 
