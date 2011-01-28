@@ -778,6 +778,8 @@ public class GUI {
 						.getLastDeActivationIndex(bernsteinLog);
 
 				bernsteinReady = true;
+				averagePlateReadTime = lastPlateReadTime = currentReadTime = 0;
+				foldAboveRegularReadTime = 0;
 
 				if (lastActivationIndex < bernsteinLog.size() - 2) {
 					// Make sure that at least 1 plate went through the system
@@ -810,6 +812,7 @@ public class GUI {
 							: (double) Math
 									.round(((double) currentReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
 				}
+
 
 				if (foldAboveRegularReadTime >= errorNotificationDelay
 						&& notificationNumber <= maxNumNotifications) {
