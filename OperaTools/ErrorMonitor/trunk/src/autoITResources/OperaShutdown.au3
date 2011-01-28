@@ -4,7 +4,7 @@
 #AutoIt3Wrapper_Compression=0
 #AutoIt3Wrapper_UseX64=n
 #AutoIt3Wrapper_Res_Description=This tool allows shutdown the LBC control and the evoshell.
-#AutoIt3Wrapper_Res_Fileversion=0.1.0.37
+#AutoIt3Wrapper_Res_Fileversion=0.1.0.60
 #AutoIt3Wrapper_Res_FileVersion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_Run_Tidy=y

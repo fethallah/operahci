@@ -670,8 +670,10 @@ public class GUI {
 		Date lastPlateDate = new Date();
 		Date beforeLastPlateDate = new Date();
 		long averagePlateReadTime = 0;
-		long currentPlateReadTime = 0;
+		long lastPlateReadTime = 0;
 		int notificationNumber = 0;
+		long currentReadTime = 0;
+		double foldAboveRegularReadTime = 0;
 
 		// private long delay = 120;
 		// private int maxNumNotifications = 5;
@@ -686,34 +688,35 @@ public class GUI {
 			progressBar.repaint();
 			boolean bernsteinReady = false;
 
+			long currentDelay = 0;
 			while (!done) {
-				long currentDelay = delay;
+				Sleep.delay(currentDelay);
+				currentDelay = delay;
 				try {
 					logs = new OperaLogsParsers();
 				} catch (IOException e) {
 					e.printStackTrace();
-					logs = null;
-					OperaErrorMonitor.error(e.getMessage(), jFrame);
-					done = true;
-					statusBar
-							.setText("Unable To Start Monitoring. Click start to try monitoring again.");
-					statusBar.repaint();
-					executeButton.setText("Start");
-					executeButton.setSelected(true);
-					OperaErrorMonitor.writeLog("\r\n"
-							+ DateUtils.now(OperaLogsParsers.timeFormat)
-							+ " - " + e.getMessage(), logTextArea);
-					OperaErrorMonitor.writeLog("\r\n"
-							+ DateUtils.now(OperaLogsParsers.timeFormat)
-							+ " - MONITORING IS STOPPED", logTextArea);
-					return;
+					/*
+					 * logs = null; OperaErrorMonitor.error(e.getMessage(),
+					 * jFrame); done = true; statusBar.setText(
+					 * "Unable To Start Monitoring. Click start to try monitoring again."
+					 * ); statusBar.repaint(); executeButton.setText("Start");
+					 * executeButton.setSelected(true);
+					 * OperaErrorMonitor.writeLog("\r\n" +
+					 * DateUtils.now(OperaLogsParsers.timeFormat) + " - " +
+					 * e.getMessage(), logTextArea);
+					 * OperaErrorMonitor.writeLog("\r\n" +
+					 * DateUtils.now(OperaLogsParsers.timeFormat) +
+					 * " - MONITORING IS STOPPED", logTextArea); return;
+					 */
+					Sleep.delay(currentDelay);
+					continue;
 				}
 				bernsteinLog = logs.getBernsteinLog();
 				bernsteinStatus = logs.getBernsteinStatus();
 
 				if (bernsteinStatus.size() == 0) {
 					if (!bernsteinReady) {
-						Sleep.delay(currentDelay);
 						continue;
 					}
 					bernsteinReady = false;
@@ -726,13 +729,11 @@ public class GUI {
 									DateUtils.now(OperaLogsParsers.timeFormat)
 											+ " - Bernstein not yet initialized. No plates to read.",
 									logTextArea);
-					Sleep.delay(currentDelay);
 					continue;
 				}
 				if (logs.countDonePlates(bernsteinStatus) == bernsteinStatus
 						.size()) {
 					if (!bernsteinReady) {
-						Sleep.delay(currentDelay);
 						continue;
 					}
 					bernsteinReady = false;
@@ -766,33 +767,20 @@ public class GUI {
 						InstrumentShutdown.InstrumentShutdown();
 					continue;
 				}
-				if (bernsteinStatus.size() > 0) {
-					getProgressBar().setValue(
-							100 * logs.countDonePlates(bernsteinStatus)
-									/ bernsteinStatus.size());
-					getProgressBar().repaint();
-				}
 
-				if (lastLogEntry.equals("BERNSTEIN-TERMINATION")
-						|| lastLogEntry.equals("DEACTIVATION")
-						|| bernsteinStatus.size() == 0) {
-					Sleep.delay(currentDelay);
-					continue;
-				}
+				getProgressBar().setValue(
+						100 * logs.countDonePlates(bernsteinStatus)
+								/ bernsteinStatus.size());
+				getProgressBar().repaint();
+
 				lastActivationIndex = logs.getLastActivationIndex(bernsteinLog);
 				lastDeActivationIndex = logs
 						.getLastDeActivationIndex(bernsteinLog);
-				if (lastActivationIndex < lastDeActivationIndex) {
-					Sleep.delay(currentDelay);
-					continue;
-				}
 
 				bernsteinReady = true;
 
 				if (lastActivationIndex < bernsteinLog.size() - 2) {
 					// Make sure that at least 1 plate went through the system
-					statusBar.setText("Berstein Status: " + lastLogEntry);
-					statusBar.repaint();
 					SimpleDateFormat sdf = new SimpleDateFormat(
 							OperaLogsParsers.timeFormat);
 
@@ -803,119 +791,108 @@ public class GUI {
 								.get(bernsteinLog.size() - 2)[0]);
 						lastPlateDate = sdf.parse(bernsteinLog.get(bernsteinLog
 								.size() - 1)[0]);
-						averagePlateReadTime = DateUtils.difference(
-								lastPlateDate, firstPlateDate)
-								/ (bernsteinLog.size()
-										- (lastActivationIndex + 1) - 1);
-						currentPlateReadTime = DateUtils.difference(
-								lastPlateDate, beforeLastPlateDate);
-						statusBar.setText(statusBar.getText()
-								+ ". Average read time=" + averagePlateReadTime
-								/ 1000 / 60 + " minutes.");
-						long currentReadTime = DateUtils.difference(DateUtils
-								.now(), lastPlateDate);
-						double foldAboveRegularReadTime = (double) Math
-								.round(((double) currentReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
-
-						if (foldAboveRegularReadTime < errorNotificationDelay) {
-							if (notificationNumber <= maxNumNotifications) {
-								notificationNumber = 0;
-								statusBar.repaint();
-								currentDelay = delay;
-							}
-						} else if (notificationNumber <= maxNumNotifications) {
-							OperaErrorMonitor.writeLog(DateUtils
-									.now(OperaLogsParsers.timeFormat)
-									+ " - Error: plate read time "
-									+ foldAboveRegularReadTime
-									+ " times above average (Read time="
-									+ currentReadTime
-									/ 1000
-									/ 60
-									+ " minutes).", logTextArea);
-
-							ErrorManagment em = new ErrorManagment();
-
-							if (notificationNumber == 2)
-								try {
-									em.setContactInfo("managers");
-								} catch (Exception e) {
-									e.printStackTrace();
-									OperaErrorMonitor.writeLog(e.getMessage(),
-											null);
-								}
-							if (notificationNumber > 1)
-								try {
-									em.setContactInfo("operators");
-								} catch (Exception e) {
-									e.printStackTrace();
-									OperaErrorMonitor.writeLog(e.getMessage(),
-											null);
-								}
-							String subject = "OPERA ERROR - INSTRUMENT IDLE SINCE "
-									+ lastPlateDate;
-							String message = "The instrument has been idle "
-									+ foldAboveRegularReadTime
-									+ " times longer than average this strongly suggests that the instrument has crashed.\r\nAttached are the log files for the Bernstein software.";
-							File[] attachments = { logs.getBernsteinLogFile(),
-									logs.getBernsteinStatusFile(),
-									logs.getBernsteinHostLinkReaderFile(),
-									logs.getBernsteinHostLinkRobFile() };
-							String notificationResult = "";
-							if (notificationNumber > 0) {
-
-								String email = emailListField.getText();
-								em.setContactInfo(email, cellPhoneTextField
-										.getText().replaceAll("[^0-9]", ""),
-										(String) providerComboBox
-												.getSelectedItem());
-								if (!email.equals(System
-										.getProperty("user.name")
-										+ "@gnf.org"))
-									em.setContactInfo(System
-											.getProperty("user.name")
-											+ "@gnf.org", null, null);
-								notificationResult = em.sendNotification(
-										subject, message, attachments);
-								currentDelay = resendDelay; // set wait time
-								// before re-sending
-								// notification
-								// before
-								// proceeding.
-							} else {
-								try {
-									em.setContactInfo("managers");
-								} catch (Exception e1) {
-									e1.printStackTrace();
-									OperaErrorMonitor.writeLog(e1.getMessage(),
-											null);
-								}
-
-								try {
-									notificationResult = em
-											.rebootAnalyzers("Analysis taking longer than usual. Current read times is "
-													+ foldAboveRegularReadTime
-													+ " times above average ("
-													+ currentPlateReadTime
-													/ 1000
-													/ 60
-													+ " minutes). Possible faulty connection");
-								} catch (Exception e) {
-									notificationResult += e.getMessage();
-									e.printStackTrace();
-								}
-								currentDelay = 180; // wait 3 minutes before
-								// trying again
-							}
-							OperaErrorMonitor.writeLog(notificationResult,
-									logTextArea);
-							notificationNumber++;
-						}
-
 					} catch (ParseException e) {
 						e.printStackTrace();
 						OperaErrorMonitor.writeLog(e.getMessage(), null);
 					}
+					averagePlateReadTime = DateUtils.difference(lastPlateDate,
+							firstPlateDate)
+							/ (bernsteinLog.size() - (lastActivationIndex + 1) - 1);
+					averagePlateReadTime /= 60000; // ms->Minutes
+					lastPlateReadTime = DateUtils.difference(lastPlateDate,
+							beforeLastPlateDate);
+
+					lastPlateReadTime /= 60000; // ms->Minutes
+					currentReadTime = DateUtils.difference(DateUtils.now(),
+							lastPlateDate);
+					currentReadTime /= 60000;
+					foldAboveRegularReadTime = averagePlateReadTime == 0 ? 0
+							: (double) Math
+									.round(((double) currentReadTime / (double) averagePlateReadTime) * 10.0) / 10.0;
+				}
+
+				if (foldAboveRegularReadTime >= errorNotificationDelay
+						&& notificationNumber <= maxNumNotifications) {
+					OperaErrorMonitor.writeLog(DateUtils
+							.now(OperaLogsParsers.timeFormat)
+							+ " - Error: plate read time "
+							+ foldAboveRegularReadTime
+							+ " times above average (Read time="
+							+ currentReadTime + " minutes).", logTextArea);
+
+					ErrorManagment em = new ErrorManagment();
+
+					if (notificationNumber == 2)
+						try {
+							em.setContactInfo("managers");
+						} catch (Exception e) {
+							e.printStackTrace();
+							OperaErrorMonitor.writeLog(e.getMessage(), null);
+						}
+					if (notificationNumber > 1)
+						try {
+							em.setContactInfo("operators");
+						} catch (Exception e) {
+							e.printStackTrace();
+							OperaErrorMonitor.writeLog(e.getMessage(), null);
+						}
+					String subject = "OPERA ERROR - INSTRUMENT IDLE SINCE "
+							+ lastPlateDate;
+					String message = "The instrument has been idle "
+							+ foldAboveRegularReadTime
+							+ " times longer than average (Read time="
+							+ currentReadTime
+							+ " minutes).\r\nThis strongly suggests that the instrument has crashed.\r\nAttached are the log files for the Bernstein software.";
+					File[] attachments = { logs.getBernsteinLogFile(),
+							logs.getBernsteinStatusFile(),
+							logs.getBernsteinHostLinkReaderFile(),
+							logs.getBernsteinHostLinkRobFile() };
+					String notificationResult = "";
+					if (notificationNumber > 0) {
+
+						String email = emailListField.getText();
+						em.setContactInfo(email, cellPhoneTextField.getText()
+								.replaceAll("[^0-9]", ""),
+								(String) providerComboBox.getSelectedItem());
+						if (!email.equals(System.getProperty("user.name")
+								+ "@gnf.org"))
+							em.setContactInfo(System.getProperty("user.name")
+									+ "@gnf.org", null, null);
+						notificationResult = em.sendNotification(subject,
+								message, attachments);
+						/*
+						 * Set wait time before re-sending notification before
+						 * proceeding.
+						 */
+						currentDelay = resendDelay;
+					} else {
+						try {
+							em.setContactInfo("managers");
+						} catch (Exception e1) {
+							e1.printStackTrace();
+							OperaErrorMonitor.writeLog(e1.getMessage(), null);
+						}
+
+						try {
+							notificationResult = em
+									.rebootAnalyzers("Analysis taking longer than usual. Current read times is "
+											+ foldAboveRegularReadTime
+											+ " times above average (Read time="
+											+ currentReadTime
+											+ " minutes). Possible faulty connection");
+						} catch (Exception e) {
+							notificationResult += e.getMessage();
+							e.printStackTrace();
+						}
+						// wait 3 minutes before trying again
+						currentDelay = 180;
+					}
+					OperaErrorMonitor.writeLog(notificationResult, logTextArea);
+					notificationNumber++;
+					continue;
+				} else if (foldAboveRegularReadTime < errorNotificationDelay) {
+					notificationNumber = 0;
+					currentDelay = delay;
 				}
 				if (!(bernsteinLog.get(bernsteinLog.size() - 1)[1]
 						.equals(lastLogEntry) && bernsteinLog.get(bernsteinLog
@@ -926,26 +903,40 @@ public class GUI {
 							.get(bernsteinLog.size() - 1)[0];
 					statusBar.setText("Berstein Status: " + lastLogEntryDate
 							+ " " + lastLogEntry);
-					statusBar.repaint();
-					OperaErrorMonitor.writeLog(DateUtils
-							.now(OperaLogsParsers.timeFormat)
-							+ " - PlateReadTime="
-							+ Math.round(currentPlateReadTime / 100.0 / 60.0)
-							/ 10
-							+ " - AverageReadTime="
-							+ Math.round(averagePlateReadTime / 100.0 / 60.0)
-							/ 10 + " minutes.", logTextArea);
+					if (lastPlateReadTime != 0
+							&& averagePlateReadTime != 0
+							&& !(lastLogEntry.equals("ACTIVATION")
+									|| lastLogEntry
+											.equals("BERNSTEIN-TERMINATION") || lastLogEntry
+									.equals("DEACTIVATION"))) {
+						statusBar.setText(statusBar.getText()
+								+ ". Average read time=" + averagePlateReadTime
+								+ " minutes.");
+						OperaErrorMonitor.writeLog(DateUtils
+								.now(OperaLogsParsers.timeFormat)
+								+ " - PlateReadTime="
+								+ lastPlateReadTime
+								+ " - AverageReadTime="
+								+ averagePlateReadTime
+								+ " minutes.", logTextArea);
+					}
 					OperaErrorMonitor.writeLog(DateUtils
 							.now(OperaLogsParsers.timeFormat)
 							+ " - Last log Entry: "
 							+ lastLogEntryDate
 							+ " - "
 							+ lastLogEntry, logTextArea);
+					statusBar.repaint();
 
 				}
-				Sleep.delay(currentDelay);
-			}
+				/*
+				 * if (lastLogEntry.equals("BERNSTEIN-TERMINATION") ||
+				 * lastLogEntry.equals("DEACTIVATION") || bernsteinStatus.size()
+				 * == 0) { Sleep.delay(currentDelay); continue; }
+				 */
 
+
+			}
 		}
 	}
 
