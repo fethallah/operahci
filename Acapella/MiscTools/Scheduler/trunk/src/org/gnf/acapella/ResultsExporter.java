@@ -79,7 +79,7 @@ public class ResultsExporter extends Thread implements Runnable {
 					// Appends to the CSV file the different features.
 					for (String feature : featuresNames) {
 						// collects the data according to the list of available
-						// features constructed from the initialiation
+						// features constructed from the initialization
 
 						String value = wellData.get(feature);
 						value = value == null ? "" : value;

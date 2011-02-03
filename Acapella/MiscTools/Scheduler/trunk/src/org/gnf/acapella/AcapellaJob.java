@@ -31,8 +31,7 @@ public class AcapellaJob extends Thread implements Runnable {
 	private Map<String, String> errors;
 	private File scriptPath;
 
-	public AcapellaJob(File scriptPath, File imagePath,
-			String wellIDs,
+	public AcapellaJob(File scriptPath, File imagePath, String wellIDs,
 			Map<String, Map<String, String>> results, Map<String, String> errors) {
 		// super(new ThreadGroup("test"),this);
 		new Thread(new ThreadGroup("test"), this);
@@ -54,11 +53,11 @@ public class AcapellaJob extends Thread implements Runnable {
 	public void setImageRootPath(File root) {
 		this.root = root;
 	}
-	
+
 	@Override
 	public void run() {
 		super.run();
-		Process process;
+		Process process = null;
 		ErrorExtractor errorReader;
 		DataExtractor dataReader;
 		try {
@@ -73,7 +72,8 @@ public class AcapellaJob extends Thread implements Runnable {
 			dataReader.setName(this.getName() + "-dataReader");
 			dataReader.setPlateID(plateID);
 			dataReader.setMeasID(measID);
-			dataReader.setFilePath(RelativePath.getRelativePath(root,imagePath));
+			dataReader.setFilePath(RelativePath
+					.getRelativePath(root, imagePath));
 			dataReader.start();
 			errorReader.setPlateID(plateID);
 			errorReader.setMeasID(measID);
@@ -86,6 +86,18 @@ public class AcapellaJob extends Thread implements Runnable {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			if (process != null)
+				try {
+					if (process.getErrorStream() != null)
+						process.getErrorStream().close();
+					if (process.getInputStream() != null)
+						process.getInputStream().close();
+					if (process.getOutputStream() != null)
+						process.getOutputStream().close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 		}
 	}
 }
@@ -160,8 +172,8 @@ class DataExtractor extends Thread implements Runnable {
 						wellResults.put("Row", "" + row);
 						wellResults.put("Col", "" + col);
 
-						wellResults.put("filename", imagePath
-									+ File.separator + wellID);
+						wellResults.put("filename", imagePath + File.separator
+								+ wellID);
 						if (!wellResults.isEmpty()) {
 							results.put(lineIndexIni + wellID, wellResults);
 							wellResults = new LinkedHashMap<String, String>();
@@ -190,7 +202,6 @@ class ErrorExtractor extends Thread implements Runnable {
 		this.errors = errors;
 	}
 
-
 	public void setPlateID(String plateID) {
 		this.plateID = plateID;
 	}
@@ -203,6 +214,7 @@ class ErrorExtractor extends Thread implements Runnable {
 		this.wellIDs = wellIDs;
 
 	}
+
 	public void run() {
 		super.run();
 		try {
@@ -217,8 +229,7 @@ class ErrorExtractor extends Thread implements Runnable {
 
 				} else if (line.startsWith("Error in obtaining")) {
 					errors.put(lineIndexIni + wellIDs.replaceAll(",", ";")
-							+ "/Licensing",
-							line);
+							+ "/Licensing", line);
 				}
 
 			}
