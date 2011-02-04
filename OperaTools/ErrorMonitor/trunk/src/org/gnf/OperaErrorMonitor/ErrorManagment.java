@@ -71,7 +71,7 @@ public class ErrorManagment {
 			e.printStackTrace();
 		}
 
-		Process process;
+		Process process = null;
 		String result = "";
 		Vector<String> keySet = RegQuery.getKeySet(AnalyzerRegPath);
 		if (keySet == null)
@@ -108,6 +108,18 @@ public class ErrorManagment {
 					} catch (IOException e) {
 						status = "FAILED - Error= " + e.getMessage();
 						e.printStackTrace();
+					} finally {
+						if (process != null)
+							try {
+								if (process.getErrorStream() != null)
+									process.getErrorStream().close();
+								if (process.getInputStream() != null)
+									process.getInputStream().close();
+								if (process.getOutputStream() != null)
+									process.getOutputStream().close();
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
 					}
 					result += status + "\r\n";
 				}
@@ -140,6 +152,7 @@ public class ErrorManagment {
 			}
 			peopleEmailed += status + "\r\n";
 		}
+
 		return result + peopleEmailed;
 	}
 

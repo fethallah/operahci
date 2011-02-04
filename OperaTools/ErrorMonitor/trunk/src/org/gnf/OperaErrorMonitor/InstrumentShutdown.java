@@ -35,6 +35,17 @@ public class InstrumentShutdown {
 			System.exit(0);
 			e.printStackTrace();
 		} finally {
+			if (process != null)
+				try {
+					if (process.getErrorStream() != null)
+						process.getErrorStream().close();
+					if (process.getInputStream() != null)
+						process.getInputStream().close();
+					if (process.getOutputStream() != null)
+						process.getOutputStream().close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			process.destroy();
 		}
 	}

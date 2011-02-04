@@ -116,9 +116,10 @@ public class RegQuery {
 			throws IOException {
 		new RegQuery();
 		Vector<HashMap<String, String>> valueSet = null;
+		Process process = null;
 		try {
 			valueSet = new Vector<HashMap<String, String>>();
-			Process process = Runtime.getRuntime().exec(
+			process = Runtime.getRuntime().exec(
 					REG_EXE.getPath() + " query \"" + keyPath);
 			StreamReader reader = new StreamReader(process.getInputStream());
 
@@ -149,6 +150,18 @@ public class RegQuery {
 			return valueSet;
 		} catch (Exception e) {
 			return valueSet;
+		} finally {
+			if (process != null)
+				try {
+					if (process.getErrorStream() != null)
+						process.getErrorStream().close();
+					if (process.getInputStream() != null)
+						process.getInputStream().close();
+					if (process.getOutputStream() != null)
+						process.getOutputStream().close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 		}
 	}
 
