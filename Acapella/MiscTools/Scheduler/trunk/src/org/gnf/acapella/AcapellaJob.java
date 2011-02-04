@@ -185,6 +185,12 @@ class DataExtractor extends Thread implements Runnable {
 
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				br.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 }
@@ -236,6 +242,12 @@ class ErrorExtractor extends Thread implements Runnable {
 
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			try {
+				br.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
