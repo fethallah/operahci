@@ -37,7 +37,7 @@ public class ErrorManagment {
 	private static final String INI_PROVIDER_TAG = "cellProvider";
 	private static final String[] INI_SUPORTED_TYPES = { "current",
 			"operators", "managers" };
-	private static String FROM = "OPERA@NoReply.org";
+	private String FROM = "OPERA@NoReply.org";
 	private static final File RESTART_SOFT = new File(System
 			.getProperty("user.dir"), "Resources/RMCARestart.exe");
 
@@ -277,6 +277,8 @@ public class ErrorManagment {
 
 	public static void main(String[] args) throws Exception {
 		ErrorManagment em = new ErrorManagment();
+		em.setContactInfo("test@gnf.org", null, null);
+		em.sendNotification("Test", "Test", null);
 		// Add some tests ex:em.rebootAnalyzers("OperaC");
 	}
 }

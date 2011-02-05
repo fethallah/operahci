@@ -737,6 +737,7 @@ public class GUI {
 						continue;
 					}
 					bernsteinReady = false;
+					notificationNumber = 0;
 					statusBar.setText("Berstein Status: "
 							+ DateUtils.now(OperaLogsParsers.timeFormat)
 							+ " Last plate done reading.");
@@ -934,13 +935,6 @@ public class GUI {
 					statusBar.repaint();
 
 				}
-				/*
-				 * if (lastLogEntry.equals("BERNSTEIN-TERMINATION") ||
-				 * lastLogEntry.equals("DEACTIVATION") || bernsteinStatus.size()
-				 * == 0) { Sleep.delay(currentDelay); continue; }
-				 */
-
-
 			}
 		}
 	}
