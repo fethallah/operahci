@@ -54,7 +54,7 @@ proc autoNucleiAlgorithmSelection(
 	input(MinimumNucleiDistance, 7.0, "Minimum Nuclei Distance: Nuclei Detection", "d", "Nuclei: Controls the splitting of the stuck nuclei and corresponds generally to minimum allowed distance between nuclei centers. Adjust by illustration Nuclei. The parameter is the input to the module maximums. Allowed range: 0..2000, step 1.")
 	input(NuclearSplittingAdjustment,7.0, "Nuclear Splitting Adjustment: Nuclei Detection", "d", "Nuclei: Controls splitting of stuck nuclei. With the lower values more objects are split. Adjust by illustration Nuclei. Parameter has only limited control other the splitting proc ess. Adjust by illustration Nuclei. Allowed range: 1..200, step 0.5.")
 	input(IndividualThresholdAdjustment, 0.4,  "Individual Threshold Adjustment: Nuclei Detection", "d", "Nuclei: Controls the size (border position) of nuclei. With the higher values nuclei appear smaller and with the lower values larger. Adjust by illustration Nuclei. Allowed range: 0..1, step 0.1.")
-	input(MinimumNuclearContrast, 0.1, "Minimum Nuclear Contrast: Nuclei Detection", "d", "Nuclei: Minimum allowed contrast for nuclei, objects with contrast less than the limit are removed. Adjust by illustration LowContrastObjects and Nuclei. Allowed range: 0..1.0, step 0.1.")
+	input(MinimumNuclearContrast, 0.1, "Minimum Nuclear Contrast: Nuclei Detection", "d", "Nuclei: Minimum allowed contrast for nuclei, objects with contrast less than the limit are removed. Adjust by illustration LowContrastObjects and Nuclei. Allowed range: -1..1.0, step 0.1.")
 
 	autoNucleiAlgorithmSelection_inner()
 }
@@ -94,9 +94,10 @@ proc autoNucleiAlgorithmSelection_inner(
 		end()
 	end()
 	set(original=reference)
+	Remap(0,1,Nan,1,image=Reference|Reference=image)
 	if(lowBitAnalysis)
-		convert(1,image=reference)
-		rename(reference=image)
+		convert(1,image=reference|reference=image)
+		Remap(0,Reference.factor+1,0,1,image=Reference|Reference=image)
 	end()
 	Foreach(0..(nucAlgorithmsNames.length-1))
 		Nuclei_Detection_Select_inner(reference,NucleiDetectionAlgorithm=nucAlgorithmsNames[i],procedureNumber=" algorithm: "&nucAlgorithmsNames[i],ShowIllustrations=showIllustrations)
@@ -156,11 +157,16 @@ string NucleiDetectionAlgorithm out "Name of the nuclei detection algorithm used
 			Set(NucleiDetectionAlgorithm=selectedAlgorithm)
 		end()
 	end()
-
-	Nuclei_detection_Select_inner(Reference,ShowIllustrations=ShowIllustrations) // Detects nuclei
+	set(original=reference)
+	Remap(0,1,Nan,1,image=Reference|Reference=image)
+	if(lowBitAnalysis)
+		convert(1,image=reference|reference=image)
+		Remap(0,Reference.factor+1,0,1,image=Reference|Reference=image)
+	end()
+	Nuclei_detection_Select_inner(reference,ShowIllustrations=ShowIllustrations) // Detects nuclei
 	StopNucleiDetectionAnyX_IfSCANmode() // Additional illustrations for SCAN/SET mode, stops the script
 	rename(objects = Nuclei)
-
+	CalcIntensity(image=original)
 	ObjectFilter(Intensity > minNucIntensity)
 	ObjectFilter(area > 0)
 	if(objects.count>15)
@@ -168,9 +174,9 @@ string NucleiDetectionAlgorithm out "Name of the nuclei detection algorithm used
 		ObjectFilter(area > objects.area.mean-4*objects.area.stddev)
 		ObjectFilter(area < objects.area.median*8) //Remove artifacts that are 8x larger than the median value
 	end()
-	if(ShowIllustrations)
-		imageview(objects.border, label="Nuclei", image=reference)
-	End()
+	if(showIllustrations)
+			ImageView(objects.border.mask,label="Nuclei", title="Nuclei Detected",image=reference,  gamma=2)
+	end()
 	Rename(nuclei=objects)
 }
 proc RingRegion_inputs(
