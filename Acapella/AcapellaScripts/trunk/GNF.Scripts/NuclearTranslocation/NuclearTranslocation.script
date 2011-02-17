@@ -118,12 +118,10 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	if(images[nucChanNum].image.max>nucChanMin)
 		bckGndSubstraction(-1,images=images)
 		
-		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean)
+		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
 		
 		set(nucImage=images[nucChanNum].image)
-		convert(bpp=1,image=nucImage)
-		Nuclei_Detection_Select(image)
-		CalcIntensity(Image=nucImage,objects=nuclei|nuclei=objects)
+		Nuclei_Detection(nucImage)
 		
 		if(cytoChanNum>=0)
 			set(minCytoIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[cytoChanNum].desc&"_StdDevIntensity"].mean)
@@ -166,6 +164,9 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	//Filtering of nuclei. Then select corresponding cells
 		ObjectFilter(intensity>minNucIntensity,objects=nuclei)
 		normalizeObjects(NucleiNormalization,image=nucImage,keepCaluclatedAttributes=true)
+		if(showIllustrations)
+			ImageView(objects.border.mask,label="Nuclei", title="Nuclei Detected",image=nucImage,  gamma=2)
+		end()
 		Stencil2Objects(objects.body)
 		CalcMassCentre()
 		rename(nuclei=objects,objects=wholeCells)				

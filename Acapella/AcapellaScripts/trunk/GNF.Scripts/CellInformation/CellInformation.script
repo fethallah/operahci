@@ -159,13 +159,11 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 	if(images[nucChanNum].image.max>nucChanMin)
 		bckGndSubstraction(-1,images=images)
 		
-		set(minNucIntensity=nucChanMin-images[nucChanNum].bckGndSubstracted)
-		set(nucImage=images[nucChanNum].image)
-		convert(bpp=1,image=nucImage)
+		set(minNucIntensity=images[nucChanNum].bckGndSubstracted+1)
+
 		//input(NucleiNormalization,3,"NucleiNormalization:Nuclei Detection","d","remove nuclei with a roundness or area which is x standard deviation above or bellow the mean value.")
-		
-		set(minNucIntensity=images[nucChanNum].bckGndSubstracted)
-		Nuclei_Detection(image,fileDir=sourceDataProp.fileDir,minNucIntensity=minNucIntensity)
+		set(nucImage=images[nucChanNum].image)
+		Nuclei_Detection(nucImage,fileDir=sourceDataProp.fileDir)
 		
 		if(cytoChanNum>=0)
 			if(membraneChanNum>=0)

@@ -149,12 +149,10 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			end()end()
 		end()
 		
-		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean)
+		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean+1)
 		
 		set(nucImage=images[nucChanNum].image)
-		convert(bpp=1,image=nucImage)
-		Nuclei_Detection_Select(image)
-		CalcIntensity(Image=nucImage,objects=nuclei|nuclei=objects)
+		Nuclei_Detection(nucImage)
 		
 		if(cytoChanNum>=0 && Compartment !="Nuclei")
 			//set(minCytoIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean)
@@ -167,8 +165,10 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		end()
 		
 		//Filtering/Normalizing of nuclei. Then select corresponding cells
-		rename(objects=nuclei)
-		ObjectFilter(intensity>minNucIntensity)
+		ObjectFilter(intensity>minNucIntensity,objects=nuclei)
+		if(showIllustrations)
+			ImageView(objects.border.mask,label="Nuclei", title="Nuclei Detected",image=nucImage,  gamma=2)
+		end()
 		DeleteAttr(intensity)
 		normalizeObjects(Normalization)
 		rename(nuclei=objects)
