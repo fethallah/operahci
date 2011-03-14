@@ -1,0 +1,262 @@
+//#############################################################################################
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This script allows to detect parasite and extract various information about them
+//* it also relates these parasites to cells nuclei/cytoplasm and allows
+//* to calculate parasitemia.
+//*
+//*********************************************************************************************
+
+Proc getChanInfo(memblock chanInfo out){
+
+	input(name, "Exp1Cam3", "Nuc Channel", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
+	input(minIntensity, 150, "Min Nuclear Chanel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 0..4000.")
+	push(chanType,"nucDetection")	
+	push(chanNames,name)
+	push(chanDesc,desc)
+	push(chanMin,minIntensity)
+	push(chanCutOff,0)
+
+
+	input(Name, "Exp1Cam1", "Parasite Channel", type="String", description="Channel containing the parasitess. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "Malaria", "ParasiteDescription", type="String", description="Description of the Parasite. Allowed range: 0..4000.")
+	push(chanType,"spotDetection")
+	push(chanNames,Name)
+	push(chanDesc,desc)	
+	push(chanMin,0)
+	push(chanCutOff,0)
+
+//	input(Name, "Exp1Cam2", "Marker2ChanelName", type="String", description="Channel containing the fluorescence from the second marker. Should be in the form ExpXCamY.")
+//	input(desc, "RFP", "Marker2Description", type="String", description="Description of the second marker (ex. RFP).")
+//	input(cutOff, 150, "Marker2 Positive CuttOff", type="d",  description="Cutt-off value to use to define.")
+//	if(cutOff<=1)
+//		Error("The cutt-off must be > to 1")
+//	end()	
+//	push(chanType,"marker")
+//	push(chanNames,Name)
+//	push(chanDesc,desc)	
+//	push(chanMin,0)
+//	push(chanCutOff,cutOff)
+
+//	if(chanNames[chanNames.length-2]==chanNames[chanNames.length-1])
+//		error("Marker 1 and marker 2 must point to 2 different channels")
+//	end()
+
+	create("table")
+	set(table.name=chanNames, table.desc=chanDesc,table.min=chanMin,table.type=chanType, table.cutOff=chanCutOff)
+	rename(chanInfo=table)
+}	
+
+Proc paramInit(memblock param out){
+
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	EnvInfo()
+	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
+	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
+
+	Pack(param,*)
+	keep(param)
+}
+
+Proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+	unpack(param)
+	set(nucChanNum=chanInfo.number[findElem("nucDetection",chanInfo.type).pos])
+	set(nucChanMin=chanInfo.min[findElem("nucDetection",chanInfo.type).pos])
+	set(spotsChanNum=chanInfo.number[findElem("spotDetection",chanInfo.type).pos])
+
+	set(image=images[nucChanNum].image,stdDevToSubstract=3,showIllustrations=showIllustrations)
+	set(imageData=cnt())
+	if(images[nucChanNum].image.max>nucChanMin)
+		bckGndSubstraction(nucChanNum, includeBorders =true,images=images)
+		set(nucImage=images[nucChanNum].image)
+		set(spotsImage=images[spotsChanNum].image)
+		add(-1*(bckGndObjects["Body_"&images[spotsChanNum].desc&"_MeanIntensity"].mean+stdDevToSubstract*bckGndObjects["Body_"&images[spotsChanNum].desc&"_StdDevIntensity"].mean),0,image=spotsImage)
+		remap(inf,0,-inf,0)
+		set(spotsImage=image)
+
+		set(minNucIntensity=bckGndObjects["Body_"&images[nucChanNum].desc&"_MeanIntensity"].mean+2*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean)
+		convert(1,image=nucImage)
+		Nuclei_Detection_Select(image)
+		rename(objects=nuclei)
+		CalcIntensity(Image=nucImage)
+		ObjectFilter(intensity>minNucIntensity)
+		CalcAttr(Roundness)
+		set(nuclei=objects)
+		RenameAttr(nucInt=intensity)
+		CalcIntensity(image=spotsImage,AutoRecalc=false)
+		RenameAttr(spotsInt=intensity)
+		
+		set(ratio=objects.spotsInt/objects.nucInt)
+		SetAttr(Ratio_spotsInt_nucInt,ratio,AutoRecalc=false)
+		set(image=nucImage*(objects.Ratio_spotsInt_nucInt.mean+2*objects.Ratio_spotsInt_nucInt.stddev))
+		set(image=spotsImage-image)
+		remap(inf,0,-inf,0)
+		cut(1,nullvalue=0)
+		
+		Convert(2)
+		set(spotsImage=image)
+		ParasiteDetection()
+		keep(bckGndObjects, parasites,nuclei,nucImage,spotsImage,param,imageData,images)
+		
+		rename(objects=parasites)
+		set(image=spotsImage)
+		CalcMoment(3,central=true)
+		RenameAttr(IntensitySkewness=CentralMoment3)
+		CalcMoment(4,central=true)
+		RenameAttr(IntensityKurtosis=CentralMoment4)
+		
+		rename(spots=objects)
+
+		Rename(objects=nuclei)
+		CalcWidthLength(Upto100=false)
+		SetAttr(Ratio_width_length,2*objects.half_width/objects.full_length)
+		CalcArea()
+		CalcArea(Border)
+		CalcAttr(Roundness)
+		RenameAttr(perimeter=border_area)
+		SetAttr(Ratio_perimeter_area,objects.perimeter/objects.area)
+		CalcIntensity(image=nucImage)
+		Rename(Nuclei=objects)
+		set(imageData.bckGndObjects=bckGndObjects,imageData.Nuclei=Nuclei,imageData.spots=spots)
+	end()	
+}
+
+Proc Analysis(, memblock images in,memblock param in, memblock sourceDataProp inout, Memblock data out){
+
+	
+	set(data="")
+	set(numFieldsInFocus=0)
+	if(images.length>0)
+	foreach(0..images.length-1, "field")
+	foreach(0..images[field].length-1, "stack")
+		imageAnalysis(images[field][stack],param)
+		if(imageData.length>0)
+			set(numFieldsInFocus=numFieldsInFocus+1)
+			combineMemBlocks(data, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
+			rename(data=newData)
+		end()
+		delete(imageData)
+	end()
+	end()
+	end()
+	if(typeOf(data)!="memblock")
+		set(data=cnt())
+	end()
+	set(data.numFieldsInFocus=numFieldsInFocus)
+}
+
+Proc dataOutput(container data in, memblock param in, vector images in){
+	unpack(data)
+	Output(numFieldsInFocus,"FieldsInFocus")
+	if(numFieldsInFocus>0)
+		Output(Nuclei.count/numFieldsInFocus,"NucleiNumber/Field")
+		if(data.Nuclei.count>0)
+			Output(Nuclei.intensity.median,"Nuclei med Intensity")
+			Output(Nuclei.area.median,"Nuclei med  Area")
+			Output(Nuclei.perimeter.median,"Nuclei med  Perimeter")
+			Output(Nuclei.ratio_perimeter_area.median,"Nuclei med  Perimeter/Area")
+			Output(Nuclei.full_length.median,"Nuclei med  Length")
+			Output(Nuclei.half_width.median,"Nuclei med  HalfWidth")
+			Output(Nuclei.Ratio_width_length.median,"Nuclei med  Width/Legnth")
+			Output(Nuclei.roundness.median,"Nuclei med  Roundness")
+			
+			Output(spots.count/numFieldsInFocus,"ParasiteNumber/Fields")
+			Output(spots.count/Nuclei.count*100,"InfectionRate%")
+			
+			if(spots.count>0)
+				Output(spots.intensity.median,"ParasiteInNuclei med Intensity")
+				SprintfLoop("values", "%g;", spots.intensity)	
+				Output(values,"ParasiteInNuclei MeanIntensities")
+				Output(spots.IntensityMax.median,"ParasiteInNuclei med IntensityMax")
+				SprintfLoop("values", "%g;", spots.IntensityMax)	
+				Output(values,"ParasiteInNuclei IntensityMax")
+				SprintfLoop("values", "%g;", spots.IntensityStdDev/spots.intensity*100)	
+				Output(values,"ParasiteInNuclei %IntensityCoeffVar")
+				SprintfLoop("values", "%g;", spots.IntensitySkewness/spots.intensity)	
+				Output(values,"ParasiteInNuclei IntensitySkewnessNorm")
+				SprintfLoop("values", "%g;", spots.IntensityKurtosis/spots.intensity)	
+				Output(values,"ParasiteInNuclei IntensityKurtosisNorm")
+				SprintfLoop("values", "%g;", spots.NumberBrightSpots)	
+				Output(values,"ParasiteInNuclei NumberBrightSpots")
+	
+				Output(spots.area.median,"ParasiteInNuclei med  Area")
+				SprintfLoop("values", "%i;", spots.area)	
+				Output(values,"ParasiteInNuclei Areas")
+				
+				Output(spots.perimeter.median,"ParasiteInNuclei med  Perimeter")
+				SprintfLoop("values", "%i;", spots.perimeter)	
+				Output(values,"ParasiteInNuclei Perimeters")
+				Output(spots.ratio_perimeter_area.median,"ParasiteInNuclei med  Perimeter/Area")
+				SprintfLoop("values", "%g;", spots.ratio_perimeter_area)	
+				Output(values,"ParasiteInNuclei Perimeters/Areas")
+				Output(spots.full_length.median,"ParasiteInNuclei med  FullLength")
+				SprintfLoop("values", "%i;",spots.full_length)	
+				Output(values,"ParasiteInNuclei Lengths")
+				Output(spots.half_width.median,"ParasiteInNuclei med  HalfWidth")
+				SprintfLoop("values", "%g;",spots.half_width)	
+				Output(values,"ParasiteInNuclei HalfWidths")
+				Output(spots.Ratio_width_length.median,"ParasiteInNuclei med  Width/Legnth")
+				SprintfLoop("values", "%g;",spots.Ratio_width_length)	
+				Output(values,"ParasiteInNuclei Width/Legnth")
+				Output(spots.Roundness.median,"ParasiteInNuclei med  Roundness")
+				SprintfLoop("values", "%g;",spots.Roundness)	
+				Output(values,"ParasiteInNuclei Roundness")
+			end()
+		end()
+
+		Foreach(0..images[0][0].length-1)
+			if(defined("images.0.0."&i&".desc"))
+				Output(bckGndObjects["Body_"&images[0][0][i].desc&"_MeanIntensity"].median,"BckGnd med " &images[0][0][i].desc&"_MeanIntensity")
+			end()
+		end()
+
+	end()
+
+}
+
+
+
+//#######################
+// Program Start
+//#######################
+
+getChanInfo()
+ParamInit()
+imagesInitV2()
+chanAttrib()
+set(param.chanInfo=chanInfo)
+if(param.showIllustrations&&param.fieldSelected!=0)
+	set(param.fieldSelected=iif(param.fieldSelected<1,1,param.fieldSelected))
+	set(param.fieldSelected=iif(param.fieldSelected>images.length,images.length,param.fieldSelected))
+	set(Images=vec(images[param.fieldSelected-1]))
+end()
+Analysis()
+dataOutput()
