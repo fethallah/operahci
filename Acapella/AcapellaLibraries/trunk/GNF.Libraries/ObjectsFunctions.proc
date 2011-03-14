@@ -235,7 +235,7 @@ proc bckGndDetection(
 		if(scanning && showIllustrations)
 			set(TitleSufix=ScanParameter&"="&i)
 			set(label=":"&i)
-			imageview(objects.border, "bckGndBorder"&label, image=imageIni, gamma=2.6, title="Border of the background detected for: "&TitleSufix)
+			imageview(objects.border, "bckGndBord"&label, image=imageIni, gamma=2.6, title="Border of the background detected for: "&TitleSufix)
 			imageview(objects.body,"bckGndBody"&label, image=imageIni, gamma=2.6, title="Body of the background detected for: "&TitleSufix)
 			
 			//TODO: Show images after substraction for varying StdDev removal.
@@ -258,7 +258,7 @@ proc bckGndDetection_Inner(
 	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwriten by setting the input to true. Select depending on the background illustation."
 ) object list manipulations "This procedure detects the object containing the background pixels"
 {
-		set(initImage=image)
+	set(initImage=image)
 	Set(image=image+1)
 	cut(threshold=minLevel)
 	set(BckGndFactorInit=BckGndFactor)
@@ -333,6 +333,7 @@ proc bckGndSubstraction(
 			set(image=images[chanNum].image)
 		else()
 			set(image=images[0].image)
+			convert(2)
 			if(images.length>1)
 				foreach(1..images.length-1,"chan")
 					Paste(images[chan].image,image=image, method="max")
