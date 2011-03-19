@@ -188,7 +188,7 @@ proc outputMemblockData(
 			Set(keyNameDisplay=unquote(keyName,"Name").text)
 			Set(keyNameDisplay=unquote("@"&keyNameDisplay,"Name").text)
 			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"_","-",first_only=false).text)
-			Set(keyNameDisplay=regexReplace(keyNameDisplay,"(\\b\\w)","\\u$1").text) //Capitalize the name of the objects
+			Set(keyNameDisplay=regexReplace(keyNameDisplay,"\\b(\\w)","\\u$1").text) //Capitalize the name of the objects
 			set(class="")
 			eval(set(class=data[keyName].class))
 			if(keyName=="FullSet"||class!="objectlist") //make sure that only the objects are outputed
@@ -202,10 +202,10 @@ proc outputMemblockData(
 
 	if(data.class=="table"||data.class=="container"||data.class=="objectList")
 
-		Set(dataName=regexReplace(dataName,"(\\b\\w)","\\u$1").text) //Capitalize the name of the objects / tables / containers
+		Set(dataName=regexReplace(dataName,"\\b(\\w)","\\u$1").text) //Capitalize the name of the objects / tables / containers
 		set(dataName=iif(dataName=="","",dataName&"_"))
 		if((data.class=="objectList" || data.class=="table")&& ! isFromCompositObject) //make sure that the object list does not come from a compositobjectlist (value outputed earlier
-			output(data.count/numFieldsInFocus,dataName&"Number/Field_Average")
+			output(data.count/numFieldsInFocus,dataName&"Number/Field_Mean")
 			Objectlist2Table(data|data=table)
 		end()
 		if(data.class=="table")
@@ -219,6 +219,8 @@ proc outputMemblockData(
 			end()
 			Set(keyNameDisplay=unquote(keyName,"Name").text)
 			Set(keyNameDisplay=unquote("@"&keyNameDisplay,"Name").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Full_Length","FullLength").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Half_Width","HalfWidth").text)
 			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"ratio_(.+?)_To_","\1/").text)
 			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"(.+)_(.+?)(_PearsonR_)","\1/\2\3").text)
 			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Percent_","%").text)
