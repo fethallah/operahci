@@ -176,7 +176,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		CalcStat("mean",image=images[markerChanNum].image,Stencil=Body, AttrName=images[markerChanNum].desc&"_BodyIntensity")
 		CalcStat("mean",image=images[markerChanNum].image,Stencil=Centers,AttrName=images[markerChanNum].desc&"_NuclearIntensity")
 		CalcStat("mean",image=images[markerChanNum].image,Stencil=Cytoplasm,AttrName=images[markerChanNum].desc&"_CytoplasmicIntensity")
-		SetAttr(Ratio_Nuc_To_Cyto,objects[images[markerChanNum].desc&"_NuclearIntensity"]/objects[images[markerChanNum].desc&"_CytoplasmicIntensity"])
+		SetAttr(Ratio_Nuc_To_CytoIntensity,objects[images[markerChanNum].desc&"_NuclearIntensity"]/objects[images[markerChanNum].desc&"_CytoplasmicIntensity"])
 		
 		MBF_PearsonsCoefficient(images[markerChanNum].image,images[nucChanNum].image,objects|temp=objects)
 		setAttr("PearsonR",temp.PearsonsR, Objects=Objects)
