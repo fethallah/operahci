@@ -11,6 +11,7 @@ proc CalcSERFeatures(
 	string normalizationmode="regional" explicit in "Select between unnormalized, kernel, regional, and external modes. With external mode, norm-attribute must be given.",
 	objectlist objects inout "List of objects for which texture features are calculated. In output, calculated features appear as additional attributes.",
 	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
+	string AttrSuffix="" in "Suffix that should be appened after the Feature name.",
 	vector SERNames out "List of calculated feature-names",
 	vector SERIllustrations out "Masked, normalized and scaled SER-filtered images"
 ) Texture "Calculation of Spot-Edge-Ridge texture features. Calculated features appear as additional attributes of the objectlist."
@@ -33,13 +34,16 @@ proc CalcSERFeatures(
 	CalcSERFeaturesInner(image, scale, normalizationmode, objects)	// Out: objects with new attributes; SERnames; SERIllustrations (vector of images)
 	
 	//Copy features into the original objectlist:
-	rename(ObjectsWithFeatures=objects)
+	rename(features=objects)
 	rename(objects=objects_in)
 	
-	Set(featureNames=SERNames)
+	Set(featureNames=SERNames)	
 	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
-	foreach(featureNames, "featurename")
-		Set(objects[AttrPrefix & featurename]=ObjectsWithFeatures[featurename])
+	Set(AttrSuffix=iif(AttrSuffix!="","~"&AttrSuffix,""))
+	foreach(featureNames, "featureName")
+		Set(NewFeatureName=quote(AttrPrefix & featureName & AttrSuffix ,"Name").quoted)
+		Set(NewFeatureName=substr(NewFeatureName,2,length(NewFeatureName)))
+		Set(objects[NewFeatureName]=features[featureName])
 	end()
 }
 

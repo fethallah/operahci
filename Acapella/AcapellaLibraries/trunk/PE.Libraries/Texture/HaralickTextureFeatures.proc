@@ -19,6 +19,7 @@ proc CalcHaralickFeatures(
 	string stencilname="body" explicit in "Name of the region of interest -- must be present in input objectlist",
 	objectlist objects inout "Objects to be analysed. In output, a set of Haralick texture features appear as attributes",
 	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
+	string AttrSuffix="" in "Suffix that should be appened after the Feature name.",
 	vector featurenames out "Names of calculated Haralick texture features",
 	image NormalizedImage out "Object-wise normalized image"),
 Texture "Calculation of a set of Haralick texture features of previously defined objects. Numerical values of features are independent of the image intensity scale. The results are averages over different orientations."
@@ -32,10 +33,14 @@ Texture "Calculation of a set of Haralick texture features of previously defined
 	Haralick04(objects, image, distance)
 	rename(objects=objects_in)
 	
-	set(featurenames = HaralickFeatures.columns)
+	rename(features=HaralickFeatures)
+	set(featureNames = features.columns)
 	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
-	foreach(featureNames, "featurename")
-		Set(objects[AttrPrefix & featurename]=HaralickFeatures[featurename])
+	Set(AttrSuffix=iif(AttrSuffix!="","~"&AttrSuffix,""))
+	foreach(featureNames, "featureName")
+		Set(NewFeatureName=quote(AttrPrefix & featureName & AttrSuffix ,"Name").quoted)
+		Set(NewFeatureName=substr(NewFeatureName,2,length(NewFeatureName)))
+		Set(objects[NewFeatureName]=features[featureName])
 	end()
 }
 

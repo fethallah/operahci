@@ -17,6 +17,7 @@ proc CalcTASFeatures(
 	table TASInfo out "Meaning of texture features",
 	String NormalizationMethod="Mean" in "Indicates which normalization should be used to normalize the object intensity. The following methods are accepted: \"None\" in which case no normalization is provided and the bracket refers to raw pixel values; \"Mean\", in which case the values are normalized by the mean value of the object and the bracket then reffers to a fold intensity above and bellow the mean value; \"zScore\" in which case each pixels is converted into a number of StdDev above and bellow the mean value and a Z-score reflects a cut-off in this scale.",
 	string AttrPrefix="" in "Prefix that should be append before the Feature name.",
+	string AttrSuffix="" in "Suffix that should be appened after the Feature name.",
 )Texture "Calculation of a set of Threshold Adjacency Statistics -- texture features -- of previously defined objects. Reference: Hamilton et al. BMC informatics, 2007. 8:110"
 {	
 	if(NormalizationMethod!="Mean"&& bracket<0.01) error("The value of bracket should be >0 regardless of the normalization method selected") end()
@@ -48,10 +49,14 @@ proc CalcTASFeatures(
 	TAS30(image, bracket, objects)
 	rename(objects=ObjectsIni)
 // ODe 2009-09-16:	set(featurenames=TASInfo.featurename)
+	Rename(features=TASFeatures)
+	Set(featureNames = TASInfo.feature)
 	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
-	set(featurenames = TASInfo.feature)
-	foreach(featurenames,"featurename")
-		Set(objects[AttrPrefix & featurename]=TASFeatures[featurename])
+	Set(AttrSuffix=iif(AttrSuffix!="","~"&AttrSuffix,""))
+	foreach(featureNames, "featureName")
+		Set(NewFeatureName=quote(AttrPrefix & featureName & AttrSuffix ,"Name").quoted)
+		Set(NewFeatureName=substr(NewFeatureName,2,length(NewFeatureName)))
+		Set(objects[NewFeatureName]=features[featureName])
 	end()
 }
 
@@ -76,7 +81,7 @@ proc	TAS30(
 	set(TASFeatures=tbl())
 	push(lowvec, 1.0-bracket, 1.0-bracket, 1.0)
 	push(highvec, 1.0+bracket, inf, inf)
-	push(labelvec, "TAS_LowHigh", "TAS_LowInf", "TAS_MeanInf")
+	push(labelvec, "TASLowHigh", "TASLowInf", "TASMeanInf")
 
 	foreach(0..2, "i")
 		set(low=lowvec[i])
