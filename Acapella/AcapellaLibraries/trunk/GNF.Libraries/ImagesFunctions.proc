@@ -430,7 +430,7 @@ proc chanAttrib(
 								continue()
 							end()
 							if(columnName=="desc")
-								regexReplace(chanInfo.desc[chanInfoIndex],"_","-")
+								regexReplace(chanInfo.desc[chanInfoIndex],"[_~\-]","|") //do not allow SomeSpecialCaracters '_' '-' '~'
 								quote(text,"Name")
 								set(images[field][stack][chan].desc=RegexReplace(quoted,"@","",first_Only=true).text)
 								continue()
