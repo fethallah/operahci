@@ -41,8 +41,9 @@ proc CalcSERFeatures(
 	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
 	Set(AttrSuffix=iif(AttrSuffix!="","~"&AttrSuffix,""))
 	foreach(featureNames, "featureName")
-		Set(NewFeatureName=quote(AttrPrefix & featureName & AttrSuffix ,"Name").quoted)
-		Set(NewFeatureName=substr(NewFeatureName,2,length(NewFeatureName)))
+		Set(NewFeatureName=unquote("@"&featureName,"Name").text)
+		Set(NewFeatureName=quote(AttrPrefix & NewFeatureName & AttrSuffix ,"Name").quoted)
+		Set(NewFeatureName=RegexReplace(NewFeatureName,"@","",first_Only=true).text)
 		Set(objects[NewFeatureName]=features[featureName])
 	end()
 }
