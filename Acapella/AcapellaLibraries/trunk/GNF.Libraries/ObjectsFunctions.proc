@@ -43,7 +43,7 @@ objectList objects out "List of objects that are not contained and/or overlappin
 String objectsStencil="body" in "Optional input. Stencil to use in the list \"Objects\".",
 String ContainerStencil="body" in "Optional input. Stencil to use in the list \"Container\".",
 boolean overlap=true in "Optional input. Indicate whether the objects in \"Objects\" can simply overlap (true), or whether they need to be contained within \"Container\" (false)."
-) mask operations,object list manipulations "Split the object lits provided into an objects list containing objects that are contained or overlaping with the \"Container\" and the remainder containing objects that are not overlaping and/or contained in \"Container\""
+) mask operations,object list manipulations "Split the object lits provided into an objects list containing objects that are contained or overlapping with the \"Container\" and the remainder containing objects that are not overlapping and/or contained in \"Container\""
 {
 	set(image=Container[""&ContainerStencil].mask.image)
 	And(image,image=Objects[""&ObjectsStencil].mask.image)
@@ -86,7 +86,7 @@ objectList objects out "Original object list returned with added attribute: \"ob
 String containedObjectsStencil="body" in "Optional input. Stencil to use in the list \"containedObjects\".",
 String objectsStencil="body" in "Optional input. Stencil to use in the list \"objects\".",
 String outputStencil="ObjectsContained" in "Optional input. Base name for the outputed stencil and attributes in \"objects\".",
-) mask operations,object list manipulations "Split the object lits provided into an objects list containing objects that are contained or overlaping with the \"Container\" and the remainder containing objects that are not overlaping and/or contained in \"Container\""
+) mask operations,object list manipulations "Split the object list provided into an objects list containing objects that are contained or overlapping with the \"Container\" and the remainder containing objects that are not overlapping and/or contained in \"Container\""
 {
 	rename(objectsIni=objects)
 	eval("CalcMassCentre("&containedObjectsStencil&",objects=containedObjects,Autorecalc=false)")
@@ -147,7 +147,7 @@ Memblock objects out "Objects that satisfy the criteria provided in \"formula\".
 		RegexReplace(formula,"==","!=",first_only=true)
 		set(opFormula=text)
 	else()
-		Error("The formula provided for the module splitMyObjects is incorrect. It should contain the operrand ==,!=, >, >=, <, <=")
+		Error("The formula provided for the module splitMyObjects is incorrect. It should contain the operand ==,!=, >, >=, <, <=")
 	end()end()end()end()end()end()
 
 	ObjectFilter(""&opFormula,objects=objectsIni)
@@ -169,9 +169,9 @@ proc bckGndDetection(
 {
 	set(imageIni=image)
 	if(minLevel==0)
-		input(minLevel,0,"Min Channel Level: Background detection",Type="i", description="Used to remove from the background object mask pixels bellow this value. Useful to remove border of a well for instace. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded. Allowed range: 0..1000.")
+		input(minLevel,0,"Min Channel Level: Background detection",Type="i", description="Used to remove from the background object mask pixels bellow this value. Useful to remove border of a well for instance. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded. Allowed range: 0..1000.")
 	end()
-	input(BckGndFactor,5,"Background Factor: Background detection",Type="d", description="Setting to find pixels devoid of cells in the image. Adjust with \"Area considered as Background\". Lower value result in more pixels (ie. pixels of higher value) being considered as background. Allowed range: 0..100, step 0.1.")
+	input(BckGndFactor,5,"Background Factor: Background detection",Type="d", description="Setting to find pixels devoid of cells in the image. Adjust with \"Area considered as Background\". Lower value result in more pixels (ie. pixels of higher value) being considered as background. Use 0 if you wish to skip background detection. Allowed range: 0..100, step 0.1.")
 
 	input(includeBorderInput,true,"Include Borders: Background detection",Type="b", description="Enter Whether to use the objects touching the border as part of the background")
 	if(Not(includeBorderInput))
@@ -181,6 +181,10 @@ proc bckGndDetection(
 		input(stdDevToSubstract,0,"NoiseSTDEV2Substract: Background detection",Type="d", description="Optional: Indicate how many standard deviation of the noise should be considered as background. Allowed range: 0..10, step 0.1.")
 	end()
 	
+	if(BckGndFactor==0)
+		set(objects=create("ObjectList").objectList)
+		return()
+	end()
 
 	set(minLevelVec=tabulate("x*20",15).result)
 	
@@ -230,7 +234,7 @@ proc bckGndDetection(
 			set(stdDevToSubstract =i)
 		end()
 		
-		bckGndDetection_Inner(imageIni, bckGndFactor=bckGndFactor, minLevel=minLevel, showIllustrations = !scanning&&showIllustrations) //do not display illustrations in scanningmode
+		bckGndDetection_Inner(imageIni, bckGndFactor=bckGndFactor, minLevel=minLevel, showIllustrations = !scanning&&showIllustrations) //do not display illustrations in scanning mode
 		
 		if(scanning && showIllustrations)
 			set(TitleSufix=ScanParameter&"="&i)
@@ -238,7 +242,7 @@ proc bckGndDetection(
 			imageview(objects.border, "bckGndBord"&label, image=imageIni, gamma=2.6, title="Border of the background detected for: "&TitleSufix)
 			imageview(objects.body,"bckGndBody"&label, image=imageIni, gamma=2.6, title="Body of the background detected for: "&TitleSufix)
 			
-			//TODO: Show images after substraction for varying StdDev removal.
+			//TODO: Show images after subtraction for varying StdDev removal.
 		end()
 	end()
 
@@ -249,13 +253,13 @@ proc bckGndDetection(
 
 proc bckGndDetection_Inner(
 //INPUT
-	image image inout "image to which background should be substracted",
+	image image inout "image to which background should be subtracted",
 	double bckGndFactor=5 in "Setting to find pixels devoid of cells in the image. Adjust with \"Area considered as Background\". Lower value result in more pixels (ie. pixels of higher value) being considered as background: Background detection",
 	boolean showIllustrations = false in "indicate whether you wish to see the illustration of the area corresponding to the background.",
-	boolean minLevel = 0 in "Used to remove from the background object mask pixels bellow this value. Usefull to remove border of a well for instace. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded.",
+	boolean minLevel = 0 in "Used to remove from the background object mask pixels bellow this value. Useful to remove border of a well for instance. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded.",
 //OUTPUT
-	objectList objects out "Object represnting the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
-	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwriten by setting the input to true. Select depending on the background illustation."
+	objectList objects out "Object representing the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
+	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwritten by setting the input to true. Select depending on the background illustration."
 ) object list manipulations "This procedure detects the object containing the background pixels"
 {
 	set(initImage=image)
@@ -322,11 +326,11 @@ proc bckGndDetection_Inner(
 
 proc bckGndSubstraction(
 	int chanNum = -1 in "Index of the image to use for the background detection. Use -1 to make a composite image (max projection used to detect background).",
-	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwriten by setting the input to true. Select depending on the background illustation.",
+	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwritten by setting the input to true. Select depending on the background illustration.",
 	boolean showIllustrations = false in "indicate whether you wish to see the illustration of the area corresponding to the background.",
-	double stdDevToSubstract = 0 inout "Optional. Number of standard deviation for the background intensity to substract from the images in addition to the mean. Adjust using the image in \"Area considered as Background\" when using the showwIllustrations option.",
-	vector images inout "Container containing all the channels from a given field-section. The returned images have been background substracted and the attribute\"bckGndSubstracted\" is added.",
-	objectList bckGndObjects out "Object list corresponding to the area containing the background, the area used by the background, the instenity, and the intensity stdDev",
+	double stdDevToSubstract = 0 inout "Optional. Number of standard deviation for the background intensity to subtract from the images in addition to the mean. Adjust using the image in \"Area considered as Background\" when using the showwIllustrations option.",
+	vector images inout "Container containing all the channels from a given field-section. The returned images have been background subtracted and the attribute\"bckGndSubstracted\" is added.",
+	objectList bckGndObjects out "Object list corresponding to the area containing the background, the area used by the background, the intensity, and the intensity stdDev",
 ) Image Manipulation "Removes the background from the images contained in the container"
 {
 		if(defined("images["&chanNum&"]"))
@@ -341,16 +345,22 @@ proc bckGndSubstraction(
 			end()
 		end()
 		bckGndDetection(image)
+		Set(isEmptyObjects=objects.count==1)
 		Foreach(0..images.length-1)
 			set(image=images[i].image)
-			CalcIntensity(image=image, AutoRecalc=false,CalcStdDev=true)
-			//CalcStat("stdDev",image=image,AttrName="intensity_stdDev")
-			if(isNan(objects.intensity.mean))
-				Set(object.intensity=vec(0))
+			if(isEmptyObjects)
+				CalcIntensity(image=image, AutoRecalc=false,CalcStdDev=true)
+				if(isNan(objects.intensity.mean))
+					Set(object.intensity=vec(0))
+				end()
+				if(isNan(objects.intensity_stddev.mean))
+					Set(object.intensity_stddev=vec(0))
+				end()
+			else()
+				Set(objects.intensity=vec(0))
+				Set(objects.intensity_stddev=vec(0))
 			end()
-			if(isNan(objects.intensity_stddev.mean))
-				Set(object.intensity_stddev=vec(0))
-			end()
+			
 			set(bckGndSubstracted=objects.intensity.mean+stdDevToSubstract*objects.intensity_stddev.mean)
 			add(-1*bckGndSubstracted,0,image=images[i].image)
 			set(images[i].image=image,images[i].bckGndSubstracted=bckGndSubstracted)
@@ -367,7 +377,7 @@ proc combineMemBlocksV0(
 	polytype newData in "Contains the info about the data to add",
 	polytype newData out "Contains the new combined data",
 	boolean deleteGeometry = false in "Used if objects is ObjectList type. Deletes the geometric attributes (Body, Border, Index, Zone, OuterZone) from the resulting object list. This avoids the possibility to have overlapping objects. Use this flag if the object lists might contain overlaps and you are not interested in the geometrical attributes afterwards. Parameter introduced in Cells library ver. 1.4.1.41",
-	boolean KeepAutoRecalc = false in "Used if objects is ObjectList type. This parameter affects the attributes which have marked recalcable in both object lists. If KeepAutoRecalc is switched on these attributes preserve their AutoRecalc support, otherwise they become static as all of the other attributes. Note that depending on the attribute nature the necessary information required for recalculation might have been lost after merging the object lists, so the default setting is \"off\". Parameter introduced in Cells library ver. 1.4.1.41. Previous behaviour was to preserve autorecalc flags always. "
+	boolean KeepAutoRecalc = false in "Used if objects is ObjectList type. This parameter affects the attributes which have marked re-calculatable in both object lists. If KeepAutoRecalc is switched on these attributes preserve their AutoRecalc support, otherwise they become static as all of the other attributes. Note that depending on the attribute nature the necessary information required for recalculation might have been lost after merging the object lists, so the default setting is \"off\". Parameter introduced in Cells library ver. 1.4.1.41. Previous behaviour was to preserve autorecalc flags always. "
 )object list manipulations "Combine the info contained within a memblock from a polytype into another. For objectList, the addObjects method is used, for table and arrays, the append method is used, for any other data (double, integer, string etc.) the data is pushed into a vector."
 {
 	set(type=typeOf(newData))
@@ -849,7 +859,7 @@ proc buildCompositObject(
 		set(objects=compositObject.FullSet)
 		Set(formulas=SplitString(ruleSet.formula[ruleIndex],";"))
 		if(formulas.lengt<1)
-			Warning("No formula(s) provided at index " & ruleIndex &" of the ruleSet. proc eeding to the next ruleSet")
+			Warning("No formula(s) provided at index " & ruleIndex &" of the ruleSet. Proceeding to the next ruleSet")
 		end()
 		foreach(0..formulas.length-1)
 			try()
