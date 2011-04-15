@@ -45,14 +45,14 @@ proc autoNucleiAlgorithmSelection(
 
 )object recognition "Determine the best nuclear detection algorithm from an array of algorithms selected"
 {
-	input(NucleiDetectionAlgorithm, "A, C", "Coma separated names for the algorithm to use: Nuclei Detection", "s", "Nuclei: Specifies the nuclei detection algorithm from the ONDL. Supported algorithms for standard (20x) and large-scale (40x, 60x etc) images are A-H. For small-scale images (10x, 5x etc) the routines are \"A\",\"B\",\"C\" and \"I\". ")
+	input(NucleiDetectionAlgorithm, "A, C", "Comma separated names for the algorithm to use: Nuclei Detection", "s", "Nuclei: Specifies the nuclei detection algorithm from the ONDL. Supported algorithms for standard (20x) and large-scale (40x, 60x etc) images are A-H. For small-scale images (10x, 5x etc) the routines are \"A\",\"B\",\"C\" and \"I\". ")
 	RegexReplace(NucleiDetectionAlgorithm,"\s","")
 	SplitString(text,",")
 	rename(nucAlgorithmsNames=split)
 	input(MinimumNuclearArea, 70, "Minimum Nuclear Area: Nuclei Detection","i", "Nuclei: Minimum allowed area for nuclei, objects with area less than the limit are removed. Too small values of the parameter usually introduce errors. Unit: image pixel. Adjust by illustration Nuclei. Allowed range: 0..2000, step 1.")
 	input(ThresholdAdjustment, 1.5, "Threshold Adjustment: Nuclei Detection","d", "Nuclei: Threshold tuning for the initial thresholding of nuclei.  Low values shrink the mask and the high ones expand the mask. Adjust by illustration InitialMask. Allowed range: 0..3.0, step=0.1.")
 	input(MinimumNucleiDistance, 7.0, "Minimum Nuclei Distance: Nuclei Detection", "d", "Nuclei: Controls the splitting of the stuck nuclei and corresponds generally to minimum allowed distance between nuclei centers. Adjust by illustration Nuclei. The parameter is the input to the module maximums. Allowed range: 0..2000, step 1.")
-	input(NuclearSplittingAdjustment,7.0, "Nuclear Splitting Adjustment: Nuclei Detection", "d", "Nuclei: Controls splitting of stuck nuclei. With the lower values more objects are split. Adjust by illustration Nuclei. Parameter has only limited control other the splitting proc ess. Adjust by illustration Nuclei. Allowed range: 1..200, step 0.5.")
+	input(NuclearSplittingAdjustment,7.0, "Nuclear Splitting Adjustment: Nuclei Detection", "d", "Nuclei: Controls splitting of stuck nuclei. With the lower values more objects are split. Adjust by illustration Nuclei. Parameter has only limited control other the splitting process. Adjust by illustration Nuclei. Allowed range: 1..200, step 0.5.")
 	input(IndividualThresholdAdjustment, 0.4,  "Individual Threshold Adjustment: Nuclei Detection", "d", "Nuclei: Controls the size (border position) of nuclei. With the higher values nuclei appear smaller and with the lower values larger. Adjust by illustration Nuclei. Allowed range: 0..1, step 0.1.")
 	input(MinimumNuclearContrast, 0.1, "Minimum Nuclear Contrast: Nuclei Detection", "d", "Nuclei: Minimum allowed contrast for nuclei, objects with contrast less than the limit are removed. Adjust by illustration LowContrastObjects and Nuclei. Allowed range: -1..1.0, step 0.1.")
 
