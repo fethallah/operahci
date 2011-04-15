@@ -91,7 +91,7 @@ Proc paramInit(memblock param out){
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
 	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
 	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
-	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be aggregated across channels. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 
 	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
 	if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")
@@ -106,7 +106,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	input(distanceTrimed,1,"Distance to Trim:Nuclear Translocation","i","Distance in pixels to remove from the nucleus and from the cytoplasm around the nuclear membrane.")
 	input(rimSize,3,"Donnut Size:Nuclear Translocation","i","Distance size in pixel of the donut around the nucleus. Default=3")
 	input(useDonutModel, true, "Use Donut Model:Nuclear Translocation", type="b", description="Assumes a donut around the nucleus to emulate the cytoplasm, if no cytoplasmic channel is provided, this method will be used.")
-	input(NucleiNormalization,2.5,"NucleiNormalization:Nuclear Translocation","d","Normalize the nuclei population so that outliars are removed.Nuclei with properties that are more than this number of standard deviation away from the population mean are removed.")
+	input(NucleiNormalization,2.5,"NucleiNormalization:Nuclear Translocation","d","Normalize the nuclei population so that outliers are removed.Nuclei with properties that are more than this number of standardaviation away from the population mean are removed.")
 
 	Unpack(param)
 	//set(cytoChanNum=-1)
@@ -228,7 +228,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				ImageView(objects.cytoplasm_border,label=images[markerChanNum].desc&"Translocated", title="Cells which exibit translocation for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
 			end()
 			
-			set(objectSet[images[markerChanNum].desc&"_FullSetTranslocated"]=objects)
+			set(objectSet["FullSet_Translocated"]=objects)
 				
 			ObjectFilter(images[markerChanNum].desc&"_PearsonR>cutOff", objects=positiveCells)
 			if(showIllustrations)
