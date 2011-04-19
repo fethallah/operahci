@@ -219,8 +219,11 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 				warning("Cannot extract the spots from an unexisting region. No spots will be returned")
 				return()
 			end()
-			
-			Set(objects=iif(Region=="Nuclei",imageData.Nuclei,imageData.WholeCells))
+			if(Region=="Nuclei")
+				Set(objects=imageData.Nuclei)
+			else()
+				Set(objects=imageData.WholeCells)
+			end()
 			Set(SearchRegion=iif(Region=="Cytoplasm","Cytoplasm","Body"))
 			Spot_Detection_Select(images[spotsChanNum].image,ShowOutputParameters=false,WholeCells=objects)
 			CalcStat("Sum",AttrName="NumberOfSpots",image=spots.spotCenters.mask.image)
