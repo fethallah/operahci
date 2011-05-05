@@ -141,6 +141,9 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		Nuclei_Detection(nucImage)
 		RingRegion(stencil="body",WholeCells=nuclei,ShowIllustrations=false,ShowRegionBorder=false,VisualImage=nucImage|nuclei=wholeCells)
 		Stencil2Objects(Nuclei.RingRegion,CalcArea=false)
+		if(showIllustrations)
+			ImageView(objects.border,label="RingBorders", title="Ring Borders used.", image=nucImage,  gamma=2)
+		end()
 		
 		Foreach(0..images.length-1)
 			set(image=images[i].image)
@@ -149,7 +152,8 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			CalcStat("mean", AttrName=images[i].desc&"_Intensity", image=image)
 			if(showIllustrations && at("marker",images[i].purpose,1)>0)
 				//CalcBorder(RingRegion)
-				ImageView(objects.border,label="RingBordChan-"&images[i].desc, title="Ring Borders for channel "&images[i].desc, image=images[i].image,  gamma=1)
+				
+				ImageView(Stencil2Objects(objects.body&&Mask.image).objects.border,label="RingBordChan-"&images[i].desc, title="Ring Borders for channel "&images[i].desc, image=images[i].image,  gamma=1)
 				if(cutOffType=="folds")
 					set(cutOff=(images[i].cutoff-1)*bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean)
 				else()if(cutOffType=="stddev")
