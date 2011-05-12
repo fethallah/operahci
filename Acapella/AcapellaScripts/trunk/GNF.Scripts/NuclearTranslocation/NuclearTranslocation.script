@@ -226,18 +226,22 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				GraphView(wholeCells.[images[markerChanNum].desc&"_PearsonR"], label=images[markerChanNum].desc&"-PearsonR",title="PearsonR for "&images[markerChanNum].desc&". CutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity, set[0].line.color black")
 				GraphView(tabulate(cutOff,wholeCells.count).result, label=images[markerChanNum].desc&"-PearsonR", append=true, presto_options="set[0].line.color Red")
 				ImageView(objects.cytoplasm_border,label=images[markerChanNum].desc&"Translocated", title="Cells which exibit translocation for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
+				ImageView(remainder.cytoplasm_border,label=images[markerChanNum].desc&"NotTranslocated", title="Cells which do not exibit translocation for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
 			end()
 			
 			set(objectSet["FullSet_Translocated"]=objects)
+			set(objectSet["FullSet_NotTranslocated"]=remainder)
 				
 			ObjectFilter(images[markerChanNum].desc&"_PearsonR>cutOff", objects=positiveCells)
 			if(showIllustrations)
 				GraphView(positiveCells.[images[markerChanNum].desc&"_PearsonR"], label=images[markerChanNum].desc&"-PositivePearsonR",title="PearsonR for "&images[markerChanNum].desc&" positive cells. CutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity, set[0].line.color black")
 				GraphView(tabulate(cutOff,positiveCells.count).result, label=images[markerChanNum].desc&"-PositivePearsonR", append=true, presto_options="set[0].line.color Red")
 				ImageView(objects.cytoplasm_border,label=images[markerChanNum].desc&"PosTranslocated", title="Cells which exibit translocation and are fositive for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
+				ImageView(remainder.cytoplasm_border,label=images[markerChanNum].desc&"PosTranslocated", title="Cells which do not exibit translocation and are fositive for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
 			end()
 				
 			set(objectSet[images[markerChanNum].desc&"_PositiveTranslocated"]=objects)
+			set(objectSet[images[markerChanNum].desc&"_PositiveNotTranslocated"]=remainder)
 		end()
 			
 		assembleCompositObject(objectSet,objects=wholeCells|wholeCells=compositObject)
