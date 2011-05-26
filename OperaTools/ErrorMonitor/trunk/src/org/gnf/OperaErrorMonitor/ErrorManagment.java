@@ -245,7 +245,7 @@ public class ErrorManagment {
 		Ini.Section operators = ini.get("contacts").getChild(type);
 		if (operators == null)
 			throw new Exception(
-					"Yor current INI file does not contain any contacts.");
+					"Your current INI file does not contain any contacts.");
 
 		for (String operator : operators.childrenNames()) {
 			HashMap<String, String> info = new HashMap<String, String>();

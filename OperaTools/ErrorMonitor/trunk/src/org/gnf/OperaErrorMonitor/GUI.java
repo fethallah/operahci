@@ -81,9 +81,10 @@ public class GUI {
 	protected static double errorNotificationDelay = 2.5;
 	protected static long delay = 120;
 	protected static long resendDelay = 30 * 60;
+	protected static String loggedUserEmail;
 	private JLabel shuttdownLabel = null;
 	private static JCheckBox shuttdownCheckBox = null;
-	private JPanel operaShuttdownPannel = null;
+	private JPanel operaShuttdownPannel = null; // @jve:decl-index=0:
 
 	public GUI() {
 		try {
@@ -751,10 +752,8 @@ public class GUI {
 					em.setContactInfo(email, cellPhoneTextField.getText()
 							.replaceAll("[^0-9]", ""),
 							(String) providerComboBox.getSelectedItem());
-					if (!email.equals(System.getProperty("user.name")
-							+ "@gnf.org"))
-						em.setContactInfo(System.getProperty("user.name")
-								+ "@gnf.org", null, null);
+					if (!email.equals(loggedUserEmail))
+						em.setContactInfo(loggedUserEmail, null, null);
 					String subject = "OPERA SUCCESS";
 					String message = "The Opera successfully read the last plate. Remember to shutdown the instrument.";
 					String notificationResult = em.sendNotification(subject,
@@ -860,10 +859,8 @@ public class GUI {
 						em.setContactInfo(email, cellPhoneTextField.getText()
 								.replaceAll("[^0-9]", ""),
 								(String) providerComboBox.getSelectedItem());
-						if (!email.equals(System.getProperty("user.name")
-								+ "@gnf.org"))
-							em.setContactInfo(System.getProperty("user.name")
-									+ "@gnf.org", null, null);
+						if (!email.equals(loggedUserEmail))
+							em.setContactInfo(loggedUserEmail, null, null);
 						notificationResult = em.sendNotification(subject,
 								message, attachments);
 						/*
@@ -958,5 +955,10 @@ public class GUI {
 
 	public void setMaxNumNotifications(int num) {
 		maxNumNotifications = num;
+	}
+
+	public void setLoggedUserEmail(String loggedUserEmail) {
+		this.loggedUserEmail = loggedUserEmail;
+
 	}
 }
