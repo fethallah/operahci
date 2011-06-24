@@ -101,7 +101,7 @@ proc Cytoplasm_Detection_Select(
 				set(label=i)
 				set(title="Whole Cells with: "&ScanParameter&"="&i)
 			end()
-			imageview(WholeCells.border, label=label, title=title, image=reference, gamma=1.0)
+			imageview(WholeCells.border, label=label, title=title, image=reference, gamma=2.5)
 		end()
 	end()
 	if(ScanParameter!="none")
