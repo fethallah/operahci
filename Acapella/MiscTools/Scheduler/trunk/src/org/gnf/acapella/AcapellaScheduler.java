@@ -76,7 +76,7 @@ public class AcapellaScheduler {
 		try {
 			parser.parse(args);
 		} catch (CmdLineParser.OptionException e) {
-			error((Exception) e);
+			error((Exception) e, true);
 		}
 
 		String value;
@@ -85,19 +85,21 @@ public class AcapellaScheduler {
 
 		value = (String) parser.getOptionValue(scriptFileName, "");
 		if (value.isEmpty())
-			error(new Exception(
-					"You must provide a script for the analysis. See usage:\r\n\r\n"));
+			error(
+					new Exception(
+							"You must provide a script for the analysis. See usage:\r\n\r\n"),
+					true);
 		setScriptFile(new File(value));
 		if (!getScriptFile().exists())
 			error(new Exception("The script provided:" + value
-					+ " does not exist."));
+					+ " does not exist."), true);
 
 		value = (String) parser.getOptionValue(resultPath, "");
 		value = value.isEmpty() ? System.getProperty("user.dir") : value;
 		setResultPath(new File(value));
 		if (!getResultPath().isDirectory())
 			error(new Exception("The path provided to store the results:"
-					+ value + " is not a directory. See usage:\r\n\r\n"));
+					+ value + " is not a directory. See usage:\r\n\r\n"), true);
 		if (!getResultPath().exists())
 			getResultPath().mkdirs();
 
@@ -115,9 +117,10 @@ public class AcapellaScheduler {
 
 		if (isOverWrite()) {
 			if (getDataFile().exists() && !getDataFile().delete())
-				error(new Exception("Could not overwrite the data file."));
+				error(new Exception("Could not overwrite the data file."), true);
 			if (getErrorFile().exists() && !getErrorFile().delete())
-				error(new Exception("Could not overwrite the error file."));
+				error(new Exception("Could not overwrite the error file."),
+						true);
 		}
 
 		value = (String) parser.getOptionValue(wellMask, "*");
@@ -140,6 +143,13 @@ public class AcapellaScheduler {
 	}
 
 	AcapellaScheduler() throws Exception {
+		Map<File, Vector<String>> fileSet = FileSeeker.getFilesToAnalyze(
+				getImagesPath(), wellMask);
+		if (fileSet.isEmpty())
+			error(new Exception(String.format(
+					"Nothing to do. The image path: %s is empty.",
+					getImagesPath())), false);
+
 		File headerFile = new File(getDataFile().getPath().replace(".csv",
 				".head"));
 
@@ -157,8 +167,6 @@ public class AcapellaScheduler {
 		File scriptPath = script.makeJobScript();
 		script.writeScriptInfo(new File(imagesPath + File.separator
 				+ "ScriptInfo.csv"));
-		Map<File, Vector<String>> fileSet = FileSeeker.getFilesToAnalyze(
-				getImagesPath(), wellMask);
 
 		ResultsExporter resultExporter = new ResultsExporter(getResults(),
 				getDataFile(), headerFile);
@@ -240,9 +248,10 @@ public class AcapellaScheduler {
 		}
 	}
 
-	private static void error(Exception e) {
+	private static void error(Exception e, boolean printUsage) {
 		System.err.println(e.getMessage());
-		printUsage();
+		if (printUsage)
+			printUsage();
 		System.exit(2);
 	}
 
