@@ -39,7 +39,7 @@ Proc getChanInfo(memblock chanInfo out){
 
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
-	input(minIntensity, 150, "Min Nuclear Chanel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 0..1000.")
+	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 0..1000.")
 	push(chanPurpose,"nucDetection")	
 	push(chanNames,name)
 	push(chanDesc,desc)
@@ -47,12 +47,12 @@ Proc getChanInfo(memblock chanInfo out){
 	push(chanCutOff,0)
 	push(pearsonRCutOffVec,0.0)
 
-	input(Name, "Exp1Cam2", "CytoplasmicChanelName", type="String", description="Channel containing the fluorescence from the Cytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "Exp1Cam2", "CytoplasmicChannelName", type="String", description="Channel containing the fluorescence from the Cytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "MGD", "Cytoplasmic StainDescription", type="String", description="Description of the Cytoplasmic stain.")
 	if(desc=="NA" || Name=="NA")
 		set(desc="NA",Name="NA")
 	end()
-	input(cutOff, 150, "Min Cytoplasmic Chanel Intensity", type="i",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
+	input(cutOff, 150, "Min Cytoplasmic Channel Intensity", type="i",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
 	if(cutOff<1)
 		Error("The cutt-off must be >= to 1")
 	end()
@@ -63,7 +63,7 @@ Proc getChanInfo(memblock chanInfo out){
 	push(chanCutOff,cutOff)
 	push(pearsonRCutOffVec,0.0)
 
-	input(Name, "Exp1Cam1", "Marker1ChanelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
+	input(Name, "Exp1Cam1", "Marker1ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
 	input(desc, "GFP", "Marker1Description", type="String", description="Description of the first marker (ex. GFP).")
 	input(cutOff, 150, "Marker1 Positive CuttOff", type="i",  description="Cutt-off value used to define cells expressing the first marker. Allowed range: 1..1000, step 0.1.")	
 	input(pearsonRCutOff, 0, "Nuclear Translocation CutOff", type="d",  description="CutOff for PearsonR to classify cells as translocated or not. Use 0 if you do not wish to split cells in translocated vs. non translocated. Allowed range: -1..1, step 0.01.")

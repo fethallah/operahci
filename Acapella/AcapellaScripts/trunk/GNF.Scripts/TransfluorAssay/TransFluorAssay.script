@@ -37,16 +37,16 @@ Proc getChanInfo(memblock chanInfo out){
 
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
-	input(minIntensity, 150, "Min Nuclear Chanel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive.Allowed range: 0..1000.")
+	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive.Allowed range: 0..1000.")
 	push(chanPurpose,"nucDetection")	
 	push(chanNames,name)
 	push(chanDesc,desc)
 	push(chanMin,minIntensity)
 	push(chanCutOff,0)
 
-	input(Name, "Exp1Cam1", "CytoplasmicChanelName", type="String", description="Channel containing the fluorescence from thecytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "Exp1Cam1", "CytoplasmicChannelName", type="String", description="Channel containing the fluorescence from thecytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "MGD", "Cytoplasmic StainDescription", type="String", description="Description of the Cytoplasmic stain (\"NA\" if no cytoplasmic marker is used).")
-	input(minIntensity, 150, "Min Cytoplasmic Chanel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
+	input(minIntensity, 150, "Min Cytoplasmic Channel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
 	if(desc!="NA" && Name!="NA")
 		push(chanPurpose,"cytoDetection")
 		push(chanNames,Name)
@@ -55,7 +55,7 @@ Proc getChanInfo(memblock chanInfo out){
 		push(chanCutOff,0)
 	end()
 
-	input(Name, "Exp1Cam1", "Marker1 ChanelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
+	input(Name, "Exp1Cam1", "Marker1 ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
 	input(desc, "GFP", "Marker1 Description", type="String", description="Description of the first marker (ex. GFP).")
 	//input(cutOff, 150, "Marker1 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the first marker. Allowed range: 1..1000, step 0.1.")	
 	//if(cutOff<1)
@@ -67,7 +67,7 @@ Proc getChanInfo(memblock chanInfo out){
 	push(chanMin,0)
 	push(chanCutOff,0)//cutOff)
 
-	input(Name, "NA", "Marker2 ChanelName", type="String", description="Channel containing the fluorescence from the second marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "Marker2 ChannelName", type="String", description="Channel containing the fluorescence from the second marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "RFP", "Marker2 Description", type="String", description="Description of the second marker (ex. RFP).")
 	//input(cutOff, 150, "Marker2 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the second marker. Allowed range: 1..1000, step 0.1.")	
 	if(desc!="NA" && Name!="NA")
@@ -81,7 +81,7 @@ Proc getChanInfo(memblock chanInfo out){
 		push(chanCutOff,0)//cutOff)
 	end()
 
-	input(Name, "NA", "Marker3 ChanelName", type="String", description="Channel containing the fluorescence from the third marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "Marker3 ChannelName", type="String", description="Channel containing the fluorescence from the third marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "Alexa647", "Marker3 Description", type="String", description="Description of the third marker (ex. Alexa647).")
 	//input(cutOff, 150, "Marker3 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the third marker. Allowed range: 1..1000, step 0.1.")	
 	if(desc!="NA" && Name!="NA")

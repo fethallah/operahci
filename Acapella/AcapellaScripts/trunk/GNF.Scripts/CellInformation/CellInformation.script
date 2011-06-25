@@ -38,16 +38,16 @@ proc getChanInfo(
 {
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
-	input(minIntensity, 150, "Min Nuclear Chanel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive.Allowed range: 0..1000, step 1.")
+	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive.Allowed range: 0..1000, step 1.")
 	push(chanPurpose,"nucDetection")	
 	push(chanNames,name)
 	push(chanDesc,desc)
 	push(chanMin,minIntensity)
 	push(chanCutOff,0)
 
-	input(Name, "NA", "CytoplasmicChanelName", type="String", description="Channel containing the fluorescence from the cytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "CytoplasmicChannelName", type="String", description="Channel containing the fluorescence from the cytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "MGD", "Cytoplasmic StainDescription", type="String", description="Description of the Cytoplasmic stain.")
-	input(cutOff, 150, "Min Cytoplasmic Chanel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 1.")
+	input(cutOff, 150, "Min Cytoplasmic Channel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 1.")
 	if(cutOff<1)
 		Error("The cutt-off must be >= to 1")
 	end()	
@@ -57,7 +57,7 @@ proc getChanInfo(
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
-	input(Name, "NA", "ChanelName", type="String", description="Channel containing the fluorescence from the membrane stain. This is only useful if selecting cytoplasmic algorithm F. Can be same as Cytoplasmic channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "MembraneChannelName", type="String", description="Channel containing the fluorescence from the membrane stain. This is only useful if selecting cytoplasmic algorithm F. Can be same as Cytoplasmic channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "WGA", "Membrane StainDescription", type="String", description="Description of the Membrane stain.")
 	push(chanPurpose,"membraneDetection")
 	push(chanNames,Name)
@@ -66,7 +66,7 @@ proc getChanInfo(
 	push(chanCutOff,1)
 
 
-	input(Name, "NA", "SpotChanelName", type="String", description="Channel containing the fluorescence from the spot stain. Can be same as Cytoplasmic channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "SpotChannelName", type="String", description="Channel containing the fluorescence from the spot stain. Can be same as Cytoplasmic channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "LisoTracker", "Spot StainDescription", type="String", description="Description of the spot-like stain.")
 	push(chanPurpose,"spotsDetection")
 	input(cutOff, 150, "Spots Positive cutOff", type="i",  description="Cut-off value to use to define positive spots. Allowed range: 1..5000, step 1.0.")	
@@ -76,7 +76,7 @@ proc getChanInfo(
 	push(chanMin,0)
 	push(chanCutOff,1)
 
-	input(Name, "NA", "Marker1ChanelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "Marker1ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "GFP", "Marker1Description", type="String", description="Description of the first marker (ex. GFP). Do not use space or any other special characters.")
 	if(desc=="NA" || Name=="NA")
 		set(desc="NA",Name="NA")
@@ -89,7 +89,7 @@ proc getChanInfo(
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
-	input(Name, "NA", "Marker2ChanelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "Marker2ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "RFP", "Marker2Description", type="String", description="Description of the second marker (ex. RFP) or NA. Do not use space or any other special characters.")
 	if(desc=="NA" || Name=="NA")
 		set(desc="NA",Name="NA")
@@ -102,7 +102,7 @@ proc getChanInfo(
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
-	input(Name, "NA", "Marker3ChanelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "Marker3ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "MitoTracker", "Marker3Description", type="String", description="Description of the second marker (ex. RFP) or NA. Do not use space or any other special characters.")
 	if(desc=="NA" || Name=="NA")
 		set(desc="NA",Name="NA")
@@ -115,7 +115,7 @@ proc getChanInfo(
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
-	input(Name, "NA", "Marker4ChanelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "NA", "Marker4ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "MitoTracker", "Marker4Description", type="String", description="Description of the second marker (ex. RFP) or NA. Do not use space or any other special characters.")
 	if(desc=="NA" || Name=="NA")
 		set(desc="NA",Name="NA")

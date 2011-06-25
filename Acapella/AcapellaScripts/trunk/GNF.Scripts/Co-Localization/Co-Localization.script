@@ -38,7 +38,7 @@ proc getChanInfo(memblock chanInfo out){
 
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
-	input(minIntensity, 150, "Min Nuclear Chanel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 0..1000.")
+	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 0..1000.")
 	push(chanPurpose,"nucDetection")	
 	push(chanNames,name)
 	push(chanDesc,desc)
@@ -46,10 +46,10 @@ proc getChanInfo(memblock chanInfo out){
 	push(chanCutOff,0)
 	push(chanThreshold,0)
 
-	input(Name, "Exp1Cam1", "CytoplasmicChanelName", type="String", description="Channel containing the fluorescence from theCytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(Name, "Exp1Cam1", "CytoplasmicChannelName", type="String", description="Channel containing the fluorescence from theCytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "MGD", "Cytoplasmic StainDescription", type="String", description="Description of the Cytoplasmic stain.")
 	if(desc!="NA" && Name!="NA")
-		input(minIntensity, 150, "Min Cytoplasmic Chanel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
+		input(minIntensity, 150, "Min Cytoplasmic Channel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
 		push(chanPurpose,"cytoDetection")
 		push(chanNames,Name)
 		push(chanDesc,desc)	
@@ -58,7 +58,7 @@ proc getChanInfo(memblock chanInfo out){
 		push(chanThreshold,0)
 	end()
 
-	input(Name, "Exp1Cam2", "Marker1ChanelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
+	input(Name, "Exp1Cam2", "Marker1ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
 	input(desc, "GFP", "Marker1Description", type="String", description="Description of the first marker (ex. GFP).")
 	input(cutOff, 150, "Marker1 Positive CuttOff", type="d",  description="Cutt-off value to use to define Cells that are Positive for marker2. Only Cells positive for marker1 and marker2 are returned. Allowed range: 1..1000, step 0.1.")
 	input(threshold, 150, "Marker1 Positive Object Threshold", type="d",  description="Cutt-off value to use to define Cells that are Positive for marker2. Only Cells positive for marker1 and marker2 are returned. Allowed range: 1..10000, step 1.")
@@ -76,7 +76,7 @@ proc getChanInfo(memblock chanInfo out){
 	push(chanCutOff,cutOff)
 	push(chanThreshold,threshold)
 
-	input(Name, "Exp1Cam3", "Marker2ChanelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(Name, "Exp1Cam3", "Marker2ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "RFP", "Marker2Description", type="String", description="Description of the second marker (ex. RFP).")
 	input(cutOff, 150, "Marker2 Positive CuttOff", type="d",  description="Cutt-off value to use to define Cells that are Positive for marker2. Only Cells positive for marker1 and marker2 are returned. Allowed range: 1..1000, step 0.1.")
 	input(threshold, 150, "Marker2 Positive Object Threshold", type="d",  description="Cutt-off value to use to define Cells that are Positive for marker2. Only Cells positive for marker1 and marker2 are returned. Allowed range: 1..10000, step 1.")
