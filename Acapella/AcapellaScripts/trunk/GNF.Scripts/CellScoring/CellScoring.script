@@ -248,7 +248,10 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 				Foreach(imageData.keys,"keyName")
 					Set(objects=ImageData[keyName])
 						if(objects.class=="objectlist"||objects.class=="compositObjectlist")
-							getFeaturesTable(objects,ObjectType=keyname)
+							try() //Skip objects that do not have a real setncil stencil and for which a center of mass can be determined.
+								getFeaturesTable(objects,ObjectType=keyname)
+							Catch_Error()
+							end()
 						end()
 				end()
 			end()
