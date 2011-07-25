@@ -619,9 +619,9 @@ proc CalcWidthLengthSafe(
 proc getROITable(
 Memblock objects in "Object list contaning an attribute border to export",
 Table ROITable=none inout "Table containing a list of ROI formated as polygons that were already calculated for other fields. If a table is provided new data will be append to it. This tables also maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number.",
-int time=1 in "timeSeries number for the object provided",
-int stack=1 in "z stack number for the object provided",
-int field=1 in "field number for the object provided",
+int time=0 in "timeSeries number for the object provided",
+int stack=0 in "z stack number for the object provided",
+int field=0 in "field number for the object provided",
 
 String ObjectType="" in "Type of the objects. Can be left blank or provided as wholeCells, Nuclei, Spots etc.",
 ) output "Returns a table containing the coordinates to the different ROI measured as a polygon. These coordinates can be mapped to single well values obtained via extractSingleWellValues"
