@@ -12,13 +12,6 @@ It is easy to write and test Acapella Code with [http://eclipse.org/ Eclipse] a 
 The easiest way to install is through the build-in Eclipse Update Manager. 
 Create new location http://colorer.sf.net/eclipsecolorer/ using the update manager, and Eclipse will allow you to automatically install EclipseColorer. Later you can use this way to simply and efficiently update colorer and check for its new versions. 
 
-3) Edit the *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/catalog.xml* and add in the *{{{<hrc-sets>}}}* container the following line: <location link="hrc/acapella/acapellaLink.hrc"/>
-4) Create a folder named acapella in: *%ECLIPSEHOME%/plugins/et.sf.colorer_X.X.X/colorer/hrc
-
-5) Add to the newly created folder the content of: http://code.google.com/p/operahci/source/browse/#svn/Acapella/MiscTools/EclipseIntegration/trunk/EclipseColorer/acapella
-
-6) Start Eclipse and open a .script, .param or .parameter file.
-
 = Result =
 If everything goes according to plan your code should now be colored!
 
