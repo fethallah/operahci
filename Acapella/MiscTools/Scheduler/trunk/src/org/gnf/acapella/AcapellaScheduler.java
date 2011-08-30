@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.gnf.acapella;
 
@@ -7,6 +7,7 @@ import jargs.gnu.CmdLineParser;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -37,7 +38,7 @@ public class AcapellaScheduler {
 
 	private static File imagesPath;
 	private static WellMask wellMask;
-	private static int maxBatchSize = 50;
+	private static int maxBatchSize = 96;
 
 	private static int numProcessor = 1;
 
@@ -85,9 +86,8 @@ public class AcapellaScheduler {
 
 		value = (String) parser.getOptionValue(scriptFileName, "");
 		if (value.isEmpty())
-			error(
-					new Exception(
-							"You must provide a script for the analysis. See usage:\r\n\r\n"),
+			error(new Exception(
+					"You must provide a script for the analysis. See usage:\r\n\r\n"),
 					true);
 		setScriptFile(new File(value));
 		if (!getScriptFile().exists())
@@ -143,12 +143,12 @@ public class AcapellaScheduler {
 	}
 
 	AcapellaScheduler() throws Exception {
-		Map<File, Vector<String>> fileSet = FileSeeker.getFilesToAnalyze(
-				getImagesPath(), wellMask);
-		if (fileSet.isEmpty())
-			error(new Exception(String.format(
-					"Nothing to do. The image path: %s is empty.",
-					getImagesPath())), false);
+		ScriptLoading script = new ScriptLoading(scriptFile, parametersFile);
+		File scriptPath = script.makeJobScript();
+		System.out.printf("Assembleded script at:\t%1$s%n",
+				scriptPath.getPath());
+		script.writeScriptInfo(new File(imagesPath + File.separator
+				+ "ScriptInfo.csv"));
 
 		File headerFile = new File(getDataFile().getPath().replace(".csv",
 				".head"));
@@ -157,26 +157,32 @@ public class AcapellaScheduler {
 		if (dataFile.exists() && !separateHeader) {
 			String header = FileReader.readHeader(dataFile).toString();
 			if (header.startsWith("PlateID")) {
-				FileWritter.writeFile(headerFile, FileReader
-						.readHeader(dataFile));
+				FileWritter.writeFile(headerFile,
+						FileReader.readHeader(dataFile));
 				containedHeader = true;
 			}
 		}
 
-		ScriptLoading script = new ScriptLoading(scriptFile, parametersFile);
-		File scriptPath = script.makeJobScript();
-		script.writeScriptInfo(new File(imagesPath + File.separator
-				+ "ScriptInfo.csv"));
-
 		ResultsExporter resultExporter = new ResultsExporter(getResults(),
 				getDataFile(), headerFile);
+		System.out.printf("Results saved in:\t%1$s%n", getDataFile().getPath());
 		resultExporter.setName("resultExporter");
 
 		ErrorExporter errrorExporter = new ErrorExporter(getErrors(),
 				getErrorFile());
+		System.out
+				.printf("Errors logged in:\t%1$s%n", getErrorFile().getPath());
 		errrorExporter.setName("errrorExporter");
 
+		Map<File, Vector<String>> fileSet = FileSeeker.getFilesToAnalyze(
+				getImagesPath(), wellMask);
+		if (fileSet.isEmpty())
+			error(new Exception(String.format(
+					"Nothing to do. The image path: %s is empty.",
+					getImagesPath())), false);
+
 		for (File path : fileSet.keySet()) {
+			Date startDate = new Date();
 			Vector<String> wellIndexList = fileSet.get(path);
 			// Do not create more processor than necessary
 			numProcessor = Math.min(numProcessor, wellIndexList.size());
@@ -188,8 +194,10 @@ public class AcapellaScheduler {
 			// a max Batch size of 0 indicate not to restrict the size of the
 			// batch
 			maxBatchSize = maxBatchSize == 0 ? numberOfWells : maxBatchSize;
-			int batchSize = Math.min(maxBatchSize, (int) Math
-					.ceil((double) numberOfWells / (double) numProcessor));
+			int batchSize = Math.min(
+					maxBatchSize,
+					(int) Math.ceil((double) numberOfWells
+							/ (double) numProcessor));
 			System.out.print("Start Analyzing: " + path);
 			while (toIndex < wellIndexList.size()) {
 
@@ -200,8 +208,8 @@ public class AcapellaScheduler {
 						.toString();
 				// Make a comma delimited list of wellIndex to use in the
 				// acapella WellMask
-				wellIndex = wellIndex.replaceAll("(?m)^\\[", "").replaceAll(
-						"(?m)\\]$", "").replaceAll(", ", ",");
+				wellIndex = wellIndex.replaceAll("(?m)^\\[", "")
+						.replaceAll("(?m)\\]$", "").replaceAll(", ", ",");
 
 				// only create a new thread if the thread exist and is not
 				// running
@@ -235,15 +243,21 @@ public class AcapellaScheduler {
 				processIndex = (processIndex + 1) % numProcessor;
 			}
 			for (AcapellaJob job : multiProcessor) {
-				job.join();
+				if (job != null)
+					job.join();
 			}
-			System.out.print("done\r\n");
+			Date endDate = new Date();
+			double time = (endDate.getTime() - startDate.getTime())
+					/ (double) numberOfWells / 1000d;
+			System.out.printf(
+					"done\t%1$5d well processed\t%2$8.2f.(seconds/well)%n",
+					numberOfWells, time);
 		}
 		resultExporter.terminate();
 		errrorExporter.terminate();
 		if (!isSeparateHeader()) {
-			FileWritter.changeFileHeader(dataFile, FileReader
-					.readFile(headerFile), containedHeader);
+			FileWritter.changeFileHeader(dataFile,
+					FileReader.readFile(headerFile), containedHeader);
 			headerFile.delete();
 		}
 	}

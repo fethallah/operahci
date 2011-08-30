@@ -71,7 +71,7 @@ public class ErrorExporter extends Thread implements Runnable {
 				data.append(BaseConverterUtil.toBase26(row - 1));
 				data.append(BaseConverterUtil.pad("" + col, "0", 2));
 				data.append(",");
-				data.append(File.separator + wellInfo[2]);
+				data.append(wellID); // add FilePath
 				data.append(",");
 
 				data.append(wellData);

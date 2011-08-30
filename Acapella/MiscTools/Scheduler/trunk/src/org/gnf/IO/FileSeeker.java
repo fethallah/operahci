@@ -1,12 +1,13 @@
 /**
- * 
+ *
  */
 package org.gnf.IO;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import org.gnf.acapella.WellMask;
@@ -44,9 +45,8 @@ public class FileSeeker {
 					"The directory containing the images  to analyze: "
 							+ path.getPath() + " cannot be read.");
 
-		FileListFilter filter = new FileListFilter(nameFilter,
-				EXTENSIONS);
-		Map<File, Vector<String>> fileSet = new LinkedHashMap<File, Vector<String>>();
+		FileListFilter filter = new FileListFilter(nameFilter, EXTENSIONS);
+		Map<File, Vector<String>> fileSet = new TreeMap<File, Vector<String>>();
 		Vector<String> wellSet = new Vector<String>();
 		for (File file : path.listFiles(filter)) {
 			if (file.isDirectory() && file.canRead()) {
@@ -58,9 +58,10 @@ public class FileSeeker {
 				wellSet.add(wellID);
 		}
 		if (!wellSet.isEmpty()) {
+			Collections.sort(wellSet);
 			wellMask.filterWellSet(wellSet);
 			fileSet.put(path, wellSet);
-}
+		}
 		return fileSet;
 
 	}

@@ -2,7 +2,7 @@ package org.gnf.acapella;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -123,17 +123,23 @@ public class ScriptLoading {
 
 	}
 
-	public File makeJobScript() throws IOException {
-		URL scriptPrefix = getClass().getResource("/resources/ScriptPrefix");
-		URL scriptSuffix = getClass().getResource("/resources/ScriptSuffix");
-		script.insert(0, FileReader.readFile(new File(scriptPrefix
-				.getPath())));
+	public File makeJobScript() throws IOException, URISyntaxException {
+		File resourcesLocs = new File(getClass().getProtectionDomain()
+				.getCodeSource().getLocation().toURI()).getParentFile();
+		resourcesLocs = new File(resourcesLocs, "Resources");
+		// URL scriptPrefix = getClass().getResource("/Resources/ScriptPrefix");
+		// URL scriptSuffix = getClass().getResource("/Resources/ScriptSuffix");
+		StringBuffer prefix = FileReader.readFile(new File(resourcesLocs,
+				"ScriptPrefix"));
+		StringBuffer suffix = FileReader.readFile(new File(resourcesLocs,
+				"ScriptSuffix"));
+		script.insert(0, prefix);
 		script.insert(0, parameters);
-		script.append(FileReader.readFile(new File(scriptSuffix
-				.getPath())));
+		script.append(suffix);
 
 		File jobScriptFile = File.createTempFile("AcapellaJob", ".script");
 		removeComment();
+
 		FileWritter.writeFile(jobScriptFile, script);
 		jobScriptFile.deleteOnExit();
 		return jobScriptFile;
@@ -149,7 +155,8 @@ public class ScriptLoading {
 		script = new StringBuffer(text);
 	}
 
-	public static void main(String argv[]) throws IOException {
+	public static void main(String argv[]) throws IOException,
+			URISyntaxException {
 		ScriptLoading script = new ScriptLoading(new File(argv[0]), new File(
 				argv[1]));
 		script.writeScriptInfo(new File("T:\\temp\\parameters"));
