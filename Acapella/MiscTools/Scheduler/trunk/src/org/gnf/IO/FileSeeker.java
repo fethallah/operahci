@@ -32,6 +32,9 @@ public class FileSeeker {
 	public static Map<File, Vector<String>> getFilesToAnalyze(File path,
 			WellMask wellMask) throws Exception {
 
+		if (path == null)
+			return new TreeMap<File, Vector<String>>();
+
 		if (!path.isDirectory())
 			throw new Exception(
 					"The directory containing the images to analyze: "

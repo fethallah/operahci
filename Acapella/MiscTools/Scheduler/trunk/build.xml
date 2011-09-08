@@ -106,7 +106,7 @@
 			           value="${implementation.title}"
 			/>
 			<attribute name="Programed-By" value="${programer.name}" />
-			
+
 			<attribute name="Implementation-Vendor"
 			           value="${implementation.vendor}"
 			/>
@@ -160,7 +160,7 @@
 
 		<echo>
             ---------------------------------------
-            Creating install4j bundles 
+            Creating install4j bundles
             ---------------------------------------
         	</echo>
 
@@ -180,19 +180,9 @@
 				</classPath>
 
 				<jre minVersion="${jre}.0">
-
-
 					<opt>-Dlaunch4j.exedir="%EXEDIR%"</opt>
 					<opt>-Dlaunch4j.exefile="%EXEFILE%"</opt>
 				</jre>
-
-				<singleInstance mutexName="${ant.project.name}.exe"
-				                windowTitle="${ant.project.name}"
-				/>
-				<!--  <splash		
-   			file="${src}\resources\About.bmp"
-			waitForWindow="true"
-			timeoutErr="false"/> -->
 
 				<versionInfo fileVersion="${app.version}.${build.number}"
 				             txtFileVersion="${app.version}.${build.number}-${build.date}"
@@ -202,7 +192,7 @@
 				             txtProductVersion="${app.version}.${build.number}-${build.date}"
 				             productName="${implementation.title}"
 				             companyName="${implementation.vendor}"
-					
+
 				             internalName="${ant.project.name}"
 				             originalFilename="${ant.project.name}.exe"
 				/>
@@ -211,7 +201,7 @@
 		</launch4j>
 		<zip destfile="${base.name}.zip">
 			<fileset dir="${base.dir}" includes="*.exe" />
-			<fileset dir="." includes="Resources/*" />
+			<fileset dir="${src}" includes="Resources/*" />
 			<fileset dir="." includes="*.ini" />
 		</zip>
 		<delete includeemptydirs="true" deleteonexit="true">
@@ -223,7 +213,7 @@
 
 		<echo>
             ---------------------------------------
-            Done creating launch4J bundles 
+            Done creating launch4J bundles
             ---------------------------------------
         	</echo>
 
