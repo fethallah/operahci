@@ -619,9 +619,9 @@ proc CalcWidthLengthSafe(
 proc getROITable(
 Memblock objects in "Object list contaning an attribute border to export",
 Table ROITable=none inout "Table containing a list of ROI formated as polygons that were already calculated for other fields. If a table is provided new data will be append to it. This tables also maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number.",
-int time=0 in "timeSeries number for the object provided",
-int stack=0 in "z stack number for the object provided",
-int field=0 in "field number for the object provided",
+int time=0 in "timeSeries number for the object provided(index is 0 based)",
+int stack=0 in "z stack number for the object provided(index is 0 based)",
+int field=0 in "field number for the object provided(index is 0 based)",
 
 String ObjectType="" in "Type of the objects. Can be left blank or provided as wholeCells, Nuclei, Spots etc.",
 ) output "Returns a table containing the coordinates to the different ROI measured as a polygon. These coordinates can be mapped to single well values obtained via extractSingleWellValues"
@@ -651,18 +651,18 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 }
 
 proc getFeaturesTable(
-	Memblock objects in "Object list contaning the features to export",
-	Table FeaturesTable out "Table containing the features list mapped to each objects. This tables maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number, a ParentObjectType and a ParentObjectID.",
-	//Objectlist objects out "Object list contaning the newly calculated features",
-	Container parentObjects=none in "Container with the differnt objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
-	Vector parentNames=none in "Vector containing the names for the parents in the order for which the mapping should be done. Objects with name at a  higher Index contain objects with lower index (ex. Nuclei should have a lower index than WholeCells). use vec(\"name1\",\"name2\",...)",
-	//Vector images=none in "Conatainer containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objetcs. If no images is provided, these features are not returned. Images should have the form images[channel].image & images[channel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack])",
-	Table FeaturesTable=none in "Table containing the list of calculated features for this object measured on a previous stack/field/timepoint. If a table is provided new data will be append to it. This tables also maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number.",
-	int stack=1 in "z stack number for the object provided",
-	int field=1 in "field number for the object provided",
-	int time=1 in "timeSeries number for the object provided",
+Memblock objects in "Object list contaning the features to export",
+Table FeaturesTable out "Table containing the features list mapped to each objects. This tables maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number, a ParentObjectType and a ParentObjectID.",
+//Objectlist objects out "Object list contaning the newly calculated features",
+Container parentObjects=none in "Container with the differnt objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
+Vector parentNames=none in "Vector containing the names for the parents in the order for which the mapping should be done. Objects with name at a  higher Index contain objects with lower index (ex. Nuclei should have a lower index than WholeCells). use vec(\"name1\",\"name2\",...)",
+//Vector images=none in "Conatainer containing the images for each channels (for a given stack & field). These images are used to calculate the object intensity-based feature for each objetcs. If no images is provided, these features are not returned. Images should have the form images[channel].image & images[channel].name. This can be obtained after using the ImagesInitV2() module and selecting a channel stack ex: set(images=ImagesInitV2().images[field][stack])",
+Table FeaturesTable=none in "Table containing the list of calculated features for this object measured on a previous stack/field/timepoint. If a table is provided new data will be append to it. This tables also maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number.",
+int time=0 in "timeSeries number for the object provided(index is 0 based)",
+int stack=0 in "z stack number for the object provided(index is 0 based)",
+int field=0 in "field number for the object provided(index is 0 based)",
 
-	String ObjectType="" in "Type of the objects. Can be left blank or provided as wholeCells, Nuclei, Spots etc.",
+String ObjectType="" in "Type of the objects. Can be left blank or provided as wholeCells, Nuclei, Spots etc.",
 ) output "Returns a table containing the coordinates to the different features measured as for the object. These coordinates can be mapped to single well values obtained via extractSingleWellValues"
 {
 	if(objects.class=="compositobjectlist")
