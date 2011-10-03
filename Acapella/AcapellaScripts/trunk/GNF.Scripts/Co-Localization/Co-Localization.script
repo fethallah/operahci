@@ -302,5 +302,7 @@ if(param.showIllustrations&&param.fieldSelected!=0)
 	set(param.fieldSelected=iif(param.fieldSelected>images.length,images.length,param.fieldSelected))
 	set(Images=vec(images[param.fieldSelected-1]))
 end()
+
 Analysis()
+writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
 dataOutput()
