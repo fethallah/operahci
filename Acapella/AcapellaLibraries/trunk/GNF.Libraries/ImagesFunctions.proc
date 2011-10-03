@@ -339,9 +339,9 @@ proc imagesInitV2(
 	//INPUT
 	Int minIntensity=0 in "minimum intensity of any images to be define",
 	//OUTPUT
-	container sourceDataProp out "Memblock containing info about the well",
+	container sourceDataProp out "Container containing info about the well",
 	table sourceData out "Memblock containing info about the well",
-	memblock images out "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number"
+	vector images out "Vector containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number"
 
 ) Image Manipulation "This procedure returns an organized structure containing the images. Use it as a replacement of the singlewell procedure. It will not work for time-series"
 {
@@ -366,7 +366,7 @@ proc imagesInitV2(
 							if(key!="sourceImage" && key!="Name"&&key!="Channel")
 								//added to fix Acapella bug in extracting resolution information
 								//if(at("resolution",key,1)>0)
-								//	Set(magnification =1*RegexReplace(SourceData.ObjectiveRef[0],"^(\\d{1,2}).*$","\1").text)
+								//	Set(magnification =1*RegexReplace(SourceData.ObjectiveRef[0],"^(\d{1,2}).*$","\1").text)
 								//	set(temp[key]=(SourceData.CameraBinningX[0]/1352)*(444*20)/magnification) //At binning 1 the image size is ~1352 pixel wide and at 20x the field size is about 444um =>0.33µm/pix
 								//	continue()
 								//end()

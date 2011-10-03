@@ -170,7 +170,7 @@ proc CalcFeatures(
 	//Make sure all Attributes are correctly capitalized
 	set(AttrNames=objects.keys)
 	foreach(AttrNames,"KeyName")
-		Set(Capitalized=regexReplace(keyName,"(\\b\\w|(?<=_)\\w)","\\u$1").text) //Capitalize word correctly
+		Set(Capitalized=regexReplace(keyName,"(\b\w|(?<=_)\w)","\u$1").text) //Capitalize word correctly
 		eval("RenameAttr("&Capitalized&"="&keyName&")")
 	end()
 	set(CalcTextureFeatures=CalcTASFeatures||CalcSERFeatures||CalcGaborFeatures||CalcHaralickFeatures)
@@ -194,7 +194,7 @@ proc CalcFeatures(
 				continue()
 			end()
 
-			Set(StencilName=regexReplace(StencilName,"(\\b\\w|(?<=_)\\w)","\\u$1").text) //Capitalize word correctly
+			Set(StencilName=regexReplace(StencilName,"(\b\w|(?<=_)\w)","\u$1").text) //Capitalize word correctly
 			Set(objects[StencilName]=objects[StencilName])
 
 			foreach(0..numChan-1)
