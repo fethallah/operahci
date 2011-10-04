@@ -38,7 +38,7 @@ public class AcapellaScheduler {
 
 	private static File imagesPath;
 	private static WellMask wellMask;
-	private static int maxBatchSize = 96;
+	private static int maxBatchSize = 384;
 
 	private static int numProcessor = 1;
 
