@@ -53,11 +53,11 @@ Proc getChanInfo(memblock chanInfo out){
 	if(desc=="NA" || Name=="NA")
 		set(desc="NA",Name="NA")
 	end()
-	input(cutOff, 150, "Marker1 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")	
+	input(cutOff, 150, "Marker1 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")
 	Set(cutOff=iif(cutOff<1,1,cutOff))
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
@@ -70,7 +70,7 @@ Proc getChanInfo(memblock chanInfo out){
 	Set(cutOff=iif(cutOff<1,1,cutOff))
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
@@ -84,7 +84,7 @@ Proc getChanInfo(memblock chanInfo out){
 	Set(cutOff=iif(cutOff<1,1,cutOff))
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
@@ -99,7 +99,7 @@ Proc getChanInfo(memblock chanInfo out){
 	Set(cutOff=iif(cutOff<1,1,cutOff))
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 
@@ -112,11 +112,11 @@ Proc getChanInfo(memblock chanInfo out){
 
 Proc paramInit(memblock param out){
 
-	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")
 	EnvInfo()
 	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
-	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")
 	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
 	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of Cut-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
@@ -136,7 +136,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		bckGndSubstraction(-1)
 
 		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
-		
+
 		set(nucImage=images[nucChanNum].image)
 		Nuclei_Detection(nucImage)
 		RingRegion(stencil="body",WholeCells=nuclei,ShowIllustrations=false,ShowRegionBorder=false,VisualImage=nucImage|nuclei=wholeCells)
@@ -144,55 +144,58 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		if(showIllustrations)
 			ImageView(objects.border,label="RingBorders", title="Ring Borders used.", image=nucImage,  gamma=2)
 		end()
-		
+
 		Foreach(0..images.length-1)
 			set(image=images[i].image)
+			set(feature="Body_"&images[i].desc)
 			Mask(1)
 			set(image=image/mask)
-			CalcStat("mean", AttrName=images[i].desc&"_Intensity", image=image)
+			CalcStat("mean", AttrName=feature&"_Intensity", image=image)
 			if(showIllustrations && at("marker",images[i].purpose,1)>0)
 				set(image=images[i].image+images[i].bckGndSubstracted)
 				//CalcBorder(RingRegion)
-				
+
 				ImageView(Stencil2Objects(objects.body&&Mask.image).objects.border,label="RingBordChan-"&images[i].desc, title="Ring Borders for channel "&images[i].desc, image=image,  gamma=1)
 				if(cutOffType=="folds")
-					set(cutOff=(images[i].cutoff-1)*bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean)
+					set(cutOff=(images[i].cutoff-1)*bckGndObjects[feature&"_MeanIntensity"].mean)
 				else()if(cutOffType=="stddev")
-					set(cutOff=images[i].cutoff*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean)
+					set(cutOff=images[i].cutoff*bckGndObjects[feature&"_StdDevIntensity"].mean)
 				else()
 					set(cutOff=images[i].cutoff)
 				end()
 				end()
-				add(images[i].bckGndSubstracted, image=objects.[images[i].desc&"_Intensity"]|data=image)
+				add(images[i].bckGndSubstracted, image=objects.[feature&"_Intensity"]|data=image)
 				GraphView(data, label="RingIntChan-"&images[i].desc,title="Ring Intensity for channel "&images[i].desc&". CalculatedCutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity")
 				GraphView(tabulate(cutOff,objects.count).result, label="RingIntChan-"&images[i].desc,  append=true, presto_options="set[0].line.color red")
 				delete(data,image)
 			end()
 		end()
 		rename(WholeCells=objects)
-		
+
 		set(Positive=cnt())
 		Foreach(0..images.length-1)
 			if(defined("images[i].purpose"))
 			if(searchElem("marker",images[i].purpose,0).pos>=0)
+				set(feature="Body_"&images[i].desc)
 				set(objects=WholeCells)
 				if(cutOffType=="folds")
-					set(formula=images[i].desc&"_Intensity>"&((images[i].cutoff-1)*bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean))
+					set(formula=feature&"_Intensity>"&((images[i].cutoff-1)*bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean))
 				else()if(cutOffType=="stddev")
-					set(formula=images[i].desc&"_Intensity>"&(images[i].cutoff*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean))
+					set(formula=feature&"_Intensity>"&(images[i].cutoff*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean))
 				else()
-					set(formula=images[i].desc&"_Intensity>"&(images[i].cutoff-images[i].bckGndSubstracted))
+					set(formula=feature&"_Intensity>"&(images[i].cutoff-images[i].bckGndSubstracted))
 				end()
 				end()
-				
+
 				SplitMyObjects(formula,objects=objects)
 				Foreach(0..images.length-1,"k")
-					SetAttr(images[k].desc&"_FoldAboveNegative",objects[images[k].desc&"_Intensity"]/remainder[images[k].desc&"_Intensity"].median)
+					set(feature="Body_"&images[k].desc)
+					SetAttr(feature&"_FoldAboveNegative",objects[feature&"_Intensity"]/remainder[feature&"_Intensity"].median)
 				end()
 				if(showIllustrations)
 					set(image=images[i].image+images[i].bckGndSubstracted)
 					CarryObjects(nuclei.border,images[i].image.max/4,image=image)
-					
+
 					set(mask=objects.body.mask&&mask(1,image=images[i].image).mask)
 					SetAttr(Selected,objects.body&&mask.image )
 					Calcborder(Selected)
@@ -202,13 +205,14 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				end()
 				push(positiveObjectsDesc,images[i].desc)
 				set(positive[images[i].desc]=objects)
-				
+
 				Foreach(0..positiveObjectsDesc.length-1,"j")
 					if(at(images[i].desc,positiveObjectsDesc[j],1)==0)
 						set(combinationName=positiveObjectsDesc[j]&"_"&images[i].desc)
 						SplitMyObjects(formula,objects=positive[positiveObjectsDesc[j]])
 							Foreach(0..images.length-1,"k")
-								SetAttr(images[k].desc&"_FoldAboveNegative",objects[images[k].desc&"_Intensity"]/remainder[images[k].desc&"_Intensity"].median)
+								set(feature="Body_"&images[k].desc)
+								SetAttr(feature&"_FoldAboveNegative",objects[feature&"_Intensity"]/remainder[feature&"_Intensity"].median)
 							end()
 						push(positiveObjectsDesc,combinationName)
 						set(positive[combinationName]=objects)
@@ -218,12 +222,12 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			end()
 		end()
 		assembleCompositObject(Positive,objects=WholeCells|WholeCells=compositObject)
-		
+
 		Stencil2Objects(Nuclei.body, CalcArea=false)
 		calcFeatures(images=vec(images[nucChanNum]),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells), CalcMorphologyFeatures=true|Nuclei=objects)
 		keep(bckGndObjects,Nuclei,WholeCells)
 		pack(imageData,*)
-	end()	
+	end()
 }
 Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
 
@@ -255,7 +259,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 						end()
 				end()
 			end()
-			
+
 			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
 			rename(wholeWellData=newData)
 		end()
