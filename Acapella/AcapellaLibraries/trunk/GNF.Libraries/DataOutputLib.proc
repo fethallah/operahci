@@ -333,5 +333,7 @@ proc writeChannelMapping(
 	writeTable(ChannelMapping, filename)
 	pathSplit(filename)
 	RenameFile(dirname,basename,"ChannelMapping")
-	deleteFile(filename)
+	if(fileinfo(filename).fileinfo.exists)
+		deleteFile(filename)
+	end()
 }

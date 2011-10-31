@@ -3,32 +3,40 @@ proc RenameFile(
 	String old in "old filename",
 	String new in "new filename",
 
-	Integer errorlevel out "The return value of the system() call.",
-	String errorMsg out "The exit code of the child process."
+	boolean errorThrowing=false in "If this is true an error will be thrown, otherwise a simple warning will be given."
 
 ) Filesystem "Allows to rename a file to another name both file must be in the same path"
 {
 	if(__platform__=="windows")
-		sprintf("text","del /f \"%s\\%s\"",path, new)
-		sprintf("text","ren \"%s\\%s\" \"%s\"", path, old,new)
+		Set(filename=path&"/"&new)
+		if(fileinfo(filename).fileinfo.exists)
+			deleteFile(filename)
+		end()
+		sprintf("text","ren \"%s\\%s\" \"%s\"", path, old, new)
 		RegexReplace(text,"/","\\")
 		RegexReplace(text,"(.+?)\\\\\\\\","$1\\")
 		RegexReplace(text,"\"\\\\","\"\\\\\\\\")
 		Run(text, stderr="<errorMsg")
 	else()
-		sprintf("text","mv /f '%s/%s' '%s/%s'",path, old, path,new)
+		sprintf("text","mv -f -T '%s/%s' '%s/%s'",path, old, path, new)
 		RegexReplace(text,"\\\\","/")
 		RegexReplace(text,"//","/")
 		Run(text, stderr="<errorMsg")
 	end()
-	Set(errorMsg=iif(errorlevel==0,"",sprintf("text","Rename command: %s; ErrorMessage%s", text,errorMsg).text))
+	if(errorlevel!=0)
+		sprintf("errorMsg","Rename command: %s; ErrorMessage %s", text,errorMsg)
+		if(errorThrowing)
+			error(errorMsg)
+		else()
+			warning(errorMsg)
+		end()
+	end()
 }
 
 proc deleteFile(
 	String path in "path of the file to delete",
 
-	Integer errorlevel out "The return value of the system() call.",
-	String errorMsg out "The exit code of the child process."
+	boolean errorThrowing=false in "If this is true an error will be thrown, otherwise a simple warning will be given."
 
 ) Filesystem "Allows to rename a file to another name both file must be in the same path"
 {
@@ -43,5 +51,12 @@ proc deleteFile(
 		RegexReplace(text,"//","/")
 		Run(text, stderr="<errorMsg")
 	end()
-	Set(errorMsg=iif(errorlevel==0,"",sprintf("text","Rename command: %s; ErrorMessage%s", text,errorMsg).text))
+		if(errorlevel!=0)
+		sprintf("errorMsg","Delete command: %s; ErrorMessage %s", text,errorMsg)
+		if(errorThrowing)
+			error(errorMsg)
+		else()
+			warning(errorMsg)
+		end()
+	end()
 }
