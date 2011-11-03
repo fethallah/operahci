@@ -395,7 +395,7 @@ proc combineMemBlocksV0(
 		else()
 			TypeInfo(newData)
 			if(typeInfo.type=="objectList")
-				if(defined("newData.zone")) / fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
+				if(defined("newData.zone")) //fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
 					DeleteAttr(zone,objects=newData)
 					rename(newData=objects)
 				end()
