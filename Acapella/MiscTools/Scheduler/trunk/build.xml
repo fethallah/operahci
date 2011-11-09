@@ -179,9 +179,10 @@
 					<cp>./${base.name}.jar</cp>
 				</classPath>
 
-				<jre minVersion="${jre}.0">
+				<jre minVersion="${jre}.0" initialHeapSize="256" maxHeapSize="2048">
 					<opt>-Dlaunch4j.exedir="%EXEDIR%"</opt>
 					<opt>-Dlaunch4j.exefile="%EXEFILE%"</opt>
+					
 				</jre>
 
 				<versionInfo fileVersion="${app.version}.${build.number}"
