@@ -127,12 +127,16 @@ public class ScriptLoading {
 		File resourcesLocs = new File(getClass().getProtectionDomain()
 				.getCodeSource().getLocation().toURI()).getParentFile();
 		resourcesLocs = new File(resourcesLocs, "Resources");
-		// URL scriptPrefix = getClass().getResource("/Resources/ScriptPrefix");
-		// URL scriptSuffix = getClass().getResource("/Resources/ScriptSuffix");
-		StringBuffer prefix = FileReader.readFile(new File(resourcesLocs,
-				"ScriptPrefix"));
-		StringBuffer suffix = FileReader.readFile(new File(resourcesLocs,
-				"ScriptSuffix"));
+		File prefixFile = new File(resourcesLocs, "ScriptPrefix");
+		File sufixFile = new File(resourcesLocs, "ScriptSuffix");
+		if (!prefixFile.canRead() || !sufixFile.canRead()) {
+			prefixFile = new File(getClass().getResource(
+					"/Resources/ScriptPrefix").getPath());
+			sufixFile = new File(getClass().getResource(
+					"/Resources/ScriptSuffix").getPath());
+		}
+		StringBuffer prefix = FileReader.readFile(prefixFile);
+		StringBuffer suffix = FileReader.readFile(sufixFile);
 		script.insert(0, prefix);
 		script.insert(0, parameters);
 		script.append(suffix);
