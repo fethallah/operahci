@@ -14,11 +14,4 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>AcapellaScriptExamples</name>
-			<type>2</type>
-			<location>O:/gbonamy/Scripts/NucleiFeatures</location>
-		</link>
-	</linkedResources>
 </projectDescription>
