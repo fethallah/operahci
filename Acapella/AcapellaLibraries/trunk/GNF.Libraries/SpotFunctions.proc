@@ -34,7 +34,7 @@
 
 proc Spot_Detection_Select(
 	image SpotImage in "Input image with intensity information. Spots are detected by this image.",
-	string SearchRegion="Body" in "Name of the attribute in input list WholeCells, which specifies the regions where spots are searched. In case of the empty string \"\" spots are searched over the whole SpotImage and the input object list is ignored.",
+	string SearchRegion="Body" in "Name of the attribute in input list WholeCells, which specifies the regions where spots are searched. In case of the empty string \"\" spots are searched over the whole Spot and the input object list is ignored.",
 	bool ShowIllustrations=YES in "YES- Output illustrations are depicted. No- Output illustrations are not shown.",
 	bool ShowSearchRegionBorder=NO in "YES- Output illustration with SearchRegion borders is depicted. No- Output illustration with SearchRegion borders is not shown.",
 	bool ShowOutputParameters=YES in "YES- Output parameters are reported. No- Output Parameters are not reported.",
@@ -51,7 +51,8 @@ proc Spot_Detection_Select(
 	double IntegratedSpotSignalPerCellularSignal_BackgroundSubtracted out "Integrated spot signal over all spots background subtracted and normalized by integrated ~cellular signal (total signal over all SearchRegion area).",
 
 	double IntegratedSpotSignalPerArea out "Integrated spot signal per SearchRegion area (per visible ~cell area).",
-	double IntegratedSpotSignalPerArea_BackgroundSubtracted out "Integrated spot signal BackgroundSubtracted per SearchRegion area (per visible ~cell area)."
+	double IntegratedSpotSignalPerArea_BackgroundSubtracted out "Integrated spot signal BackgroundSubtracted per SearchRegion area (per visible ~cell area).",
+
 
 ) object recognition, spot detection "Spot detection procedure, which allows to scan the input parameters. The player inputs created by the procedure are in the sub-section \"Spot Detection\". The detection algorithm (e.g. A, B, C, D) can be determined with the player input \"Spot Detection Algorithm\". Write to the input window just a single letter, e.g. A or SET for comparing results of all routines. The algorithms are identical to ones called by Spot_Detection_A(), Spot_Detection_B() and the output results are the same. If the nuclei detection output contains errors one can apply the parameter scan with an aim to find the input parameter values, which provide the most appropriate nuclei recognition. The parameter scan can be controlled with the player input \"Parameter SCAN\". With the default value \"None\" the parameter scan is not applied. Select from \"Parameter SCAN\" menu the parameter you would like to scan and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. The label of the output illustration corresponds to the parameter value, e.g. the label \"3.0\" in case of the \"SpotMinimumDistance\" scan marks the result obtained with SpotMinimumDistance=3.0. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. If needed apply the scan step-wise for all input parameters starting from \"SpotMinimumDistance\". Afterwards test the selected set of input parameters with the different images. Please note, that it is possible to scan only one parameter at time and that if \"SET\" or multiple algorithms are already selected for the input \"Spot Detection Algorithm\" the parameter scan is not supported."
 {
@@ -83,7 +84,7 @@ proc Spot_Detection_Select(
 	convElems(result*10,"integer")
 	convElems(result/10,"float")
 	rename(SpotMinimumToCellIntensityVec=result)
-	
+
 	set(algorithmsVec=vec("A","B","C","D"))
 
 	input(SpotAlgorithm,"A","Spot Detection Algorithm: Spot Detection",type="s",description="Specifies the cytoplasm detection algorithm from the OCDL. Allowed values:\"A\",\"B\",\"C\",\"D\".")
@@ -159,7 +160,7 @@ proc Spot_Detection_Select(
 			set(SpotMinimumToCellIntensity =i)
 		end()
 		if(ScanParameter=="Algorithm")
-			set(CytoAlgorithm=i)
+			set(SpotAlgorithm=i)
 		end()
 
 		Eval("Spot_Detection_"&SpotAlgorithm&"_inner()",ForwardGrantLicense=true)
@@ -220,7 +221,7 @@ proc Spot_Detection_Select(
 	if(ShowOutputParameters)
 		create_spot_outputs()
 	end()
-	
+
 	if(scanning)
 		stop()
 	end()
@@ -498,7 +499,7 @@ boolean showIllustrations=true in "Optional. Used to indicate if you want to see
 bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
 ) object recognition "Detects the centers for the parasites present in the image provided."
 {
-	
+
 	ParasiteDetection_parameters()
 	ParasiteDetection_inner()
 }
@@ -608,7 +609,7 @@ proc ParasiteCytoDetection(
 		objectList wholeParasite out "List of objects created around centers. The centers stencil corresponds to the \"Nuclei\" of the parasite and the \"Cytoplasm\" corresponds to the cytoplasm of the parasite.",
 ) object recognition "Extends the centers for the parasites detected in the image provided. Thereby defining the cytoplasmic area of the cytoplasm."
 {
-	
+
 	ParasiteCytoDetection_parameters()
 	ParasiteCytoDetection_inner()
 }
@@ -621,7 +622,7 @@ string ScanParameter="None" out "Parasite: Controls the parameter scan. Use  the
 )
 {
 	input(CytoAlgorithm,"A","Cytoplasm Detection Algorithm: Parasite Cytoplasm Detection",type="s",description="Specifies the cytoplasm detection algorithm from the OCDL. Allowed values:\"A\",\"B\",\"C\",\"D\",\"E\".")
-	input(CytoplasmThresholdAdjustment, .45, "Cytoplasm Threshold Adjustment: Parasite Cytoplasm Detection","d", "Cytoplasm: Threshold tuning for the initial thresholding of parasite cytoplasm. Higher values decrease cytoplasm size. Allowed range: 0..1, step 0.01.") 
+	input(CytoplasmThresholdAdjustment, .45, "Cytoplasm Threshold Adjustment: Parasite Cytoplasm Detection","d", "Cytoplasm: Threshold tuning for the initial thresholding of parasite cytoplasm. Higher values decrease cytoplasm size. Allowed range: 0..1, step 0.01.")
 	input(CytoplasmIndividualThresholdAdjustment, 0.15, "Cytoplasm Individual Threshold Adjustment: Parasite Cytoplasm Detection", "d", "Cytoplasm: Controls the of parasite shape around nuclei. Higher values decrease cytoplasm size. Allowed range: 0..1, step 0.01.")
 	input(ScanParameter, "None", "Parameter SCAN: Parasite Cytoplasm Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition. Possible values: \"None\", \"Algorithm\", \"CytoplasmThresholdAdjustment\",\"CytoplasmIndividualThresholdAdjustment\".")
 	EnvInfo()
@@ -633,7 +634,7 @@ proc ParasiteCytoDetection_inner(
 	bool ShowIllustrations=true in "True- Output illustrations are depicted. False- Output illustrations are not shown.",
 	objectList parasite in "Input object list of ParasiteCenters. Parasite Cytoplasm regions are created around the parasite center.",
 	objectList wholeParasite out "List of objects created around centers. The centers stencil corresponds to the \"Nuclei\" of the parasite and the \"Cytoplasm\" corresponds to the cytoplasm of the parasite.",
-	
+
 	string CytoAlgorithm="A" in "Parasite: Select the algorithm you wish to use for detecting the \"cytoplas\" of the parasite.",
 	double CytoplasmThresholdAdjustment=0.45 in "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite.",
 	double CytoplasmIndividualThresholdAdjustment=0.15 in "Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Parasite Borders\" preview.",
@@ -641,7 +642,7 @@ proc ParasiteCytoDetection_inner(
 )  "Extends the centers for the parasites detected in the image provided. Thereby defining the cytoplasmic area of the cytoplasm."
 {
 	rename(nuclei=parasite)
-	
+
 	set(cytoThreshAdjVec=tabulate("x*0.1",11).result)
 	set(cytoIndivThreshAdjVec=tabulate("x*0.1",11).result)
 	set(algorithmsVec=vec("A","B","C","D","E","F"))
@@ -674,7 +675,7 @@ proc ParasiteCytoDetection_inner(
 		end()
 
 		Eval("Cytoplasm_Detection_"&CytoAlgorithm&"_inner(reference, Nuclei=Nuclei)",ForwardGrantLicense=true)
-		
+
 		if(errorcode!=0)
 			Error(errors)
 		end()
@@ -695,6 +696,6 @@ proc ParasiteCytoDetection_inner(
 	end()
 
 	ObjectFilter("area>0",objects=wholeCells|wholeCells=objects) //use to paliate bugs in cytoplams detection which allow the creation of empty objects
-	
+
 	Rename(wholeParasite=WholeCells)
 }
