@@ -24,7 +24,7 @@
 	<property name="jar" location="jar" />
 	<property name="base.dir" location="${jar}/v${app.version}" />
 	<property name="base.name" location="${base.dir}/${ant.project.name}_${app.version}-${build.number}" />
-	<property name="base.nameTemp" location="${base.dir}/Temp/${ant.project.name}" />	
+	<property name="base.nameTemp" location="${base.dir}/Temp/${ant.project.name}" />
 	<property name="main.class" value="org.gnf.${ant.project.name}.${ant.project.name}" />
 	<property name="jre" value="1.6" />
 
@@ -81,22 +81,24 @@
 		</copy>
 
 
-		<manifest file="MANIFEST.MF">
-			<attribute name="Class-Path" value="${classPath}" />
-			<attribute name="Main-Class" value="${main.class}" />
 
-			<attribute name="Implementation-Title" value="${implementation.title}" />
-			<attribute name="Programed-By" value="${programer.name}" />
-
-			<attribute name="Implementation-Vendor" value="${implementation.vendor}" />
-			<attribute name="Implementation-VendorURL" value="${implementation.vendor.url}" />
-			<attribute name="Built-By" value="${user.name}" />
-			<attribute name="Version" value="${app.version}" />
-			<attribute name="Implementation-Version" value="${app.version}.${build.number}" />
-			<attribute name="Built-Date" value="${build.date}" />
-		</manifest>
 		<echo>Building jar file...</echo>
-		<jar jarfile="${base.nameTemp}.jar" manifest="manifest.mf">
+		<jar jarfile="${base.nameTemp}.jar" filesetmanifest="mergewithoutmain">
+			<manifest file="MANIFEST.MF">
+				<attribute name="Class-Path" value="${classPath}" />
+				<attribute name="Main-Class" value="${main.class}" />
+
+				<attribute name="Implementation-Title" value="${implementation.title}" />
+				<attribute name="Programed-By" value="${programer.name}" />
+
+				<attribute name="Implementation-Vendor" value="${implementation.vendor}" />
+				<attribute name="Implementation-VendorURL" value="${implementation.vendor.url}" />
+				<attribute name="Built-By" value="${user.name}" />
+				<attribute name="Version" value="${app.version}" />
+				<attribute name="Implementation-Version" value="${app.version}.${build.number}" />
+				<attribute name="Built-Date" value="${build.date}" />
+			</manifest>
+
 			<fileset dir="${bin}/">
 				<!--<patternset refid="all-classes" /> -->
 			</fileset>
@@ -110,7 +112,6 @@
 
 			</dirset>
 		</jar>
-		<delete file="MANIFEST.MF" />
 	</target >
 
 	<!-- ======================================================= -->
@@ -126,7 +127,7 @@
 
 	<target name="exe" depends="makejar" description="Wrapps the Jar in an .exe file for windows use">
 		<echo>
-			---------------------------------------
+---------------------------------------
 Compiling AutoIT Scripts.
 You must instal AutotIT v3.0 or above: http://www.autoitscript.com/
 ---------------------------------------
@@ -153,7 +154,7 @@ Done Compiling AutoIT Script
 
 		<echo>
 ---------------------------------------
-Creating install4j bundles 
+Creating install4j bundles
 ---------------------------------------
         </echo>
 
@@ -173,7 +174,7 @@ Creating install4j bundles
 				</jre>
 
 				<singleInstance mutexName="${ant.project.name}.exe" windowTitle="${ant.project.name}" />
-				<!--  <splash		
+				<!--  <splash
    			file="${src}\resources\About.bmp"
 			waitForWindow="true"
 			timeoutErr="false"/> -->
@@ -193,7 +194,7 @@ Creating install4j bundles
 
 		<echo>
 ---------------------------------------
-Done creating launch4J bundles 
+Done creating launch4J bundles
 ---------------------------------------
        </echo>
 
