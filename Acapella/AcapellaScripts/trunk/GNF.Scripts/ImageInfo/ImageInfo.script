@@ -37,37 +37,37 @@ Proc getChanInfo(memblock chanInfo out){
 	input(desc, "NA", "Channel1 Description", type="String", description="Description of the 1st Channel (ex. GFP, Hoechst, MGD...).")
 	push(chanNames,name)
 	push(chanDesc,desc)
-	push(chanPurpose,"marker")	
+	push(chanPurpose,"marker")
 
 	input(name, "NA", "Channel2 Name", type="String", description="2snd Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "NA", "Channel2 Description", type="String", description="Description of the 2snd Channel (ex. GFP, Hoechst, MGD...).")
 	push(chanNames,name)
 	push(chanDesc,desc)
-	push(chanPurpose,"marker")	
+	push(chanPurpose,"marker")
 
 	input(name, "NA", "Channel3 Name", type="String", description="3rd Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "NA", "Channel3 Description", type="String", description="Description of the 3rd Channel (ex. GFP, Hoechst, MGD...).")
 	push(chanNames,name)
 	push(chanDesc,desc)
-	push(chanPurpose,"marker")	
+	push(chanPurpose,"marker")
 
 	input(name, "NA", "Channel4 Name", type="String", description="4th Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "NA", "Channel4 Description", type="String", description="Description of the 4th Channel (ex. GFP, Hoechst, MGD...).")
 	push(chanNames,name)
 	push(chanDesc,desc)
-	push(chanPurpose,"marker")	
+	push(chanPurpose,"marker")
 
 	input(name, "NA", "Channel5 Name", type="String", description="5th Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "NA", "Channel5 Description", type="String", description="Description of the 5th Channel (ex. GFP, Hoechst, MGD...).")
 	push(chanNames,name)
 	push(chanDesc,desc)
-	push(chanPurpose,"marker")	
+	push(chanPurpose,"marker")
 
 	input(name, "NA", "Channel6 Name", type="String", description="6th Channel Name. Allowed values: \"NA\", \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "NA", "Channel6 Description", type="String", description="Description of the 6th Channel (ex. GFP, Hoechst, MGD...).")
 	push(chanNames,name)
 	push(chanDesc,desc)
-	push(chanPurpose,"marker")	
+	push(chanPurpose,"marker")
 
 	set(chanInfo=tbl(name=chanNames, desc=chanDesc, purpose=chanPurpose))
 }
@@ -90,7 +90,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	Unpack(param)
 	set(imageData=cnt())
 	if(SubstractBackground)
-		bckGndSubstraction(-1,includeBorders=true,images=images)
+		bckGndSubstraction(-1,images=images)
 		set(ImageData.bckGndObjects=bckGndObjects)
 	end()
 	Set(WholeWell=cnt())
@@ -107,7 +107,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				Mask(1)
 				Mask2Stencil(Neighbourhood=8)
 				Stencil2Objects()
-				Mask2Stencil(objects.border.mask, Neighbourhood=8)			
+				Mask2Stencil(objects.border.mask, Neighbourhood=8)
 				Stencil2Objects()
 				FillObjects()
 				CalcArea()
@@ -140,7 +140,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 						end()
 					end()
 				end()
-		end()	
+		end()
 	else()
 		getFeatures(WholeWell,images)
 		Foreach(objects.keys,"keyName")
@@ -156,7 +156,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	set(imageData.WholeWell=WholeWell)
 }
 Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
-	
+
 	set(data=create("container").container)
 	set(numFieldsInFocus=0)
 	if(images.length>0)

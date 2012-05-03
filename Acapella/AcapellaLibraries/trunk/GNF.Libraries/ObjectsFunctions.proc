@@ -161,7 +161,6 @@ proc bckGndDetection(
 	image image inout "image to which background should be subtracted",
 	boolean showIllustrations = false in "indicate whether you wish to see the illustration of the area corresponding to the background.",
 	boolean minLevel = 0 in "Used to remove from the background object mask pixels bellow this value. Useful to remove border of a well for instance. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded.",
-	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwritten by setting the input to true. Select depending on the background illustration.",
 //OUTPUT
 	objectList objects out "Object representing the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
 	double stdDevToSubstract=0 inout "Optional: Indicate how many standard deviation of the noise should be considered as background.",
@@ -173,38 +172,34 @@ proc bckGndDetection(
 	end()
 	input(BckGndFactor,5,"Background Factor: Background detection",Type="d", description="Setting to find pixels devoid of cells in the image. Adjust with \"Area considered as Background\". Lower value result in more pixels (ie. pixels of higher value) being considered as background. Use 0 if you wish to skip background detection. Allowed range: 0..100, step 0.1.")
 
-	input(includeBorderInput,true,"Include Borders: Background detection",Type="b", description="Enter Whether to use the objects touching the border as part of the background")
-	if(Not(includeBorderInput))
-		set(includeBorders=includeBorderInput)
-	end()
 	if(stdDevToSubstract==0)
 		input(stdDevToSubstract,0,"NoiseSTDEV2Substract: Background detection",Type="d", description="Optional: Indicate how many standard deviation of the noise should be considered as background. Allowed range: 0..10, step 0.1.")
 	end()
-	
+
 	if(BckGndFactor==0)
 		set(objects=create("ObjectList").objectList)
 		return()
 	end()
 
 	set(minLevelVec=tabulate("x*20",15).result)
-	
+
 	//Round the different values to 1 decimal
 	tabulate("1.2^(1.2*x-2)",15)
 	convElems(result*10,"integer")
 	convElems(result/10,"float")
 	rename(bckGndFactorVec=result)
-	
+
 	//Round the different values to 1 decimal
 	tabulate("(x*0.5)",10)
 	convElems(result*10,"integer")
 	convElems(result/10,"float")
 	rename(stdDevToSubstractVec=result)
-	
+
 	input(ScanParameter, "None", "Parameter SCAN: Background detection", "s", "Controls the parameter to scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best bckground detection. Possible values: \"None\", \"Min Channel Level\",\"Background Factor\".") //, \"NoiseSTDEV2Substract\".") //TODO: implement scanning for STDEV substraction, need to modify the bckgnd subtraction + use images rather than composed image.
 	//ensures that you use the actuall parameters with RMCA or Linux
 	EnvInfo()
 	Set(ScanParameter=iif(env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview,ScanParameter,"None"))
-	
+
 	if(ScanParameter=="none")
 		set(scanVec=vec(0))
 		set(scanning=false)
@@ -222,7 +217,7 @@ proc bckGndDetection(
 		set(scanVec=stdDevToSubstractVec)
 	end()
 
-	
+
 	foreach(scanVec)
 		if(ScanParameter=="Min Channel Level")
 			set(minLevel =i)
@@ -233,15 +228,15 @@ proc bckGndDetection(
 		if(ScanParameter=="NoiseSTDEV2Substract")
 			set(stdDevToSubstract =i)
 		end()
-		
+
 		bckGndDetection_Inner(imageIni, bckGndFactor=bckGndFactor, minLevel=minLevel, showIllustrations = !scanning&&showIllustrations) //do not display illustrations in scanning mode
-		
+
 		if(scanning && showIllustrations)
 			set(TitleSufix=ScanParameter&"="&i)
 			set(label=":"&i)
 			imageview(objects.border, "bckGndBord"&label, image=imageIni, gamma=2.6, title="Border of the background detected for: "&TitleSufix)
 			imageview(objects.body,"bckGndBody"&label, image=imageIni, gamma=2.6, title="Body of the background detected for: "&TitleSufix)
-			
+
 			//TODO: Show images after subtraction for varying StdDev removal.
 		end()
 	end()
@@ -258,11 +253,11 @@ proc bckGndDetection_Inner(
 	boolean showIllustrations = false in "indicate whether you wish to see the illustration of the area corresponding to the background.",
 	boolean minLevel = 0 in "Used to remove from the background object mask pixels bellow this value. Useful to remove border of a well for instance. Adjust with \"Area considered as Background\". Lower value reduces the number of pixels excluded.",
 //OUTPUT
-	objectList objects out "Object representing the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background.",
-	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwritten by setting the input to true. Select depending on the background illustration."
+	objectList objects out "Object representing the background pixels. This objects contain the attribute intensity which corresponds the the BckGnd intensity of the image provided. And the stencil body/border corresponding the area corresponding to the background."
 ) object list manipulations "This procedure detects the object containing the background pixels"
 {
 	set(initImage=image)
+
 	Set(image=image+1)
 	cut(threshold=minLevel)
 	set(BckGndFactorInit=BckGndFactor)
@@ -271,7 +266,14 @@ proc bckGndDetection_Inner(
 	//convert(bpp=1,image=image-1)
 	Set(image=image-1)
 	set(smoothed=image)
+
+	set(offsetX=(image.width)/4, offsetY=image.height/4)
+	//Crop the image so that only the center is used to detect the background
+	crop(offsetX,offsetY,3*offsetX,3*offsetY,image=image)
+	set(cropped=image)
+
 	ThresholdXX(BckGndFactor)
+	set(ThresoholdInit=Threshold)
 	Mask()
 	Not(image=MASK)
 	Erosion(2)
@@ -280,14 +282,11 @@ proc bckGndDetection_Inner(
 	Stencil2Objects()
 	CalcArea()
 	set(tempObjects=objects)
-	if(Not(includeBorders))
-		RemoveBorderObjects()
-	end()
 
 	set(bckGndMinArea=100)
 	while((objects.count<1  || objects.area.sum<bckGndMinArea)&& BckGndFactor >0.1)
-		set(image=tempObjects.body.mask.image*smoothed.max)
-		set(image=image+smoothed)
+		set(image=tempObjects.body.mask.image*cropped.max)
+		set(image=image+cropped)
 		set(BckGndFactor=BckGndFactor/1.2)
 		ThresholdXX(BckGndFactor)
 		Mask()
@@ -299,22 +298,19 @@ proc bckGndDetection_Inner(
 		CalcArea()
 
 		set(tempObjects=objects)
-		if(Not(includeBorders))
-			RemoveBorderObjects()
-		end()
 	end()
 
 	if(BckGndFactor <=0.1)
-		set(image=smoothed)
-		ThresholdXX(BckGndFactorInit)
-		Mask()
-		Not(image=MASK)
-		Erosion(2)
-		Mask(1)
-		Mask2Stencil(Mask)
-		Stencil2Objects()
+		set(Threshold=ThresholdInit)
 	end()
-	Mask2Stencil(objects.body.mask,Method="One large object")
+
+	set(image=smoothed)
+	Mask(threshold=Threshold)
+	Not(image=MASK)
+	Erosion(2)
+	Mask(1)
+
+	Mask2Stencil(mask,Method="One large object")
 	Stencil2Objects()
 	CalcArea()
 	delete(mask,stencil,smoothed)
@@ -326,7 +322,6 @@ proc bckGndDetection_Inner(
 
 proc bckGndSubstraction(
 	int chanNum = -1 in "Index of the image to use for the background detection. Use -1 to make a composite image (max projection used to detect background).",
-	boolean includeBorders = true in "Optional. Indicate whether you want to remove pixels detected in the background objects that are at the border of the image. Use this option if you are sure the edge of the well will not be included in the image. This can be overwritten by setting the input to true. Select depending on the background illustration.",
 	boolean showIllustrations = false in "indicate whether you wish to see the illustration of the area corresponding to the background.",
 	double stdDevToSubstract = 0 inout "Optional. Number of standard deviation for the background intensity to subtract from the images in addition to the mean. Adjust using the image in \"Area considered as Background\" when using the showwIllustrations option.",
 	vector images inout "Container containing all the channels from a given field-section. The returned images have been background subtracted and the attribute\"bckGndSubstracted\" is added.",
@@ -360,7 +355,7 @@ proc bckGndSubstraction(
 				Set(objects.intensity=vec(0))
 				Set(objects.intensity_stddev=vec(0))
 			end()
-			
+
 			set(bckGndSubstracted=objects.intensity.mean+stdDevToSubstract*objects.intensity_stddev.mean)
 			add(-1*bckGndSubstracted,0,image=images[i].image)
 			set(images[i].image=image,images[i].bckGndSubstracted=bckGndSubstracted)
@@ -395,11 +390,11 @@ proc combineMemBlocksV0(
 		else()
 			TypeInfo(newData)
 			if(typeInfo.type=="objectList")
-				if(defined("newData.zone")) //fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
+				if(defined("newData.zone")) //added to fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
 					DeleteAttr(zone,objects=newData)
 					rename(newData=objects)
 				end()
-				if(defined("newData.outerzone"))//fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
+				if(defined("newData.outerzone"))//added to fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
 					DeleteAttr(outerzone,objects=newData)
 					rename(newData=objects)
 				end()
@@ -407,7 +402,6 @@ proc combineMemBlocksV0(
 					objectsDeleteGeometry(newData)
 					rename(newData=objects)
 				end()
-				WarningFilter(disable="joined image attributes have overlapping pixels") //fix issue in which Acapella returns a warning when overlaping objects are detected
 				AddObjects(newData,CheckOverlap=false,objects=oldData)
 				Rename(newData=objects)
 				Return()
@@ -758,7 +752,7 @@ proc AssociateObject2Parents(
 			end()
 		end()
 	end()
-	
+
 	//Associating the rest of the objects with wholeWell.
 	if(Defined("objects"))
 	if(objects.count>0)
