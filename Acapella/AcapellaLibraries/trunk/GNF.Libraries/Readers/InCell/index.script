@@ -1,0 +1,7 @@
+proc filename_to_wellindex( string filename in, string wellindex out) {
+	Readers::InCell::filename_to_wellindex(filename)
+}
+
+proc wellindex_to_filenames(string wellindex in, string imagetype in, container filenames out, string available_imagetype out) {
+	Readers::InCell::wellindex_to_filenames(wellindex, imagetype)
+}

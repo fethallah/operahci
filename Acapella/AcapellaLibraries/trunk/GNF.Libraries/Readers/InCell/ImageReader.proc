@@ -1,0 +1,207 @@
+proc filename_to_wellindex( string filename in, string wellindex out ) {
+
+	Readers::InCell::getEncodedProps(filename)
+	if(encodedProps.length==0)
+		Error("The file selected: '"&filename&"' does not appear to be a valid InCell file.")
+	end()
+
+	set(row=encodedProps.row_n)
+	set(col=encodedProps.col)
+	//set(field=1*encodedProps.field)
+	
+	//Note working using well level images as opposed to field level images hence last 3 digits are '0s'
+	sprintf(wellindex,"%03d%03d000",row,col)
+}
+
+proc wellindex_to_filenames(string wellindex in, string imagetype="" in, string basepath="" in, container filenames out, string available_imagetype out) {
+	
+	// wellindex needs to have 9 digits
+	while (length (wellindex) < 9)
+		set (wellindex = "0"&wellindex)
+	end()
+	
+	
+	set(basePath=regexreplace(basePath,"\\\\","/").text)
+	if(at("/",basePath,-1)!=basePath.length)
+		set(basePath=basePath&"/")
+	end()
+		
+	set(row=1*substr(wellindex, 1, 3))
+	set(col=1*substr(wellindex, 4, 3))
+	//Work with well level and not field level images, commenting next line out
+	//Set(field=1*substr(wellindex,7,3))
+	Readers::row2str(row)
+	sprintf(WellString,"%s%s - %s(fld*wv*).tif",basepath,row,col)
+	
+	// search all image files for this well
+	glob( WellString, ignorecase=true, warning=false)
+	set(files=sort(files).result)
+	set(filenames_str=basePath)
+	foreach(files, "filename") 
+		Readers::InCell::getEncodedProps(filename)
+		if(encodedProps.length==0)
+			Warning("The file selected: '"&filename&"' does not appear to be a valid InCell file. Skipping the file")
+			Continue()
+		end()
+		
+
+		//bug in the code between wellindex_to_filenames from index.script and readimage.script, which prevent
+		//the image file variable to be correctly generated
+		//set(filenames["c" & channel] = filename)
+		set(filenames_str=filenames_str&":"&encodedProps.filename)
+	end()
+
+
+	set(filenames=cnt())
+	set(filenames.c1=filenames_str)
+	if (filenames.size == 0 && files.size == 1) 
+		set( filename = files[0])
+		set (channel = channo(filename))
+		if (expno(filename)=="" || channel == 0) 
+			// there was exactly one match, but expno deduction did not work (because there was no number in the filename).
+			// assume the filename is for channel 1.
+			set(filenames.c1 = files[0])
+		end()
+	end()
+	set(available_imagetype="") // unknown
+}
+
+
+proc filenames_to_images(vector filenames in, table sourcedata out, container sourcedataprop out)[hidden] {
+
+	set(filenames=sort(filenames).result)
+	set(filePaths=cnt())
+	set(channels=vec())
+	set(index=0)
+	foreach(filenames, "filePath") 
+		
+		Readers::InCell::getEncodedProps(filePath)
+		if(encodedProps.length==0)
+			Warning("The file selected: '"&filePath&"' does not appear to be a valid InCell file. It does not match the pattern. Skipping the file.")
+			Continue()
+		end()
+		
+		try()
+			readimage(filePath,"tif")
+		catch_error()
+			Warning("The file selected: '"&filePath&"' does not appear to be a valid InCell file. The following error was returned when reading the file: '"&catch_message&"'. Skipping the file.")
+			Continue()
+		end()
+		
+		if(available_images!=1)
+			Warning("The file selected: '"&filePath&"' does not appear to be a valid InCell file. It does not encode a single plan tif image. Skipping the file.")
+			Continue()
+		end()
+		
+		push(SourceImage,image)
+		delete(image)
+		
+
+
+		// determine its channel#:
+		set(chanName=encodedProps.channelName)
+		if(channels.length==0)
+			set(channel_num=-1)
+		else()
+			set(channel_num=findElem(chanName,channels).pos)
+		end()
+		if(channel_num==-1)
+			push(channels,chanName)
+			set(channel_num=channels.length)
+		end()
+		
+		push(Barcode,encodedProps.barcode)
+		push(CameraRef,"Camera_1")
+		push(Channel,channel_num)
+		push(Column,encodedProps.col)
+		push(Row,encodedProps.row_n)
+		push(Field,encodedProps.field)
+		push(FrameIndex,index)
+		push(FilterCombinationRef,chanName)
+		if(channel_num<5)
+			push(Name,"Exp1Cam"&channel_num)
+		else()
+			push(Name,"Exp2Cam"&channel_num)
+		end()
+		push(Plane,encodedProps.plane)
+		//follow opera convention filename is really filepath, cf ExperimentInfoParser.proc extractin of fileDir
+		push(SourceFileName,filePath) 
+		push(Timepoint,encodedProps.timepoint)
+
+		set(index=index+1)
+	end()
+	
+	set(sourcedata=tbl())
+	set(sourcedataprop=cnt())
+	
+	if(!defined("SourceImage"))
+		error("The well requested does not appear to have been acquired on an InCell Instrument.")
+	end()
+	if(SourceImage.length<1)
+		error("The well requested does not appear to have been acquired on an InCell Instrument.")
+	end()
+	
+	set(sourcedata=tbl(Barcode=Barcode, CameraRef=CameraRef, Channel=Channel, Column=Column, Row=Row, Field=Field, FrameIndex=FrameIndex,FilterCombinationRef=FilterCombinationRef,Name=Name, Plane=Plane, Sourcefilename=Sourcefilename, Timepoint=Timepoint,SourceImage=SourceImage))
+	delete(SourceImage)
+	Set(sourcedataprop.NumberOfImages=sourcedata.rowcount)
+	Set(sourcedataprop.NumberOfChannels=uniq(Channel).result.length)
+	Set(sourcedataprop.NumberOfFields=uniq(Field).result.length)
+	Set(sourcedataprop.NumberOfPlanes=uniq(Plane).result.length)
+	Set(sourcedataprop.NumberOfTimepoints=uniq(Timepoint).result.length)
+	Set(sourcedataprop.ProviderName="GE-InCell")
+	//Set(sourcedataprop.WellIndex=wellIndex)
+		
+	set(sourcedataprop.filePaths=filePaths)
+}
+
+proc getEncodedProps(string filePath in, vector encodedProps out)[hidden]{
+	// typical format of the filePath: ./YI14_FX00238646_1/A - 11(fld 1 wv DAPI - DAPI z 1).tif
+	set(filePath=regexreplace(filePath,"\\\\","/").text)
+	Regex(filePath,"^(?:.+?[/]([^/_]+)_([^/_]+)_(\\d+)[/])?(([A-Z]+) - (\\d+)\\((.+?)\\)\\.tif)")
+	
+	Set(encodedProps=cnt())
+	if(matches.length[0]==0)
+		Return()
+	end()
+
+	Set(encodedProps.ExpID=matches[0])
+	Set(encodedProps.Barcode=matches[1])
+	Set(encodedProps.Exp_Num=1*matches[2])
+	Set(encodedProps.filename=matches[3])
+	Set(encodedProps.row=matches[4])
+	Readers::row2num(encodedProps.row)
+	Set(encodedProps.row_n=1*row_n)
+	Set(encodedProps.col=1*matches[5])
+	
+	#Get the list of properties of the image
+	Set(imageProps=matches[6])
+	
+	Regex(imageProps,"\\bfld\\s+(\\d+)")
+	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
+	if(matches.length>0)
+		Set(encodedProps.field=1*matches[0])
+	else()
+		Set(encodedProps.field=1)
+	end()
+	
+	Regex(imageProps,"\\bwv\\s+(\\w+)\\s+-\\s+(\\w+)")
+	Set(encodedProps.channelEmission=matches[0])
+	Set(encodedProps.channelExcitation=matches[1])
+	Set(encodedProps.channelName=encodedProps.channelEmission&"-"&encodedProps.channelExcitation)
+	
+	Regex(imageProps,"\\bz\\s+(\\d+)")
+	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
+	if(matches.length>0)
+		Set(encodedProps.plane=1*matches[0])
+	else()
+		Set(encodedProps.plane=1)
+	end()
+	
+	Regex(imageProps,"\\bt\\s+(\\d+)")
+	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
+	if(matches.length>0)
+		Set(encodedProps.timepoint=1*matches[0])
+	else()
+		Set(encodedProps.timepoint=1)
+	end()	
+}
