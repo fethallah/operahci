@@ -1,5 +1,5 @@
 //#############################################################################################
-//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
 //# and libraries.
 //#
 //# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
@@ -13,7 +13,7 @@
 //#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
 //#   * www.gnf.org
 //#
-//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
 //#
 //# This program is free software; you can redistribute it and/or modify
 //# it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@
 
 //*********************************************************************************************
 //*
-//* This library defines a set of procedures used calculates the various colocalisation
+//* This library defines a set of proc edures used calculates the various colocalisation
 //* coefficients for two input images using a user defined objects list
 //*
 //*********************************************************************************************
@@ -50,6 +50,8 @@ proc MBF_PearsonsCoefficient (
 ) CoLocalization "Calculates Pearson's coefficient, see Reference: Press, W.H., Flannery, B.P., Teukolsky, S.A. & Vetterling, W.T. (1988) Numerical Recipes in C. Cambridge University Press, Cambridge."
 
 {
+	set(originalObjects=objects)
+	stencil2Objects(stencil)
 	set(ROI_obj=objects)
 
 	///////create 32 bpp "mean intensity" images for Ch1
@@ -142,11 +144,12 @@ proc MBF_PearsonsCoefficient (
 	CompAny("sqrt(result)")
 	rename(Pdenominator = result)
 
+
 //generate pearsons image
 	div(Pnumerator, Pdenominator, result_type="float")
 	rename(Pearsons =result)
 	calcIntensity(body,Pearsons, objects = ROI_obj)
-	setattr(AttrName=""&AttrName,Value=objects.intensity, objects=ROI_obj)
+	setattr(AttrName=""&AttrName,Value=objects.intensity, objects=originalObjects)
 
 //actual pearsons image creation
 	//blank(Ch1.width, Ch1.height)
@@ -170,7 +173,9 @@ proc MBF_ICQ(
 )  CoLocalization "See Reference: Li, Qi, Lau, Anthony, Morris, Terence J., Guo, Lin, Fordyce, Christopher B., and Stanley, Elise F. (2004). A Syntaxin 1, G{alpha}o, and N-Type Calcium Channel Complex at a Presynaptic Nerve Terminal: Analysis by Quantitative Immunocolocalization. Journal of Neuroscience 24, 4070-4081."
 
 {
-set(ROI_obj=objects)
+	set(originalObjects=objects)
+	stencil2Objects(stencil)
+	set(ROI_obj=objects)
 //calculateICQ = Npixels with +ve PDM div N total pixels
 	CalcIntensity(Image=Ch1, objects=ROI_obj, CalcStdDev=no)
 	rename(ROI_obj = objects)
@@ -199,7 +204,7 @@ set(ROI_obj=objects)
 ///create (Ch1-Ch1m)*(Ch2-Ch2m) = Product of the Differences from the Mean or PDM
 	mul(Ch2subCh2m, Ch1subCh1m, result_type = "long, signed")
 	rename(PDM = result)
-//counting positives for  value = N+ves Ã· Ntotal
+//counting positives for  value = N+ves ÷ Ntotal
 //remove  negative pixel values
 	minus( PDM, 0, result_type="automatic", neg_method="zero")
 	rename(positive_images = result)
@@ -222,12 +227,12 @@ set(ROI_obj=objects)
 	div(ICQnumerator, ICQdenominator, result_type="float")
 	rename(ICQ = result)
 	calcIntensity(body, ICQ, objects = ROI_obj)
-	setattr(AttrName=""&AttrName,Value=objects.intensity, objects=ROI_obj)
+	setattr(AttrName=""&AttrName,Value=objects.intensity, objects=originalObjects)
 
 //create ICQ image
 	//blank(Ch1.width, Ch1.height)
 	//convelems(image, "floating", sign="unsigned")
-	//carryobjects(ROI_obj.body, ICQ_obj.intensity, image = result)
+	//carryobjects(ROI_obj.body, objects.intensity, image = result)
 
 }
 
@@ -288,7 +293,7 @@ set(ROI_obj=objects)
 	carryObjects(ROI_obj.body, Ch2coloc_obj.intensity, image = result)
 	rename(Ch2colocsum=image)
 
-//calculate Manders coefficicnet = sum(Ch1coloc)Ã·sum(Ch1)
+//calculate Manders coefficicnet = sum(Ch1coloc)÷sum(Ch1)
 	div(Ch1colocsum, Ch1sum, result_type="float")
 	rename(M1=result)
 	calcIntensity(body, M1, objects = ROI_obj)
@@ -424,8 +429,8 @@ proc CalcPercentOverlap(
 	image marker2Image in "Image to use to select objects for Marker2.",
 	double marker1CuttOff=0 in "Cut-off to use to select objects for Marker2.",
 	double marker2CuttOff=0 in "Cut-off to use to select objects for Marker2.",
-	String stencil="body"  noquote in  "Stencil in which the signal should be for both Marker1 and Marker2",
-	objectlist objects inout  "Object list conatining the stencil and the objects to study the overlap.",
+	String stencil=body  dynadefault explicit in  "Stencil in which the signal should be for both Marker1 and Marker2",
+	objectlist objects localcontext inout  "Object list conatining the stencil and the objects to study the overlap.",
 	boolean showIllustrations=true in "YES- Output illustrations are depicted. No- Output illustrations are not shown." ,
 ) CoLocalization "Assess the percentage of overlap between marker1 and marker2. For a signal in a selected stencil above a given cut-off. Returns a new object with the following two attributes added: stencil_\"Marker1_Marker2_Percent_Overlap\" and stencil_\"Marker2_Marker1_Percent_Overlap\""
 {
@@ -434,9 +439,7 @@ proc CalcPercentOverlap(
 		Error("The stencil: "&Stencil&" does not exits. Cannot calculate the Overlap")
 	end()
 
-	Set(prefix=iif(stencil=="body","",Stencil&"_"))
-	Create("objectlist"|Objects=objectlist)
-	SetAttr(body,objectsIni[stencil])
+	Stencil2Objects(stencil)
 
 	Mask(marker1CuttOff,image=marker1Image|marker1Mask=mask)
 	Mask(marker2CuttOff,image=marker2Image|marker2Mask=mask)
