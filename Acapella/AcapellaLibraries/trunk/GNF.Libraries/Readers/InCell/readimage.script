@@ -1,5 +1,5 @@
 splitstring(imagefile,":")
-rename(split=filenames)
+rename(filenames=split)
 set(basePath=filenames[0])
 pop(filenames,pos=0)
 set(basePath=regexreplace(basePath,"\\\\","/").text)
