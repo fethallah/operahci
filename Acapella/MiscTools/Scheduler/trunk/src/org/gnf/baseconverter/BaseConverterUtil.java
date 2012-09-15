@@ -89,4 +89,13 @@ public class BaseConverterUtil {
 		return string;
 
 	}
+
+	// for testing purposes
+	public static void main(String[] args) {
+		String row = "ZA";
+		int row_n = row.length() > 1 ? 26 : 0;
+		row_n += BaseConverterUtil.fromBase26(""
+ + row.charAt(row.length() - 1)) + 1;
+		System.out.println(row_n);
+	}
 }

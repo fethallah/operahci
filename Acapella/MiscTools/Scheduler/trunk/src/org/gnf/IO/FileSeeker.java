@@ -1,74 +1,7 @@
-/**
- *
- */
 package org.gnf.IO;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.Vector;
-
-import org.gnf.acapella.WellMask;
-
-/**
- * @author gbonamy
- *
- */
-/**
- * @author gbonamy
- * 
- */
-public class FileSeeker {
-	private final static String nameFilter = "(?:\\d{1,3}_)?\\d{4,9}";
-	private final static String[] EXTENSIONS = { "tiff", "tif", "flex" };
-
-	public static Map<File, Vector<String>> getFilesToAnalyze(File path)
-			throws Exception {
-		return getFilesToAnalyze(path, new WellMask("*"));
-	}
-
-	public static Map<File, Vector<String>> getFilesToAnalyze(File path,
-			WellMask wellMask) throws Exception {
-
-		if (path == null)
-			return new TreeMap<File, Vector<String>>();
-
-		if (!path.isDirectory())
-			throw new Exception(
-					"The directory containing the images to analyze: "
-							+ path.getPath() + " is not directory.");
-		if (!path.exists())
-			throw new Exception(
-					"The directory containing the images to analyze: "
-							+ path.getPath() + " does not exist.");
-		if (!path.canRead())
-			throw new Exception(
-					"The directory containing the images  to analyze: "
-							+ path.getPath() + " cannot be read.");
-
-		FileListFilter filter = new FileListFilter(nameFilter, EXTENSIONS);
-		Map<File, Vector<String>> fileSet = new TreeMap<File, Vector<String>>();
-		Vector<String> wellSet = new Vector<String>();
-		for (File file : path.listFiles(filter)) {
-			if (file.isDirectory() && file.canRead()) {
-				fileSet.putAll(getFilesToAnalyze(file, wellMask));
-				continue;
-			}
-			String wellID = file.getName().replaceAll(".*_(\\d{4,9}).*", "$1");
-			if (!wellSet.contains(wellID))
-				wellSet.add(wellID);
-		}
-		if (!wellSet.isEmpty()) {
-			Collections.sort(wellSet);
-			wellMask.filterWellSet(wellSet);
-			fileSet.put(path, wellSet);
-		}
-		return fileSet;
-
-	}
-}
 
 class FileListFilter implements FilenameFilter {
 	private String regex;
