@@ -96,7 +96,7 @@
 		<mkdir dir="${base.dir}" />
 		<copy todir="${bin}/resources">
 			<fileset dir="${src}/resources" />
-		</copy>
+			</copy>
 
 		<manifest file="MANIFEST.MF">
 			<attribute name="Class-Path" value="${classPath}" />
@@ -122,18 +122,14 @@
 		</manifest>
 		<echo>Building jar file...</echo>
 		<jar jarfile="${base.name}.jar" manifest="manifest.mf">
-			<fileset dir="${bin}/">
-				<!--<patternset refid="all-classes" /> -->
-			</fileset>
-			<!-- <fileset dir="${src}/">
-				<patternset refid="all-src" />
-			</fileset> -->
+			<fileset dir="${bin}/"/>
 			<fileset dir=".">
 				<patternset refid="other" />
 			</fileset>
-			<dirset dir="${src}">
-
-			</dirset>
+			<dirset dir="${src}"/>
+			<zipfileset
+				excludes="META-INF/*.SF"
+				src="./../../../Libraries/Java/AppacheCommons/commons-io-2.0.1/commons-io-2.0.1.jar"/>
 		</jar>
 		<delete file="MANIFEST.MF" />
 	</target >
@@ -182,7 +178,7 @@
 				<jre minVersion="${jre}.0" initialHeapSize="256" maxHeapSize="2048">
 					<opt>-Dlaunch4j.exedir="%EXEDIR%"</opt>
 					<opt>-Dlaunch4j.exefile="%EXEFILE%"</opt>
-					
+
 				</jre>
 
 				<versionInfo fileVersion="${app.version}.${build.number}"
@@ -202,7 +198,7 @@
 		</launch4j>
 		<zip destfile="${base.name}.zip">
 			<fileset dir="${base.dir}" includes="*.exe" />
-			<fileset dir="${src}" includes="Resources/*" />
+			<fileset dir="${src}" includes="Resources/**" />
 			<fileset dir="." includes="*.ini" />
 		</zip>
 		<delete includeemptydirs="true" deleteonexit="true">
