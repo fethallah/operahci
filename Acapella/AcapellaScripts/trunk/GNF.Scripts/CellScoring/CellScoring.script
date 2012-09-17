@@ -151,7 +151,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			Mask(1)
 			set(image=image/mask)
 			CalcStat("mean", AttrName=feature&"_Intensity", image=image)
-			if(showIllustrations && at("marker",images[i].purpose,1)>0)
+			if(showIllustrations && FindElem("marker",images[i].purpose).pos>=0)
 				set(image=images[i].image+images[i].bckGndSubstracted)
 				//CalcBorder(RingRegion)
 
