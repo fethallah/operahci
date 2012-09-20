@@ -2,6 +2,11 @@ splitstring(imagefile,":")
 rename(split=filenames)
 set(basePath=filenames[0])
 pop(filenames,pos=0)
+if(basePath.length==1) //Dealing with Mapped drives
+	set(basePath=vec(basePath & ":" & filenames[0]))
+	pop(filenames,pos=0)
+end()
+
 set(basePath=regexreplace(basePath,"\\\\","/").text)
 if(at("/",basePath,-1)!=basePath.length)
 	set(basePath=basePath&"/")
