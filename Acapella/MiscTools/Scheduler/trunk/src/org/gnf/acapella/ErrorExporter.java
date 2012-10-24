@@ -56,7 +56,6 @@ public class ErrorExporter extends Thread implements Runnable {
 				initialized = true;
 			}
 
-			int index = 0;
 			for (String wellID : wells) {
 				String wellData = errors.remove(wellID);
 				String[] wellInfo = wellID.split("/");
@@ -76,7 +75,6 @@ public class ErrorExporter extends Thread implements Runnable {
 
 				data.append(wellData);
 				data.append(System.getProperty("line.separator"));
-				index++;
 			}
 			try {
 

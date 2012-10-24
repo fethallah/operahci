@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.gnf.acapella;
 
@@ -218,15 +218,14 @@ public class WellMask {
 			return removedWells;
 		}
 
-		if (type.equals("RangeList")) {
-			List<String> set = Arrays.asList(mask);
-
-			// need to do recursion over each of values
-			System.err
-					.println("List of ranges is not designed yet! All Wells will be analyzed");
-
-			return removedWells;
-		}
+		// if (type.equals("RangeList")) {
+		// List<String> set = Arrays.asList(mask);
+		// // need to do recursion over each of values
+		// System.err
+		// .println("List of ranges is not designed yet! All Wells will be analyzed");
+		//
+		// return removedWells;
+		// }
 		System.err
 				.println("This type of well mask is not supported! All Wells will be analyzed");
 

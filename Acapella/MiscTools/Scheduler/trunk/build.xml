@@ -36,13 +36,7 @@
 	/>
 	<property name="base.name" location="${base.dir}/${ant.project.name}" />
 	<property name="main.class"
-	          value="org.gnf.acapella.${ant.project.name}"
-	/>
-	<property name="jre" value="1.6" />
-
-
-
-
+	          value="org.gnf.acapella.${ant.project.name}" />
 
 	<path id="build-classpath">
 		<pathelement location="${bin}" />
@@ -81,7 +75,7 @@
 		       destdir="${bin}"
 		       debug="on"
 		       optimize="on"
-		       compiler="javac1.6"
+		       compiler="javac${jre}"
 		       source="${jre}"
 		       target="${jre}"
 		>
@@ -129,7 +123,7 @@
 			<dirset dir="${src}"/>
 			<zipfileset
 				excludes="META-INF/*.SF"
-				src="./../../../Libraries/Java/AppacheCommons/commons-io-2.0.1/commons-io-2.0.1.jar"/>
+				src="${library.dir}/Java/AppacheCommons/commons-io-2.0.1/commons-io-2.0.1.jar"/>
 		</jar>
 		<delete file="MANIFEST.MF" />
 	</target >
@@ -184,7 +178,7 @@
 				<versionInfo fileVersion="${app.version}.${build.number}"
 				             txtFileVersion="${app.version}.${build.number}-${build.date}"
 				             fileDescription="${app.description}"
-				             copyright="${programmer.name}"
+				             copyright="${programer.name}"
 				             productVersion="${app.version}.${build.number}"
 				             txtProductVersion="${app.version}.${build.number}-${build.date}"
 				             productName="${implementation.title}"
@@ -196,7 +190,7 @@
 
 			</config>
 		</launch4j>
-		<zip destfile="${base.name}.zip">
+		<zip destfile="${base.name}v${app.version}.${build.number}.zip">
 			<fileset dir="${base.dir}" includes="*.exe" />
 			<fileset dir="${src}" includes="Resources/**" />
 			<fileset dir="." includes="*.ini" />

@@ -3,9 +3,8 @@ package jargs.gnu;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Hashtable;
-import java.util.Vector;
-import java.util.Enumeration;
 import java.util.Locale;
+import java.util.Vector;
 
 /**
  * Largely GNU-compatible command-line options parser. Has short (-v) and
@@ -23,7 +22,14 @@ public class CmdLineParser {
      * Base class for exceptions that may be thrown when options are parsed
      */
     public static abstract class OptionException extends Exception {
-        OptionException(String msg) { super(msg); }
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = -4609911649009006496L;
+
+		OptionException(String msg) {
+			super(msg);
+		}
     }
 
     /**
@@ -33,7 +39,11 @@ public class CmdLineParser {
      * English).
      */
     public static class UnknownOptionException extends OptionException {
-        UnknownOptionException( String optionName ) {
+        /**
+		 *
+		 */
+		private static final long serialVersionUID = 1049017246266324946L;
+		UnknownOptionException( String optionName ) {
             this(optionName, "Unknown option '" + optionName + "'");
         }
 
@@ -58,7 +68,11 @@ public class CmdLineParser {
      */
     public static class UnknownSuboptionException
         extends UnknownOptionException {
-        private char suboption;
+		/**
+		 *
+		 */
+		private static final long serialVersionUID = 5243389696053413968L;
+		private char suboption;
 
         UnknownSuboptionException( String option, char suboption ) {
             super(option, "Illegal option: '"+suboption+"' in '"+option+"'");
@@ -75,7 +89,11 @@ public class CmdLineParser {
      * @author Vidar Holen
      */
     public static class NotFlagException extends UnknownOptionException {
-        private char notflag;
+        /**
+		 *
+		 */
+		private static final long serialVersionUID = -8337263214223715308L;
+		private char notflag;
 
         NotFlagException( String option, char unflaggish ) {
             super(option, "Illegal option: '"+option+"', '"+
@@ -96,7 +114,11 @@ public class CmdLineParser {
      * English).
      */
     public static class IllegalOptionValueException extends OptionException {
-        public IllegalOptionValueException( Option opt, String value ) {
+        /**
+		 *
+		 */
+		private static final long serialVersionUID = -2822461129813559941L;
+		public IllegalOptionValueException( Option opt, String value ) {
             super("Illegal value '" + value + "' for option " +
                   (opt.shortForm() != null ? "-" + opt.shortForm() + "/" : "") +
                   "--" + opt.longForm());
@@ -267,7 +289,8 @@ public class CmdLineParser {
     /**
      * Add the specified Option to the list of accepted options
      */
-    public final Option addOption( Option opt ) {
+	@SuppressWarnings({ "unchecked" })
+	public final Option addOption(Option opt) {
         if ( opt.shortForm() != null )
             this.options.put("-" + opt.shortForm(), opt);
         this.options.put("--" + opt.longForm(), opt);
@@ -367,7 +390,8 @@ public class CmdLineParser {
      * @return the parsed value of the given Option, or null if the
      * option was not set
      */
-    public final Object getOptionValue( Option o, Object def ) {
+	@SuppressWarnings("rawtypes")
+	public final Object getOptionValue(Option o, Object def) {
         Vector v = (Vector)values.get(o.longForm());
 
         if (v == null) {
@@ -388,7 +412,8 @@ public class CmdLineParser {
      * @return A Vector giving the parsed values of all the occurrences of the
      * given Option, or an empty Vector if the option was not set.
      */
-    public final Vector getOptionValues( Option option ) {
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public final Vector getOptionValues(Option option) {
         Vector result = new Vector();
 
         while (true) {
@@ -431,7 +456,8 @@ public class CmdLineParser {
      * list of command-line arguments. The specified locale is used for
      * parsing options whose values might be locale-specific.
      */
-    public final void parse( String[] argv, Locale locale )
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public final void parse(String[] argv, Locale locale)
         throws IllegalOptionValueException, UnknownOptionException {
 
         // It would be best if this method only threw OptionException, but for
@@ -459,17 +485,18 @@ public class CmdLineParser {
                     for(int i=1; i<curArg.length(); i++) {
                         Option opt=(Option)this.options.get
                             ("-"+curArg.charAt(i));
-                        if(opt==null) throw new 
+						if (opt == null)
+							throw new
                             UnknownSuboptionException(curArg,curArg.charAt(i));
                         if(opt.wantsValue()) throw new
                             NotFlagException(curArg,curArg.charAt(i));
                         addValue(opt, opt.getValue(null,locale));
-                        
+
                     }
                     position++;
                     continue;
                 }
-                
+
                 Option opt = (Option)this.options.get(curArg);
                 if ( opt == null ) {
                     throw new UnknownOptionException(curArg);
@@ -506,7 +533,8 @@ public class CmdLineParser {
     }
 
 
-    private void addValue(Option opt, Object value) {
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private void addValue(Option opt, Object value) {
         String lf = opt.longForm();
 
         Vector v = (Vector)values.get(lf);
@@ -521,6 +549,8 @@ public class CmdLineParser {
 
 
     private String[] remainingArgs = null;
-    private Hashtable options = new Hashtable(10);
-    private Hashtable values = new Hashtable(10);
+	@SuppressWarnings("rawtypes")
+	private Hashtable options = new Hashtable(10);
+	@SuppressWarnings("rawtypes")
+	private Hashtable values = new Hashtable(10);
 }

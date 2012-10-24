@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package org.gnf.IO;
 
@@ -80,10 +80,10 @@ public class FileReader {
 		}
 
 		StringBuffer text = new StringBuffer();
-		if (file == null || !file.exists())
-			return text;
-
 		try {
+			if (file == null || !file.exists())
+				return text;
+
 			text.append(raf.readLine());
 
 		} finally {
