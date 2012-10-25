@@ -32,53 +32,6 @@
 //*
 //*********************************************************************************************
 
-//Group all of the images into one folder with the strcutue images[field][channel][z-section]
-proc imagesInit(
-	//INPUT
-	Memblock expInfo in "Memblock containing the experimental info, obtained from the getExpInfo() procedure",
-	Int minIntensity=0 in "minimum intensity of any images to be define",
-	//OUTPUT
-	memblock images out "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number"
-) Image Manipulation "This procedure returns an organized structure containing the images. Use it as a replacement of the singlewell procedure"
-{
-	singleWell()
-	pack(images,sourceData)
-	foreach(0..expInfo.totalF-1, "field")
-		 set(images["F"&field]=cnt())
-		 set(fieldIndex=field*expInfo.totalZ*expInfo.totalC)
-	foreach(0..expInfo.totalZ-1, "stack")
-		 set(images["F"&field]["Z"&stack]=cnt())
-		 set(stackIndex=fieldIndex+stack*expInfo.totalC)
-	set(infocus=true)
-	foreach(0..expInfo.totalC-1,"chan")
-		 set(chanIndex=stackIndex+chan+1)
-		if(defined("image"&chanIndex))
-			set(image=_["image"&chanIndex])
-			if(image.max > minIntensity) //only keep the images above a given threshold
-				set(images["F"&field]["Z"&stack]["C"&chan]=image)
-				RegexReplace(sourceData.Name[""&chanIndex-1],"[0-9]*_","",first_only=true)
-				Set(images["F"&field]["Z"&stack]["NameC"&chan]=text)
-			else()
-				set(infocus=false)
-			end()
-		delete(_["image"&chanIndex])
-		else()
-			set(infocus=false)
-	   	end()
-	end()
-	if(infocus==false && defined("images.F"&field&".Z"&stack)) //remove empty Z-sections
-		delete(images["F"&field]["Z"&stack])
-	end()
-	end()
-	if(defined("images.F"&field))
-	if(images["F"&field].length==0)  //remove empty Fields
-		delete(images["F"&field])
-	end()
-	end()
-	end()
-}
-
-
 //TODO write verification to ensure that bpp is either 8bit or 16bit
 proc convertImages(
 	//INPUT
@@ -102,48 +55,7 @@ proc convertImages(
 	keep(images)
 }
 
-proc projectStacks(
-	//INPUT
-	memblock expInfo inout "Memblock containing the experimental info, obtained from the getExpInfo() procedure",
-	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
-	String method="max" in "Method to use to project the data. Possible values: \"overwrite\", \"average\", \"max\", \"min\", \"add\". Default: \"max\".",
-) Image Manipulation "This procedure will project all of the stacks using the selected method to reduce the number of stacks to 1, the memblock expinfo is modified accordingly."
-{
-	foreach(0..expInfo.totalF-1,"field")
-	foreach(0..expInfo.totalC-1,"chan")
-		set(initiated=false)
-		foreach(0..expInfo.totalZ-1, "stack")
-			if(defined("images.F"&field&".Z"&stack&".C"&chan))
-				if(!initiated)
-				if(!defined("images.F"&field))
-					set(images["F"&field]=cnt())
-				end()
-				if(!defined("images.F"&field&".Z0"))
-					set(images["F"&field].Z0=cnt())
-					set(name=images["F"&field].Z0["NameC"&chan])
-				end()
-					set(images["F"&field].Z0["C"&chan]=image)
-					set(initiated=true)
-				else()
-					paste(image, image=images["F"&field].Z0["C"&chan], method=method)
-					set(images["F"&field].Z0["C"&chan]=image)
-					set(images["F"&field].Z0["NameC"&chan]=name)
-				end()
-			end()
-
-		end()
-	end()
-		foreach(1..expInfo.totalZ-1, "stack")
-			if(defined("images.F"&field&".Z"&stack))
-				delete(images["F"&field]["Z"&stack])
-			end()
-		end()
-	end()
-	set(expInfo.totalZ=1)
-	keep(images,expinfo)
-}
-
-proc projectStacksV2(
+proc ProjectsStacks(
 	//INPUT
 	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
 	String method="max" in "Method to use to project the data. Possible values: \"overwrite\", \"average\", \"max\", \"min\", \"add\". Default: \"max\".",
@@ -151,16 +63,17 @@ proc projectStacksV2(
 {
 foreach(0..images.length-1,"field")
 set(numStacks=images[field].length)
-if(numStacks>1)
-foreach(1..numStacks-1, "stack")
-	foreach(0..images[field][1].length-1,"chan")
-		Paste(images[field][1][chan],image=images[field][0][chan], method=method)
+	if(numStacks>1)
+		foreach(1..numStacks-1, "stack")
+			foreach(0..images[field][1].length-1,"chan")
+				Paste(images[field][1][chan],image=images[field][0][chan], method=method)
+			end()
+			Pop(images[field],pos=1) //remove the last stack merged
+		end()
 	end()
-	Pop(images[field],pos=1) //remove the last stack merged
-end()
-end()
 end()
 }
+
 //This procedure ensures the factor when pasting to keep the highest factor  and converts the image to the bpp desired
 proc PasteImage(
 //INPUT
@@ -174,37 +87,37 @@ proc PasteImage(
 )image combining
 
 {
-	if(image.bpp!=bpp)
-		convert(bpp)
-	end()
+if(image.bpp!=bpp)
+	convert(bpp)
+end()
 
-	if(imageToPaste.bpp!=bpp)
-		rename(imageReceivingPaste=image)
-		convert(bpp,image=imageToPaste)
-		rename(imageToPaste=image)
-		rename(image=imageReceivingPaste)
-	end()
+if(imageToPaste.bpp!=bpp)
+	rename(imageReceivingPaste=image)
+	convert(bpp,image=imageToPaste)
+	rename(imageToPaste=image)
+	rename(image=imageReceivingPaste)
+end()
 
-	if(image.factor!=imageToPaste.factor)
-	if(image.factor<imageToPaste.factor)
-		ensurefactor(image,imageToPaste.factor) //keep the highest factor for all images
-	else()
-		set(tempImage=image)
-		ensureFactor(imageToPaste, tempImage.factor) //keep the highest factor for all
-		set(imageToPaste=image)
-		rename(image=tempImage)
-	end()
-	end()
-	if(threshold>0)
-		rename(tempImage=image)
-		rename(image=imageToPaste)
-		mask(threshold)
-		boole(mask, "and", image=image)
-		rename(imageToPaste=image)
-		rename(image=tempImage)
-	end()
-	paste(imageToPaste,x,y, method=method)
-	keep(image)
+if(image.factor!=imageToPaste.factor)
+if(image.factor<imageToPaste.factor)
+	ensurefactor(image,imageToPaste.factor) //keep the highest factor for all images
+else()
+	set(tempImage=image)
+	ensureFactor(imageToPaste, tempImage.factor) //keep the highest factor for all
+	set(imageToPaste=image)
+	rename(image=tempImage)
+end()
+end()
+if(threshold>0)
+	rename(tempImage=image)
+	rename(image=imageToPaste)
+	mask(threshold)
+	boole(mask, "and", image=image)
+	rename(imageToPaste=image)
+	rename(image=tempImage)
+end()
+paste(imageToPaste,x,y, method=method)
+keep(image)
 }//PasteImage
 
 proc wellMontage(
@@ -279,19 +192,19 @@ proc binImages(
 ) Image Manipulation "This procedure will bin all of the images to the desired size, the memblock expinfo is modified accordingly."
 {
 foreach(0..images.length-1,"field")
-foreach(0..images[field].length-1, "stack")
-	foreach(0..images[field][stack].length-1,"chan")
-		Binning(binning,binning,method="mean",image=images[field][stack][chan].image)
-		Set(images[field][stack][chan].image=image)
-		try() //adjust the resuolution only if it was provided.
-			Set(images[field][stack][chan].ImageResolutionX@um=images[field][stack][chan].ImageResolutionX@um*binning)
-			Set(images[field][stack][chan].ImageResolutionY@um=images[field][stack][chan].ImageResolutionY@um*binning)
-		catch_error()
-		end()
+	foreach(0..images[field].length-1, "stack")
+		foreach(0..images[field][stack].length-1,"chan")
+			Binning(binning,binning,method="mean",image=images[field][stack][chan].image)
+			Set(images[field][stack][chan].image=image)
+			try() //adjust the resuolution only if it was provided.
+				Set(images[field][stack][chan].ImageResolutionX@um=images[field][stack][chan].ImageResolutionX@um*binning)
+				Set(images[field][stack][chan].ImageResolutionY@um=images[field][stack][chan].ImageResolutionY@um*binning)
+			catch_error()
+			end()
 
-		Delete(image)
+			Delete(image)
+		end()
 	end()
-end()
 end()
 }
 
@@ -303,39 +216,39 @@ proc decimateImages(
 	Integer toKeep=1 in "Integer indicating the index of the dimension to keep"
 ) Image Manipulation "This procedure will keep only the selected image amongst all of the stacks of fields."
 {
-	set(toKeep=toKeep-1)
-	if(dimension2Decimate!="field" &&dimension2Decimate!="stack" )
-		error("the only value accepted for dimension2Decimate are \"field\" and \"stack\"")
-	end()
-	set(dim=iif(dimension2Decimate=="field","F","Z"))
-	if(toKeep<0)
-		error("The data to keep can only point to a stack or field that is above 0")
-	end()
-	if(toKeep>expInfo["total"&dim]-1)
-		error("The data to keep can only point to a stack or field that exist (ie. bellow the total number of fields or stacks present)")
-	end()
-	foreach(0..expInfo["total"&dim]-1,dimension2Decimate)
-	foreach(0..expInfo["total"&iif(dimension2Decimate=="field","Z","F")]-1, iif(dimension2Decimate=="field","stack","field"))
-			if(defined("images.F"&toKeep&".Z"&stack))
-			if(dimension2Decimate!="field"&stack==0)
-				set(images["F"&field].Z0=images["F"&field]["Z"&toKeep])
+set(toKeep=toKeep-1)
+if(dimension2Decimate!="field" &&dimension2Decimate!="stack" )
+	error("the only value accepted for dimension2Decimate are \"field\" and \"stack\"")
+end()
+set(dim=iif(dimension2Decimate=="field","F","Z"))
+if(toKeep<0)
+	error("The data to keep can only point to a stack or field that is above 0")
+end()
+if(toKeep>expInfo["total"&dim]-1)
+	error("The data to keep can only point to a stack or field that exist (ie. bellow the total number of fields or stacks present)")
+end()
+foreach(0..expInfo["total"&dim]-1,dimension2Decimate)
+foreach(0..expInfo["total"&iif(dimension2Decimate=="field","Z","F")]-1, iif(dimension2Decimate=="field","stack","field"))
+		if(defined("images.F"&toKeep&".Z"&stack))
+		if(dimension2Decimate!="field"&stack==0)
+			set(images["F"&field].Z0=images["F"&field]["Z"&toKeep])
+		else()
+			if(dimension2Decimate=="field"&field==0)
+				set(images.F0["Z"&stack]=images["F"&toKeep]["Z"&stack])
 			else()
-				if(dimension2Decimate=="field"&field==0)
-					set(images.F0["Z"&stack]=images["F"&toKeep]["Z"&stack])
-				else()
-					delete(images["F"&field]["Z"&stack])
-				end()
+				delete(images["F"&field]["Z"&stack])
 			end()
-			end()
-	end()
-	end()
+		end()
+		end()
+end()
+end()
 
-	set(expInfo["total"&dim]=1) //reset the number of fields or stacks
-	keep(expInfo,Images)
+set(expInfo["total"&dim]=1) //reset the number of fields or stacks
+keep(expInfo,Images)
 }
 
 //Group all of the images into one folder with the strcutue images[field][channel][z-section]
-proc imagesInitV2(
+proc ImagesInit(
 	//INPUT
 	Int minIntensity=0 in "minimum intensity of any images to be define",
 	//OUTPUT
@@ -345,59 +258,59 @@ proc imagesInitV2(
 
 ) Image Manipulation "This procedure returns an organized structure containing the images. Use it as a replacement of the singlewell procedure. It will not work for time-series"
 {
-	singlewell(compact=true)
-	getWellInfoV2()
-	set(images=vec())
-	foreach(0..sourcedataProp.totalF-1, "field")
-		set(fieldIndex=field*sourcedataProp.totalZ*sourcedataProp.totalC)
-		set(zTemp=vec())
-		foreach(0..sourcedataProp.totalZ-1, "stack")
-			set(stackIndex=fieldIndex+stack*sourcedataProp.totalC)
-			set(infocus=true)
-			set(cTemp=vec())
-			foreach(0..sourcedataProp.totalC-1,"chan")
-				 set(chanIndex=stackIndex+chan)
-				if(defined("image")&infocus)
-					set(image=sourceData.sourceImage[chanIndex])
-					if(image.max > minIntensity) //only keep the images above a given threshold
-						set(temp=cnt())
-						set(temp.image=image)
-						foreach(sourceData.columns,"key")
-							if(key!="sourceImage" && key!="Name"&&key!="Channel")
-								//added to fix Acapella bug in extracting resolution information
-								//if(at("resolution",key,1)>0)
-								//	Set(magnification =1*RegexReplace(SourceData.ObjectiveRef[0],"^(\d{1,2}).*$","\1").text)
-								//	set(temp[key]=(SourceData.CameraBinningX[0]/1352)*(444*20)/magnification) //At binning 1 the image size is ~1352 pixel wide and at 20x the field size is about 444um =>0.33µm/pix
-								//	continue()
-								//end()
-								Set(temp[key]=sourceData[key][chanIndex])
-							else()
-								RegexReplace(sourceData.Name[chanIndex],"[0-9]*_","",first_only=true)
-								set(temp.Name=text) //contains the channel name  Chan1_Exp1
-								set(temp.Desc=text) //Initiate the description to be the same as the name
-								set(temp.Purpose=vec())//initiate image purpose, typically it is a vector of string contaning: "marker", "nucDetection", "cytoDetection"...
-								set(temp.Chan=sourceData.channel[chanIndex])
-							end()
+singlewell(compact=true)
+GetWellInfo()
+set(images=vec())
+foreach(0..sourcedataProp.totalF-1, "field")
+	set(fieldIndex=field*sourcedataProp.totalZ*sourcedataProp.totalC)
+	set(zTemp=vec())
+	foreach(0..sourcedataProp.totalZ-1, "stack")
+		set(stackIndex=fieldIndex+stack*sourcedataProp.totalC)
+		set(infocus=true)
+		set(cTemp=vec())
+		foreach(0..sourcedataProp.totalC-1,"chan")
+			 set(chanIndex=stackIndex+chan)
+			if(defined("image")&infocus)
+				set(image=sourceData.sourceImage[chanIndex])
+				if(image.max > minIntensity) //only keep the images above a given threshold
+					set(temp=cnt())
+					set(temp.image=image)
+					foreach(sourceData.columns,"key")
+						if(key!="sourceImage" && key!="Name"&&key!="Channel")
+							//added to fix Acapella bug in extracting resolution information
+							//if(at("resolution",key,1)>0)
+							//	Set(magnification =1*RegexReplace(SourceData.ObjectiveRef[0],"^(\d{1,2}).*$","\1").text)
+							//	set(temp[key]=(SourceData.CameraBinningX[0]/1352)*(444*20)/magnification) //At binning 1 the image size is ~1352 pixel wide and at 20x the field size is about 444um =>0.33µm/pix
+							//	continue()
+							//end()
+							Set(temp[key]=sourceData[key][chanIndex])
+						else()
+							RegexReplace(sourceData.Name[chanIndex],"[0-9]*_","",first_only=true)
+							set(temp.Name=text) //contains the channel name  Chan1_Exp1
+							set(temp.Desc=text) //Initiate the description to be the same as the name
+							set(temp.Purpose=vec())//initiate image purpose, typically it is a vector of string contaning: "marker", "nucDetection", "cytoDetection"...
+							set(temp.Chan=sourceData.channel[chanIndex])
 						end()
-						push(cTemp,temp)
-					else()
-						set(infocus=false)
-						Break()
 					end()
+					push(cTemp,temp)
 				else()
 					set(infocus=false)
 					Break()
 				end()
-			end()
-			if(infocus) //keep only full Z-Sections
-				push(zTemp,ctemp)
+			else()
+				set(infocus=false)
+				Break()
 			end()
 		end()
-		if(zTemp.length>0)
-			push(images,zTemp)
+		if(infocus) //keep only full Z-Sections
+			push(zTemp,ctemp)
 		end()
 	end()
-	delete(sourcedata.SourceImage)
+	if(zTemp.length>0)
+		push(images,zTemp)
+	end()
+end()
+delete(sourcedata.SourceImage)
 }
 
 proc chanAttrib(
@@ -405,54 +318,54 @@ proc chanAttrib(
 	memblock images inout "Memblock containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number",
 ) Experiment Info Parser "This procedure will add to each images the description of the channel, the min value of the channel etc.."
 {
-	create("vector", 0, chanInfo.name.length, -1)
-	set(chanInfo.number=vector)
-	delete(vector)
+create("vector", 0, chanInfo.name.length, -1)
+set(chanInfo.number=vector)
+delete(vector)
 
-	if(images.length>0)
-		foreach(0..chanInfo.name.length-1,"chanInfoIndex")
-			if(at(chanInfo.name[chanInfoIndex],"NA",1)>0)
+if(images.length>0)
+	foreach(0..chanInfo.name.length-1,"chanInfoIndex")
+		if(at(chanInfo.name[chanInfoIndex],"NA",1)>0)
+			Set(chanInfoFound=true)
+			continue()
+		end()
+		Set(ChanInfoFound=false)
+		foreach(0..images.length-1, "field")
+		foreach(0..images[field].length-1, "stack")
+		foreach(0..images[field][stack].length-1,"chan")
+			if(at(images[field][stack][chan].name,chanInfo.name[chanInfoIndex],1)>0)
 				Set(chanInfoFound=true)
-				continue()
-			end()
-			Set(ChanInfoFound=false)
-			foreach(0..images.length-1, "field")
-			foreach(0..images[field].length-1, "stack")
-			foreach(0..images[field][stack].length-1,"chan")
-				if(at(images[field][stack][chan].name,chanInfo.name[chanInfoIndex],1)>0)
-					Set(chanInfoFound=true)
-					set(chanInfo.number[chanInfoIndex]=chan)
-					Foreach(0..chanInfo.length-1)
-						Set(columnName=chanInfo.@columns[i])
-						if(columnName!="name" && columnName!="number")
-							if(columnName=="purpose")
-								push(images[field][stack][chan][columnName],chanInfo[columnName][chanInfoIndex])
-								continue()
-							end()
-							if(columnName=="desc")
-								regexReplace(chanInfo.desc[chanInfoIndex],"[_~\-]","|") //do not allow SomeSpecialCaracters '_' '-' '~'
-								quote(text,"Name")
-								set(images[field][stack][chan].desc=RegexReplace(quoted,"@","",first_Only=true).text)
-								continue()
-							end()
-							if(columnName=="min"&&defined("images[field][stack][chan][columnName]"))
-								Set(newValue=chanInfo[columnName][chanInfoIndex],CurrentVal=images[field][stack][chan][columnName])
-								set(images[field][stack][chan][columnName]=iif(CurrentVal>newValue,CurrentVal,newValue))
-								Delete(newValue,CurrentVal)
-								continue()
-							end()
-							set(images[field][stack][chan][columnName]=chanInfo[columnName][chanInfoIndex])
+				set(chanInfo.number[chanInfoIndex]=chan)
+				Foreach(0..chanInfo.length-1)
+					Set(columnName=chanInfo.@columns[i])
+					if(columnName!="name" && columnName!="number")
+						if(columnName=="purpose")
+							push(images[field][stack][chan][columnName],chanInfo[columnName][chanInfoIndex])
+							continue()
 						end()
+						if(columnName=="desc")
+							regexReplace(chanInfo.desc[chanInfoIndex],"[_~\-]","|") //do not allow SomeSpecialCaracters '_' '-' '~'
+							quote(text,"Name")
+							set(images[field][stack][chan].desc=RegexReplace(quoted,"@","",first_Only=true).text)
+							continue()
+						end()
+						if(columnName=="min"&&defined("images[field][stack][chan][columnName]"))
+							Set(newValue=chanInfo[columnName][chanInfoIndex],CurrentVal=images[field][stack][chan][columnName])
+							set(images[field][stack][chan][columnName]=iif(CurrentVal>newValue,CurrentVal,newValue))
+							Delete(newValue,CurrentVal)
+							continue()
+						end()
+						set(images[field][stack][chan][columnName]=chanInfo[columnName][chanInfoIndex])
 					end()
 				end()
 			end()
-			end()
-			end()
-			if(Not(chanInfoFound))
-				Error("The current script parameters are invalid. You are refering to a non existing channel: "&chanInfo.name[chanInfoIndex]&".")
-			end()
+		end()
+		end()
+		end()
+		if(Not(chanInfoFound))
+			Error("The current script parameters are invalid. You are refering to a non existing channel: "&chanInfo.name[chanInfoIndex]&".")
 		end()
 	end()
+end()
 }
 
 proc findChanNum(
@@ -463,60 +376,60 @@ proc findChanNum(
 	Vector indexList out "Vector containing the list of channels which matches this querry. If no channel correspond to the querry an empty vector is returned.",
 ) Experiment Info Parser "This procedure will retrieve the list of channels that satisfy the querry. For instance, one can querry the list of channels that correspond to a \"marker\"."
 {
-	set(indexList=vec())
-	foreach(0..images.length-1, "chan")
-		if(typeOf(images[chan][property])!="memblock")
-			if((at(item,images[chan][property],1)>0&&partialMatch)||images[chan][property]==item)
-				push(indexList,chan)
-			end()
-			continue()
+set(indexList=vec())
+foreach(0..images.length-1, "chan")
+	if(typeOf(images[chan][property])!="memblock")
+		if((at(item,images[chan][property],1)>0&&partialMatch)||images[chan][property]==item)
+			push(indexList,chan)
 		end()
-		if(images[chan][property].class=="vector")
-			if(searchElem(item=item, vector=images[chan][property]).pos>=0)
-				push(indexList,chan)
-			end()
-			continue()
-		end()
+		continue()
 	end()
+	if(images[chan][property].class=="vector")
+		if(searchElem(item=item, vector=images[chan][property]).pos>=0)
+			push(indexList,chan)
+		end()
+		continue()
+	end()
+end()
 }
 
 proc autoContrast(
 	image image inout "image which you wish to have contrasted",
 	string method="percentile" in "Set black at the botom 50 percentile and white at the tope 5 percentile",
-	double bot=5 in  "Used with these methods: \"percentile\". Use this cut-off to set the pixels represented as black. For quantiles, provide the percentage (50=median).",	
+	double bot=5 in  "Used with these methods: \"percentile\". Use this cut-off to set the pixels represented as black. For quantiles, provide the percentage (50=median).",
 	double top=95 in "Used with these methods: \"percentile\". Use this cut-off to set the pixels represented as white. For quantiles, provide the percentage (50=median)",
 )Image Manipulation "This procedure returns a normalized set of images."
 {
 
-	Set(image.factor=1)
-	set(bpp=image.bpp)
-	if(method=="percentile")
-		Set(top=quantile(dataset=image,alpha=top/100).quantile)
-		Set(bot=quantile(dataset=image,alpha=bot/100).quantile)
-	end()
-	set(image=(image-bot)*((2^bpp-1)/(top-bot)))
-	//set negative values to 0
-	Rangemap(-inf,0,0,0)
-	Rangemap(2^bpp-1,inf,2^bpp-1,2^bpp-1)
-	convert(bpp)
-	//Make sure that the factor remains 1
-	Set(image.factor=1)
+Set(image.factor=1)
+set(bpp=image.bpp)
+if(method=="percentile")
+	Set(top=quantile(dataset=image,alpha=top/100).quantile)
+	Set(bot=quantile(dataset=image,alpha=bot/100).quantile)
+end()
+set(image=(image-bot)*((2^bpp-1)/(top-bot)))
+//set negative values to 0
+Rangemap(-inf,0,0,0)
+Rangemap(2^bpp-1,inf,2^bpp-1,2^bpp-1)
+convert(bpp)
+//Make sure that the factor remains 1
+Set(image.factor=1)
 }
 
 proc keepNImages(
 	int n explicit in "number of images that should be kept. If n is bellow1, one image is retained, if n is above the number of images all images are retained.",
-	vector images inout "Vector of images obtained via imagesInitV2() that is trimmed to keep N images selected randomly",
+	vector images inout "Vector of images obtained via ImagesInit() that is trimmed to keep N images selected randomly",
 	boolean randomize=false in "Indicate whether the images should be randomized or not. If not randomized only the first N images are kept.",
-) Image Manipulation "This procedure will only keep a certain number of images selected randomly from the set of images provided. This set of images should have the same structure as the structure outputed by imagesInitV2()."
+) Image Manipulation "This procedure will only keep a certain number of images selected randomly from the set of images provided. This set of images should have the same structure as the structure outputed by ImagesInit()."
 {
-	Set(n=iif(n<1,1,n))
-	if(n>=images.length)
-		return()
-	end()
-	//make n the number of images to remove
-	Set(n=images.length-1-n)
-	foreach(0..n,"index")
-		Set(indexToRemove=iif(randomize, round((images.length-1)*rnd()),images.length-1))
-		pop(images,pos=indexToRemove)
-	end()	
+Set(n=iif(n<1,1,n))
+if(n>=images.length)
+	return()
+end()
+//make n the number of images to remove
+Set(n=images.length-1-n)
+foreach(0..n,"index")
+	Set(indexToRemove=iif(randomize, round((images.length-1)*rnd()),images.length-1))
+	pop(images,pos=indexToRemove)
+end()
 }

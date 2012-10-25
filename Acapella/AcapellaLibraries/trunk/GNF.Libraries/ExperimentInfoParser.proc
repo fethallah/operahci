@@ -311,57 +311,6 @@ proc getNumStack(
 
 
 
-proc getWellInfo(
-	container _ in,
-	//OUTPUT
-	memblock wellInfo out "Memblock containg the following informations: WellIndex, Filename, BarCode name, name of the Measurment folder, Name of the directory conating the file, name of the directory containing all of the data for the plate, Meas=Name of the measurment and MeasNum=number of the measurment"
-) Experiment Info Parser "This procedure should be launched before the loading images via the function Single() well for instance. This procedure will return info about the current experiment in particular regarding the Well index and the name fo the file analyzed"
-{
-
-	// creates an empty memblock to use for subkeys creations
-	//if(defined("filename"))
-	//if(defined("wellindex_restored"))
-	try()
-		rename(wellIndex=wellindex_restored)
-		rename(filename=filename_restored)
-		Output(filename,"filename")
-		set(start=at("/",filename,-3))
-		set(mid=at("/",filename,-2))
-		set(end=at("/",filename,-1))
-		if(start >0)
-			set(BarCode=substr(filename, start+1,mid-start-1))
-			set(MeasFolder=substr(filename, mid+1,end-mid-1))
-			set(fileDir=substr(filename,1,end))
-			set(plateDir=substr(filename,1,mid))
-		else()
-			error("invalid bar code and/or measurment, filename="&filename)
-		end()
-		set(end=at("(",MeasFolder,1)-1)
-		set(Meas=iif(end>0,substr(MeasFolder,1,end),MeasFolder))
-
-		set(start=at("Meas_",Meas,1)+5)
-		set(MeasNum=1*substr(Meas,start,2))
-		delete(start)
-	//else()
-	catch_error()
-		set(fileDir="C:\\Opera\\Temp\\")
-		set(plateDir="C:\\Opera\\Temp\\")
-		set(BarCode="null")
-		set(Meas="null")
-		set(MeasNum=0)
-	end()
-	//if(Meas!="null")
-
-	//else()
-	//end()
-
-	Pack(wellInfo,*)
-}
-
-
-
-
-
 //************************************************************************************************************************
 // procedures to extract info from the MEA or EXP files
 // Note these procedures do not implement multiple sublayout or multiple exposure ers accross the plate!
@@ -545,7 +494,7 @@ proc getExpInfo(
 	end()
 }
 
-proc getWellInfoV2(
+proc GetWellInfo(
 	table SourceData inout "Container gerenated by the single well procedure in Evoshell >2.0",
 	container sourcedataprop inout "Container gerenated by the single well procedure in Evoshell >2.0. New parameters are added to it"
 
