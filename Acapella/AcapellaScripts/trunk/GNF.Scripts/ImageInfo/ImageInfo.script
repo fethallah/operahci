@@ -186,11 +186,11 @@ Proc dataOutput(container data in, container param in, vector images in){
 //#######################
 getChanInfo()
 ParamInit()
-imagesInitV2()
+ImagesInit()
 chanAttrib()
 set(param.chanInfo=chanInfo)
 if(param.ZStackProjectionType!="NA")
-	projectStacksV2(method=param.ZStackProjectionType)
+	ProjectsStacks(method=param.ZStackProjectionType)
 end()
 if(param.showIllustrations&&param.fieldSelected!=0)
 	set(param.fieldSelected=iif(param.fieldSelected<1,1,param.fieldSelected))

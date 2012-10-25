@@ -323,7 +323,7 @@ Proc dataOutput(container data in, Container sourcedataprop in, String statValue
 //#######################
 getChanInfo()
 ParamInit()
-imagesInitV2()
+ImagesInit()
 chanAttrib()
 set(param.chanInfo=chanInfo)
 if(param.showIllustrations&&param.fieldSelected!=0)

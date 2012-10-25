@@ -175,7 +175,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		set(Positive=cnt())
 		Foreach(0..images.length-1)
 			if(defined("images[i].purpose"))
-			if(searchElem("marker",images[i].purpose,0).pos>=0)
+			if(searchElem("marker",images[i].purpose).pos>=0)
 				set(feature="Body_"&images[i].desc)
 				set(objects=WholeCells)
 				if(cutOffType=="folds")
@@ -299,7 +299,7 @@ Proc dataOutput(container data in, Container sourcedataprop in, String statValue
 //#######################
 getChanInfo()
 ParamInit()
-imagesInitV2()
+ImagesInit()
 chanAttrib()
 
 set(param.chanInfo=chanInfo)

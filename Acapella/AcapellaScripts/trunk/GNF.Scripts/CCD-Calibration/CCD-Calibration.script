@@ -133,7 +133,7 @@ proc dataOutput(int data in, memblock images in){
 //#######################
 // Program Start
 //#######################
-imagesInitV2()
+ImagesInit()
 
 
 

@@ -295,7 +295,7 @@ Proc dataOutput(container data in, Container sourcedataprop in, int statValue="m
 //#######################
 getChanInfo()
 ParamInit()
-imagesInitV2()
+ImagesInit()
 chanAttrib()
 
 set(param.chanInfo=chanInfo)
