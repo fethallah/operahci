@@ -26,8 +26,8 @@ import org.gnf.baseconverter.BaseConverterUtil;
  *
  */
 public class FileSeekerInCell {
-	private final static String nameFilter = "([^/_]+)_([^/_]+)_(\\\\d+)[/])?(([A-Z]+) - (\\\\d+)\\\\((.+?)\\\\)";
-	private final static String[] EXTENSIONS = { "tiff", "tif" };
+	private final static String nameFilter = "(?:([^/_]+)_([^/_]+)_(\\d+)[/])?(([A-Z]+) - (\\d+)\\((.+?)\\))";
+	private final static String[] EXTENSIONS = { "tif", "tiff" };
 
 	public static Map<File, Vector<String>> getFilesToAnalyze(File path)
 			throws Exception {
@@ -65,9 +65,9 @@ public class FileSeekerInCell {
 			String wellID = getWellIndex(file);
 			if (wellID != null && !wellSet.contains(wellID)) {
 				wellSet.add(wellID);
-				if(isFirstFile) {
+				if (isFirstFile) {
 					copyScriptFiles(file);
-					isFirstFile=false;
+					isFirstFile = false;
 				}
 			}
 		}
@@ -106,11 +106,11 @@ public class FileSeekerInCell {
 		Matcher matcher = pattern.matcher(file.getName());
 		boolean matchFound = matcher.find();
 		if (matchFound) {
-			String row = matcher.group(4);
+			String row = matcher.group(5);
 			int row_n = row.length() > 1 ? 26 : 0;
 			row_n += BaseConverterUtil.fromBase26(""
 					+ row.charAt(row.length() - 1)) + 1;
-			int col = Integer.valueOf(matcher.group(5));
+			int col = Integer.valueOf(matcher.group(6));
 			String wellID = String.format("$1%03d$2%03d000", row_n, col);
 			return wellID;
 

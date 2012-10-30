@@ -90,7 +90,7 @@ public class AcapellaScheduler {
 		value = (String) parser.getOptionValue(scriptFileName, "");
 		if (value.isEmpty())
 			error(new Exception(
-					"You must provide a script for the analysis. See usage:\r\n\r\n"),
+					"You must provide a script for the analysis. See usage:"),
 					true);
 		setScriptFile(new File(value));
 		if (!getScriptFile().exists())
@@ -102,7 +102,7 @@ public class AcapellaScheduler {
 		setResultPath(new File(value));
 		if (!getResultPath().isDirectory())
 			error(new Exception("The path provided to store the results:"
-					+ value + " is not a directory. See usage:\r\n\r\n"), true);
+					+ value + " is not a directory. See usage:"), true);
 		if (!getResultPath().exists())
 			getResultPath().mkdirs();
 
@@ -133,6 +133,9 @@ public class AcapellaScheduler {
 		setInstrument(value);
 
 		String[] values = parser.getRemainingArgs();
+		if (values.length == 0)
+			error(new Exception("You must provide the path to your images."),
+					true);
 		setImagesPath(new File(value = values[values.length - 1]));
 
 		setMaxBatchSize((Integer) parser.getOptionValue(batchSize, 50));
@@ -308,7 +311,7 @@ public class AcapellaScheduler {
 						+ "\r\n\t[{-O,--overWrite}]: If this flag is set, the errors and data files will be over-written if they already exist."
 						+ "\r\n\t[{-m,--wellMask}]: Mask used to define the subset of images to analyze within the directory provided. This value can be a comma delimited list of wells, a range of wells. \"*\" wildcard is allowed. (Optional, default= \"*\")."
 						+ "\r\n\t[{-b,--batchSize}]: Maximum number of files analyzed by one Acapella thread. Using \"0\" means that the batch size is not limited (Optional, default= 0)."
-						+ "\r\n\t[{-h,--separateHeader}]: If this flag is set, the data files will not contain an header. The header will be stored in a separate file. Note that if the -O (overwrite) flag is not set and that you choose to have the header file embeded in the data file, you this method may not be distributed on a cluster correctly."
+						+ "\r\n\t[{-h,--separateHeader}]: If this flag is set, the data files will not contain an header. The header will be stored in a separate file. Note that if the -O (overwrite) flag is not set and that you choose to have the header file embeded in the data file. This method may not be distributed on a cluster correctly."
 						+ "\r\n\t[{-t, --threads}]: Maximum Number of threads used to analyze your data. To let the system automatically detect this use \"-t 0\" (Optional, default= 1)."
 						+ "\r\n\t[Path to Your images]: The final argument should be the path to the images you wish to analyze.");
 	}
@@ -462,7 +465,6 @@ public class AcapellaScheduler {
 	public static void setImagesPath(File imagesPath) {
 		AcapellaScheduler.imagesPath = imagesPath;
 	}
-
 
 	/**
 	 * @param wellMask

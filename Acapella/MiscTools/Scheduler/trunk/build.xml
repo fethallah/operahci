@@ -57,8 +57,6 @@
 
 	<target name="init">
 		<!-- depends="svn-info"> -->
-		<!-- Create the build directory structure used by compile -->
-		<mkdir dir="${bin}" />
 	</target>
 
 	<!--
@@ -68,24 +66,9 @@
 	</target>
 -->
 
-	<target name="compile" depends="init" description="compile the source ">
-		<!-- Compile the java code from ${src} into ${bin} -->
-		<echo>Compiling Start...</echo>
-		<javac srcdir="${src}"
-		       destdir="${bin}"
-		       debug="on"
-		       optimize="on"
-		       compiler="javac${jre}"
-		       source="${jre}"
-		       target="${jre}"
-		>
 
-		</javac>
 
-		<echo>Compiling Done...</echo>
-	</target>
-
-	<target name="makejar" depends="compile" description="Create the Jar file">
+	<target name="makejar" depends="init" description="Create the Jar file">
 		<!--depends="compile" -->
 		<mkdir dir="${base.dir}" />
 		<copy todir="${bin}/resources">
