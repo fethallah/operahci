@@ -125,7 +125,7 @@ void CalcCorrelation::Run() {
 
 	for(double i = 1; i < size; i++){
 		sweep =  i / (i + 1.0);
-		delta_x =  factorX*valX[(int)i] - mean_x; 
+		delta_x =  factorX*valX[(int)i] - mean_x;
 		delta_y =  factorY*valY[(int)i] - mean_y;
 		sum_sq_x =  sum_sq_x + delta_x * delta_x * sweep;
 		sum_sq_y =  sum_sq_y + delta_y * delta_y * sweep;
@@ -147,7 +147,7 @@ private: // implementation
 	BinData() {}
 	virtual void Declare();
 	virtual void Run();
-	
+
 	PVector cummultatedBinning(PVector data, PVector boundaries);
 private: // module parameters
 	const PVector data;
@@ -183,21 +183,21 @@ void BinData::Run() {
 	PVector dataClone = data->Clone();
 	PVector boundariesClone= boundaries->Clone();
 
-	
+
 
 
 	Vector::DataType type;
 	type = dataClone->ElemType();
-	if (type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt) 
+	if (type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt)
 		throw NIMacro::Exception(ERR_BADPARAMETERS,"\"Data\" must be a vector of numbers (Int, Unsigned int, Float or Double).");
 	type = boundariesClone->ElemType();
-	if(type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt) 
+	if(type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt)
 		throw NIMacro::Exception(ERR_BADPARAMETERS,"\"Boundaries\" must be a vector of numbers (Int, Unsigned int, Float or Double).");
 
 	boundariesClone=BinData::sortNumberVector(boundariesClone);
 	boundariesName =  Vector::Create(boundariesClone->Length()+1,Vector::String);
 	safestring* boundariesNameValues = boundariesName->StringPointer();
-	
+
 
 	safestring start = "X<=";
 	safestring end = "<X";
@@ -220,7 +220,7 @@ void BinData::Run() {
 		boundariesNameValues[i]+=Printf(dataTypePrint)(boundariesCloneValuesDbl[i]);
 	}
 
-	
+
 
 
 	biningData = Vector::Create(boundariesClone->Length()+1,Vector::UnsignedInt);
@@ -229,7 +229,7 @@ void BinData::Run() {
 		return;
 	}
 	//dataClone=dataClone->ConvertElemsToType(Vector::Double);
-	dataClone=BinData::sortNumberVector(dataClone);	
+	dataClone=BinData::sortNumberVector(dataClone);
 	boundariesClone = BinData::cummultatedBinning(dataClone, boundariesClone);
 
 	int* boundariesCloneValues=boundariesClone->IntPointer();
@@ -238,16 +238,16 @@ void BinData::Run() {
 	biningDataValues[boundaries->Length()]=dataClone->Length()-boundariesCloneValues[boundaries->Length()-1];
 	for(int i=1;i<(int) boundaries->Length();i++){
 		biningDataValues[i]=boundariesCloneValues[i]-boundariesCloneValues[i-1];
-	}	
+	}
 }
 
 PVector BinData::cummultatedBinning(PVector data, PVector boundaries){
 
 	boundaries= boundaries->ConvertElemsToType(Vector::Double);
-	double* boundariesValues = boundaries->DoublePointer();	
+	double* boundariesValues = boundaries->DoublePointer();
 	PVector cummultatedData = Vector::Create(boundaries->Length(),Vector::Int);
 	int* cummulatedValues = cummultatedData->IntPointer();
-	
+
 
 	data=data->ConvertElemsToType(Vector::Double);
 	double* dataValues = data->DoublePointer();
@@ -269,25 +269,25 @@ PVector BinData::cummultatedBinning(PVector data, PVector boundaries){
 }
 
 PVector BinData::sortNumberVector(PVector values){
-		Vector::DataType type=values->ElemType();
-		switch(values->ElemType()){
-		case Vector::Int:
-			std::sort(values->IntPointer(),values->IntPointer()+values->Length());
-			break;	
-		case Vector::UnsignedInt:
-			std::sort(values->UnsignedIntPointer(),values->UnsignedIntPointer()+values->Length());
-			break;
-		case Vector::Double:
-			std::sort(values->DoublePointer(),values->DoublePointer()+values->Length());
-			break;
-		case Vector::Float:
-			std::sort(values->FloatPointer(),values->FloatPointer()+values->Length());
-			break;
-		default:
-			throw NIMacro::Exception(ERR_BADPARAMETERS,"vector is not supported for sorting. Supported types are vectors of numbers: (Int, Unsigned int, Float or Double).");
-		}
-		return values;
+//Vector::DataType type=values->ElemType();
+	switch(values->ElemType()){
+	case Vector::Int:
+		std::sort(values->IntPointer(),values->IntPointer()+values->Length());
+		break;
+	case Vector::UnsignedInt:
+		std::sort(values->UnsignedIntPointer(),values->UnsignedIntPointer()+values->Length());
+		break;
+	case Vector::Double:
+		std::sort(values->DoublePointer(),values->DoublePointer()+values->Length());
+		break;
+	case Vector::Float:
+		std::sort(values->FloatPointer(),values->FloatPointer()+values->Length());
+		break;
+	default:
+		throw NIMacro::Exception(ERR_BADPARAMETERS,"vector is not supported for sorting. Supported types are vectors of numbers: (Int, Unsigned int, Float or Double).");
 	}
+	return values;
+}
 
 
 class FindPercentileValues: public Mod {
@@ -336,21 +336,21 @@ void FindPercentileValues::Run() {
 		boundariesClone = Vector::Create(sizeof(array) /sizeof(array[0]) ,Vector::Double);
 		std::copy(array, array + sizeof(array)/sizeof(array[0]), boundariesClone->DoublePointer());
 	}
-	
+
 	if(boundariesClone->Length()<1){
 		throw NIMacro::Exception(ERR_BADPARAMETERS,"The vector containing the boundaries should have more than one value.");
 	}
 
 	Vector::DataType type= dataClone->ElemType();
-	if (type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt) 
+	if (type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt)
 		throw NIMacro::Exception(ERR_BADPARAMETERS,"\"Data\" must be a vector of numbers (Int, Unsigned int, Float or Double).");
 	type = boundariesClone->ElemType();
-	if(type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt) 
+	if(type!=Vector::Int && type!=Vector::Double && type!=Vector::Float && type!=Vector::UnsignedInt)
 		throw NIMacro::Exception(ERR_BADPARAMETERS,"\"Percentiles\" must be a vector of numbers (Int, Unsigned int, Float or Double).");
 
 
 	boundariesClone=BinData::sortNumberVector(boundariesClone);
-	
+
 
 
 	percentileData = Vector::Create(boundariesClone->Length(),Vector::UnsignedInt);
@@ -358,7 +358,7 @@ void FindPercentileValues::Run() {
 		Warning(WARN_SUSPICIOUS_PARAMETERS,"\"data\" does not contain any elements, the binning data values returned are all 0");
 		return;
 	}
-	dataClone=BinData::sortNumberVector(dataClone);	
+	dataClone=BinData::sortNumberVector(dataClone);
 
 	percentileData = FindPercentileValues::getBoundaries(dataClone, boundariesClone);
 	//percentileData=percentileData->ConvertElemsToType(data->ElemType());
@@ -369,7 +369,7 @@ PVector FindPercentileValues::getBoundaries(PVector data, PVector boundaries){
 
 
 	boundaries= boundaries->ConvertElemsToType(Vector::Double);
-	double* boundariesValues = boundaries->DoublePointer();	
+	double* boundariesValues = boundaries->DoublePointer();
 	PVector boundariesData = Vector::Create(boundaries->Length(),Vector::Double);
 	double* boundariesDataValues = boundariesData->DoublePointer();
 
@@ -427,7 +427,7 @@ void pairWiseDistance::Declare() {
 }
 
 void pairWiseDistance::Run() {
-	
+
 	if(xCoord->Length()!=yCoord->Length())
 		throw NIMacro::Exception(ERR_BADPARAMETERS,"\"X\" and \"Y\" must have the same length.");
 	const double* xCoordVal=xCoord->DoublePointer();
@@ -458,7 +458,7 @@ void pairWiseDistance::Run() {
 
 			if(shortestDistanceValues[i]==0){ //only modify values that have not been set yet
 				shortestDistanceValues[i]=shortestDist;
-				shortestDistanceValues[shortestDistIndex]=shortestDist;	
+				shortestDistanceValues[shortestDistIndex]=shortestDist;
 			}
 			fillIndex++;
 		}

@@ -197,9 +197,9 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 			height, std::vector<char>(width, 0));
 
 	//Draw the objects into a table using the coordinate list
-	for (int i = 0; i < objectSize; i++) 
+	for (int i = 0; i < objectSize; i++)
 		bitmap[coordinatesYValues[i] - yMin][coordinatesXValues[i] - xMin] = 1;
-	
+
 
 	int xIni = 0, yIni = 0; //yIni = height - 1;
 	//Find the first point to initialize contour tracing
@@ -260,16 +260,16 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 		dirNew = (dirNew + 1) % 8;
 
 		//handle cases of single points Maximum number of value is 8 (0..7).
-		if (connectorLoopNum > 7) 
+		if (connectorLoopNum > 7)
 			break;
-		
+
 		//increase the number of loop that was done over the connectorCode. Maximum number of value is 8 (0..7).
 		connectorLoopNum++;
 	}
 
-	for (int i = 0; i < (int) polygonXList.size(); i++) 
+	for (int i = 0; i < (int) polygonXList.size(); i++)
 		coordinates << (polygonXList[i] + xMin) << ";" << (polygonYList[i] + yMin) << ",";
-	
+
 
 	polygonXList.clear();
 	polygonYList.clear();

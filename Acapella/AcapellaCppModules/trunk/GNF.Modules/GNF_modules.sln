@@ -7,18 +7,23 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GNF_StatLibrary", "GNF_Stat
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Release|Win32 = Release|Win32
-		Release|x64 = Release|x64
+		v2.0|Win32 = v2.0|Win32
+		v2.0|x64 = v2.0|x64
+		v2.6|Win32 = v2.6|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.Release|Win32.ActiveCfg = release|Win32
-		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.Release|Win32.Build.0 = release|Win32
-		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.Release|x64.ActiveCfg = release|x64
-		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.Release|x64.Build.0 = release|x64
-		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.Release|Win32.ActiveCfg = Release|Win32
-		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.Release|Win32.Build.0 = Release|Win32
-		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.Release|x64.ActiveCfg = Release|x64
-		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.Release|x64.Build.0 = Release|x64
+		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.v2.0|Win32.ActiveCfg = v2.0|Win32
+		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.v2.0|Win32.Build.0 = v2.0|Win32
+		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.v2.6|Win32.ActiveCfg = v2.6|Win32
+		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.v2.6|Win32.Build.0 = v2.6|Win32
+		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.v2.6|x64.ActiveCfg = v2.6|x64
+		{F41E4C4A-98A0-44DF-89BC-BDB8A9E2A16A}.v2.6|x64.Build.0 = v2.6|x64
+		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.v2.0|Win32.ActiveCfg = v2.0|Win32
+		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.v2.0|Win32.Build.0 = v2.0|Win32
+		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.v2.6|Win32.ActiveCfg = v2.6|Win32
+		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.v2.6|Win32.Build.0 = v2.6|Win32
+		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.v2.6|x64.ActiveCfg = v2.6|x64
+		{A05A3C1E-AE4E-4443-AA42-3FC853AB6C47}.v2.6|x64.Build.0 = v2.6|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
