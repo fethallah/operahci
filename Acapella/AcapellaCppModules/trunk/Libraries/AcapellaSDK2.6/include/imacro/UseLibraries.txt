@@ -1,0 +1,88 @@
+#ifndef x_PERKINELMERCTG_ACAPELLA_IMACRO_USELIBRARIES_H_INCLUDED
+#define x_PERKINELMERCTG_ACAPELLA_IMACRO_USELIBRARIES_H_INCLUDED
+
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+#include <locale.h>
+#include <time.h>
+#include <ctype.h>
+
+#define DEFINE_IMACRO_SCOPELOCK_MACRO
+#include <acapellahttp/DI_acapellahttp.h>
+
+#ifdef ACAPELLA_PLATFORM_WINDOWS
+#	define WIN32_LEAN_AND_MEAN
+#	include <winsock2.h>	// required by Crypto50 library headers
+#	include <windows.h>
+#	include <io.h>
+#	include <shlobj.h>
+#	pragma warning(disable:4786)
+#endif
+
+#ifdef ACAPELLA_PLATFORM_POSIX
+#	define __USE_GNU 1	
+#	include <dlfcn.h> 
+#	include <sys/stat.h>
+#	include <sys/types.h>
+#	include <unistd.h>
+#	include <fcntl.h>
+#endif
+
+// include STL
+#include <map>
+#include <vector>
+#include <list>
+#include <limits>
+#include <set>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <typeinfo>
+#include <fstream>
+#include <memory>
+#include <utility>
+#include <stack>
+#include <exception>
+
+#include <ScopeGuard/ScopeGuard.h>
+
+// remove some Windows crap
+#undef max
+#undef min
+#undef small
+#undef S
+
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4251 4275)
+#endif
+
+#include <boost/thread/thread.hpp>
+#include <boost/thread/xtime.hpp>
+#include <acapellahttp/DI_acapellahttp.h>
+#include <boost/noncopyable.hpp>
+#include <boost/thread/tss.hpp>
+#include <boost/lexical_cast.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#include <XDongle/DI_XDongle.h>
+#include <tinyxml/DI_tinyxml.h>
+
+#endif
+*****************************************************************	
+You will find the Project of 'IMacro' in the folder:	    
+'                                                                  
+R:\EvoPro\IMacro
+'                                                                  
+'                                                                  
+Last build at:                                                     
+'                                                                  
+The current date is: 2012-08-07 
+Enter the new date: (yy-mm-dd) '                                                                  
+The current time is: 16:01:39,22
+Enter the new time: 
