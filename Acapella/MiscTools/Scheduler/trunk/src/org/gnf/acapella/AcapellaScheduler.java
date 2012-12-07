@@ -13,13 +13,13 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.gnf.IO.FileReader;
-import org.gnf.IO.FileSeekerInCell;
-import org.gnf.IO.FileSeekerOpera;
 import org.gnf.IO.FileWritter;
+import org.gnf.PlateStructure.PlatesInCell;
+import org.gnf.PlateStructure.PlatesOpera;
 
 /**
  * @author gbonamy
- * 
+ *
  */
 public class AcapellaScheduler {
 
@@ -185,11 +185,10 @@ public class AcapellaScheduler {
 
 		Map<File, Vector<String>> fileSet = null;
 		if (getInstrument().equals("opera"))
-			fileSet = FileSeekerOpera.getFilesToAnalyze(
-				getImagesPath(), wellMask);
+			fileSet = (new PlatesOpera(getImagesPath())).getWells(wellMask);
 		else if (getInstrument().equals("incell"))
-			fileSet = FileSeekerInCell.getFilesToAnalyze(getImagesPath(),
-					wellMask);
+			fileSet = (new PlatesInCell(getImagesPath()))
+					.getWells(wellMask);
 		else
 			error(new Exception(
 					String.format("The instrument selected is not valid.")),
@@ -258,6 +257,9 @@ public class AcapellaScheduler {
 						path, wellIndex, results, errors);
 				multiProcessor[processIndex].setName("AcapellaJob-"
 						+ processIndex);
+
+				// TODO: This needs to be altered to address multiple
+				// instruments!
 				multiProcessor[processIndex].setMeasID(path.getName());
 				multiProcessor[processIndex].setPlateID(path.getParentFile()
 						.getName());

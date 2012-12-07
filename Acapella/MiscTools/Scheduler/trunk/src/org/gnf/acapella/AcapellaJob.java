@@ -14,7 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.gnf.IO.RelativePath;
-import org.gnf.baseconverter.BaseConverterUtil;
+import org.gnf.Tools.BaseConverterUtil;
 
 /**
  * @author gbonamy

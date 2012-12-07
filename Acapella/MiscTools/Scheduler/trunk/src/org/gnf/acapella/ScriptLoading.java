@@ -11,6 +11,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.gnf.IO.FileReader;
 import org.gnf.IO.FileWritter;
+import org.gnf.IO.ResourcesResolver;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
@@ -124,19 +125,10 @@ public class ScriptLoading {
 	}
 
 	public File makeJobScript() throws IOException, URISyntaxException {
-		File resourcesLocs = new File(getClass().getProtectionDomain()
-				.getCodeSource().getLocation().toURI()).getParentFile();
-		resourcesLocs = new File(resourcesLocs, "Resources");
-		File prefixFile = new File(resourcesLocs, "ScriptPrefix");
-		File sufixFile = new File(resourcesLocs, "ScriptSuffix");
-		if (!prefixFile.canRead() || !sufixFile.canRead()) {
-			prefixFile = new File(getClass().getResource(
-					"/Resources/ScriptPrefix").getPath());
-			sufixFile = new File(getClass().getResource(
-					"/Resources/ScriptSuffix").getPath());
-		}
-		StringBuffer prefix = FileReader.readFile(prefixFile);
-		StringBuffer suffix = FileReader.readFile(sufixFile);
+		StringBuffer prefix = FileReader.readFile(ResourcesResolver
+				.getResourceFile("ScriptPrefix"));
+		StringBuffer suffix = FileReader.readFile(ResourcesResolver
+				.getResourceFile("ScriptSuffix"));
 		script.insert(0, prefix);
 		script.insert(0, parameters);
 		script.append(suffix);
