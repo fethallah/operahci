@@ -1,0 +1,34 @@
+proc row2num(
+	string row in "Row string to convert to numeric value",
+	int row_n out "Numeric row value"
+)"Converts row string to row number (starting at 1)"
+{
+	set(row_n=0)
+	if(row.length>2)
+		Error("The row: '"&row&"' is not valid.It be more than a 2 chararacter string.")
+	end()
+	if(row.length>1)
+		set(row=substr(row,2,1))
+		set(row_n=26)
+	end()
+	sprintf(row,"%a",row)
+	set(row_n=row_n+row-64)
+}
+
+proc row2str(
+	int row_n in "Numeric row value to convert",
+	String firstDoubleLetter="A" in "Indicate what first letter should be used for rows >26. Choose between 'A' or 'Z'",
+	int row out "Corresponding row string"
+)"Converts row number to row letters."
+{
+	if(firstDoubleLetter!="A" && firstDoubleLetter!="Z")
+		error("The first letter of a row that has an index >26, should be 'A' or 'Z'.")
+	end()
+	Push(LETTERS,"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z")
+	set(row="")
+	if(row_n>26)
+		set(row_n=row_n-26)
+		set(row=firstDoubleLetter)
+	end()
+	set(row=row&LETTERS[row_n-1])	
+}

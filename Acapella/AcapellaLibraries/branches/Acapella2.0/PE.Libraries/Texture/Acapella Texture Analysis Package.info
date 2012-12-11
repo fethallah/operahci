@@ -1,0 +1,16 @@
+[Common Values]
+APPTITLE=Acapella Texture Analysis Package
+PRODUCT_ID=2.0.0
+REPOSITORY= http://ge-ham-svr37/repos/evobase2005/Main/EvoPro/Acapella/TextureAnalysis/TextureAnalysis.wse$
+REVISON=17907
+Build=46419
+[Evotec Values]
+EVOHOMEDIR=C:\PerkinElmerCTG
+EVOBINDIR=C:\PerkinElmerCTG\Bin
+EVOAPPDIR=C:\PerkinElmerCTG\IMacro\StdLib\Texture
+EVODOCDIR=C:\PerkinElmerCTG\Doc
+BACKUPDIR=C:\PerkinElmerCTG\IMacro\StdLib\Texture\BACKUP
+[Application Values]
+CGROUPDIR=C:\ProgramData\Microsoft\Windows\Start Menu\Programs
+CDESKTOPDIR=C:\Users\Public\Desktop
+GROUP=C:\Users\gbonamy\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Evotec\Acapella Texture Analysis Package

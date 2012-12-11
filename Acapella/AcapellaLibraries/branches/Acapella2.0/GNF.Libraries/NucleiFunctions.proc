@@ -1,0 +1,242 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of procedures used to generate and work with Nuclei objectlist.
+//*
+//*********************************************************************************************
+
+proc autoNucleiAlgorithmSelection(
+	image reference in "Nuclei stained image with intensity information. Nuclei are detected by this image. Supported image types are: 8-bit and 16-bit.",
+
+	objectList nuclei out "Object list containing the best set of nuclei detected.",
+	vector scores out "Vector containing the score for the different algorithm studied and there names",
+	string selectedAlgorithm="" inout "String containing the name of the algorithm used for the detection",
+	double minNucIntensity=0 in "Minimum Intensity for a nucleus to be considered positive. Unit: Pixel Intensity. Adjust by illustration Nuclei.",
+
+	bool ShowIllustrations=YES in "YES- Output illustrations are depicted. No- Output illustrations are not shown.",
+	bool lowBitAnalysis=true in "True- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+
+)object recognition "Determine the best nuclear detection algorithm from an array of algorithms selected"
+{
+	input(NucleiDetectionAlgorithm, "A, C", "Comma separated names for the algorithm to use: Nuclei Detection", "s", "Nuclei: Specifies the nuclei detection algorithm from the ONDL. Supported algorithms for standard (20x) and large-scale (40x, 60x etc) images are A-H. For small-scale images (10x, 5x etc) the routines are \"A\",\"B\",\"C\" and \"I\". ")
+	RegexReplace(NucleiDetectionAlgorithm,"\s","")
+	SplitString(text,",")
+	rename(nucAlgorithmsNames=split)
+	input(MinimumNuclearArea, 70, "Minimum Nuclear Area: Nuclei Detection","i", "Nuclei: Minimum allowed area for nuclei, objects with area less than the limit are removed. Too small values of the parameter usually introduce errors. Unit: image pixel. Adjust by illustration Nuclei. Allowed range: 0..2000, step 1.")
+	input(ThresholdAdjustment, 1.5, "Threshold Adjustment: Nuclei Detection","d", "Nuclei: Threshold tuning for the initial thresholding of nuclei.  Low values shrink the mask and the high ones expand the mask. Adjust by illustration InitialMask. Allowed range: 0..3.0, step=0.1.")
+	input(MinimumNucleiDistance, 7.0, "Minimum Nuclei Distance: Nuclei Detection", "d", "Nuclei: Controls the splitting of the stuck nuclei and corresponds generally to minimum allowed distance between nuclei centers. Adjust by illustration Nuclei. The parameter is the input to the module maximums. Allowed range: 0..2000, step 1.")
+	input(NuclearSplittingAdjustment,7.0, "Nuclear Splitting Adjustment: Nuclei Detection", "d", "Nuclei: Controls splitting of stuck nuclei. With the lower values more objects are split. Adjust by illustration Nuclei. Parameter has only limited control other the splitting process. Adjust by illustration Nuclei. Allowed range: 1..200, step 0.5.")
+	input(IndividualThresholdAdjustment, 0.4,  "Individual Threshold Adjustment: Nuclei Detection", "d", "Nuclei: Controls the size (border position) of nuclei. With the higher values nuclei appear smaller and with the lower values larger. Adjust by illustration Nuclei. Allowed range: 0..1, step 0.1.")
+	input(MinimumNuclearContrast, 0.1, "Minimum Nuclear Contrast: Nuclei Detection", "d", "Nuclei: Minimum allowed contrast for nuclei, objects with contrast less than the limit are removed. Adjust by illustration LowContrastObjects and Nuclei. Allowed range: -1..1.0, step 0.1.")
+
+	autoNucleiAlgorithmSelection_inner()
+}
+
+
+proc autoNucleiAlgorithmSelection_inner(
+
+	image reference in "Nuclei stained image with intensity information. Nuclei are detected by this image. Supported image types are: 8-bit and 16-bit.",
+	vector nucAlgorithmsNames=vec("A","C") in "Vector containing the name of the algorithms to test",
+
+	objectList nuclei out "Object list containing the best set of nuclei detected.",
+	vector scores out "Vector containing the score for the different algorithm studied and there names. Supported algorithms for standard (20x) and large-scale (40x, 60x etc) images are A-H. For small-scale images (10x, 5x etc) the routines are \"A\",\"B\",\"C\" and \"I\".",
+	string selectedAlgorithm="" inout "String containing the name of the algorithm used for the detection",
+
+	bool ShowIllustrations=YES in "YES- Output illustrations are depicted. No- Output illustrations are not shown.",
+	double ThresholdAdjustment=1.5 in "Threshold tuning for the initial thresholding of nuclei. Low values shrink the mask and the high ones expand the mask. Adjust by illustration InitialMask.  Allowed range: 0..3.0.",
+	int MinimumNuclearArea=70 in "Minimum allowed area for nuclei, objects with area less than the limit are removed. Too small values of the parameter usually introduce errors. Unit: image pixel. Adjust by illustration Nuclei.",
+	double minNucIntensity=0 in "Minimum Intensity for a nucleus to be considered positive. Unit: Pixel Intensity. Adjust by illustration Nuclei.",
+	double IndividualThresholdAdjustment=0.4 in "Controls the size (border position) of nuclei. With the higher values nuclei  appear smaller and with the lower values larger. Adjust by illustration Nuclei.  Allowed range: 0..1.",
+	double MinimumNucleiDistance=7.0 in "Controls the splitting of the stuck nuclei and corresponds generally to minimum allowed distance between nuclei centers. Adjust by illustration Nuclei.  The parameter is the input to the module maximums.]",
+	double NuclearSplittingAdjustment=7.0 in "A tuning parameter for nuclei separation and splitting of stuck nuclei. With the lower values more objects are split but also a noise level is higher . Parameter has only limited control other the splitting proc ess. Adjust by illustration Nuclei.  Allowed range: 1..oo.",
+
+	bool AutomaticAlgorithmAdaptation=yes in "YES- Adapts the algorithm automatically to the given magnification and camera binning factor. NO- calls the standard routine for 20x images. In the both cases the input parameters are adapted according to magnification and binning factor.",
+	bool lowBitAnalysis=true in "True- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+	string ScanParameter="None" in "None- detection is carried out wih a single parameter set (standard evalution). Otherwise the selected parameter is scanned over the typical dynamic range and all detection results are sequantly depicted. It enables to find the proper input parameters."
+
+)object recognition "Determin the best nuclear detection algorithm from an array of algorithms selected"
+{
+	if(selectedAlgorithm!="")
+		set(nucAlgorithmsNames=vec(selectedAlgorithm))
+	end()
+	set(algorithms=vec("A","B","C","D","E","F","G","H"))
+	Foreach(0..nucAlgorithmsNames.length-1)
+		FindElem(nucAlgorithmsNames[i],algorithms)
+		if(pos==-1)
+			Error("The algorithm selected for the nuclei detection is invalid. Supported algorithms are \"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\" and \"H\".")
+		end()
+	end()
+	set(original=reference)
+	Remap(0,1,Nan,1,image=Reference|Reference=image)
+	if(lowBitAnalysis)
+		convert(1,image=reference|reference=image)
+		Remap(0,Reference.factor+1,0,1,image=Reference|Reference=image)
+	end()
+	Foreach(0..(nucAlgorithmsNames.length-1))
+		Nuclei_Detection_Select_inner(reference,NucleiDetectionAlgorithm=nucAlgorithmsNames[i],procedureNumber=" algorithm: "&nucAlgorithmsNames[i],ShowIllustrations=showIllustrations)
+		rename(objects = Nuclei)
+		CalcIntensity(Image=original)
+		ObjectFilter(Intensity > minNucIntensity)
+		ObjectFilter(area > 0)
+		if(objects.count>15)
+			ObjectFilter(Intensity > objects.intensity.mean-4*objects.intensity.stddev)
+			ObjectFilter(area > objects.area.mean-4*objects.area.stddev)
+			ObjectFilter(area < objects.area.median*5) //Remove artifacts that are 5x larger than the median value
+		end()
+		if(showIllustrations)
+			imageview(objects.border, label="Nuclei final adjustment algorithm: "&nucAlgorithmsNames[i], image=reference)
+		End()
+		CalcArea()
+		CalcAttr("roundness")
+		if(objects.count>3)
+			push(nucAlgoUsedNames,nucAlgorithmsNames[i])
+			push(nucAlgorithmsAreaScore,objects.area.stddev/objects.area.median)
+			push(nucAlgorithmsRoundScore,objects.roundness.stddev/objects.roundness.median)
+			push(nucleiObjects,objects)
+		end()
+	end()
+	if(defined("nucAlgoUsedNames"))
+		set(nucAlgorithmsScore=nucAlgorithmsAreaScore/nucAlgorithmsAreaScore.max)
+		set(nucAlgorithmsScore=nucAlgorithmsScore+nucAlgorithmsRoundScore/nucAlgorithmsRoundScore.max)
+		Sort_Prepare(nucAlgorithmsScore,0)
+		set(nuclei=nucleiObjects[order[0]])
+		set(selectedAlgorithm=nucAlgoUsedNames[order[0]])
+		pack(scores,nucAlgorithmsAreaScore,nucAlgorithmsRoundScore,nucAlgorithmsScore,nucAlgorithmsNames)
+	else()
+		set(nuclei=objects,scores=vec(),selectedAlgorithm="")
+	end()
+		keep(nuclei,scores,selectedAlgorithm)
+}
+
+proc Nuclei_Detection(
+//INPUT
+image reference in "Nuclei stained image with intensity information. Nuclei are detected by this image. Supported image types are: 8-bit and 16-bit.",
+bool ShowIllustrations=YES in "YES- Output illustrations are depicted. No- Output illustrations are not shown.",
+double minNucIntensity=0 in "Minimum Intensity for a nucleus to be considered positive. Unit: Pixel Intensity. Adjust by illustration Nuclei.",
+string fileDir="" in "Path to the location of the file containing the list of nuclear detection algorithms set by \"saveSelectedAlgorithm()\"",
+int numberRun=3 in "Number of time the algorithm should have been picked for a given plate before  \"getSelectedAlgorithm ()\" can return a valid algorithm.",
+bool lowBitAnalysis=true in "True- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provided (ie. 16bit if refeerence is 16bit image).",
+//OUTPUT
+objectlist Nuclei out "Output object list with the detected nuclei",
+string NucleiDetectionAlgorithm out "Name of the nuclei detection algorithm used.",
+)  object recognition, nuclei detection "Nuclei detection procedure, which allows to scan the input parameters. The player inputs created by the procedure are in the sub-section \"Nuclei Detection\". The detection algorithm (e.g. A, B, C..., H) can be determined with the player input \"Nuclei Detection Algorithm\". Write to the input window just a single letter, e.g. A or SET for comparing results of all routines. The syntax like AB for comparing two selected algorithms is also supported. The algorithms are identical to ones called by Nuclei_Detection_A(), Nuclei_Detection_B() and the output results are the same. If the nuclei detection output contains errors one can apply the parameter scan with an aim to find the input parameter values, which provide the most appropriate nuclei recognition. The parameter scan can be controlled with the player input \"Parameter SCAN\". With the default value \"None\" the parameter scan is not applied. Select from \"Parameter SCAN\" menu the parameter you would like to scan and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. The label of the output illustration corresponds to the parameter value, e.g. the label \"0.4\" in case of the \"Individual Threshold Adjustment\" scan marks the result obtained with IndividualThresholdAdjustment=0.4. Inspect the results for the different parameter values and try to select one, which provides the best nuclei recognition. If needed apply the scan step-wise for all input parameters starting from \"Threshold Adjustment\". Afterwards test the selected set of input parameters with the different images. Please note, that it is possible to scan only one parameter at time and that if \"SET\" or multiple algorithms are already selected for the input \"Nuclei Detection Algorithm\" the parameter scan is not supported. In the scan mode the procedure depicts also three graphs, which show how a Number of Nuclei, Average Area of Nuclei and Average Intensity of Nuclei depend on the scanned parameter."
+{
+
+	/// Additional inputs
+	Nuclei_detection_inputs_Select() // Creates player inputs
+	if(fileDir!="")
+		getSelectedAlgorithm (fileDir, numberRun=numberRun)
+		if(selectedAlgorithm!="")
+			Set(NucleiDetectionAlgorithm=selectedAlgorithm)
+		end()
+	end()
+	set(original=reference)
+	Remap(0,1,Nan,1,image=Reference|Reference=image)
+	if(lowBitAnalysis)
+		convert(1,image=reference|reference=image)
+		Remap(0,Reference.factor+1,0,1,image=Reference|Reference=image)
+	end()
+	Nuclei_detection_Select_inner(reference,ShowIllustrations=ShowIllustrations) // Detects nuclei
+	StopNucleiDetectionAnyX_IfSCANmode() // Additional illustrations for SCAN/SET mode, stops the script
+	rename(objects = Nuclei)
+	CalcIntensity(image=original)
+	ObjectFilter(Intensity > minNucIntensity)
+	ObjectFilter(area > 0)
+	if(objects.count>15)
+		ObjectFilter(Intensity > objects.intensity.mean-4*objects.intensity.stddev)
+		ObjectFilter(area > objects.area.mean-4*objects.area.stddev)
+		ObjectFilter(area < objects.area.median*8) //Remove artifacts that are 8x larger than the median value
+	end()
+	if(showIllustrations)
+			ImageView(objects.border.mask,label="Nuclei", title="Nuclei Detected",image=reference,  gamma=2)
+	end()
+	Rename(nuclei=objects)
+}
+proc RingRegion_inputs(
+	int RingOuterBorderShift=0 out "Shift of the RingRegion outer border. Negative values move the border further out. Positive values move the border further in. Unit is image pixel.",
+	int RungInnerBorderShift=oo out "Shift of the RingRegion outer border. Negative values move the border further out. Positive value move the border further in. Unit is image pixel.",
+)[Hidden] object list attribute creation "procedure to create the inputs needed by RingRegion_inner()."
+{
+	input(RingOuterBorderShift, 0.0, "RingOuterBorderShift: Ring Region", "d", "Shift of the RingRegion outer border. Negative values move the border further out. Positive values move the border further in. Unit is image pixel.")
+	input(RingInnerBorderShift, oo, "RingInnerBorderShift: Ring Region", "d", "Shift of the RingRegion outer border. Negative values move the border further out. Positive values move the border further in. Unit is image pixel. If a negative larger than the diameter of the object is used, a donnut like shape is generated.")
+}
+proc RingRegion_inner(
+	int RingOuterBorderShift=-8 in "Shift of the RingRegion outer border. Negative values move the border further out. Positive values move the border further in. If a negative larger than the diameter of the object is used, a donnut like shape is generated. Unit is image pixel.",
+	int RingInnerBorderShift=-3 in "Shift of the RingRegion outer border. Negative values move the border further out. Positive value move the border further in. If a negative larger than the diameter of the object is used, a donnut like shape is generated. Unit is image pixel.",
+
+	string stencil="Centers" in "Specifies the stencil-type attribute in the input object list around which Ring Regions are created.",
+	memblock RestrictiveStencil=none in "Optional mask or stencil. The dilation growth is restricted to this stencil or mask. Default: none.",
+	bool ShowIllustrations=yes in "YES- output illustration is depicted, NO- output illustration is not shown.",
+	string RegionName="RingRegion" in "Name of the created geometrical attribute",
+	image VisualImage=none in "Optional input image, used only for visualization purposes as background image for the output illustration.",
+	bool ShowRegionBorder=no in "YES- output illustration with borders of created regions is depicted, NO- output illustration with borders of created regions is not shown",
+	ObjectList WholeCells inout  "Input-output object list. The output list contains the created stencil-type attribute."
+) object list attribute creation "procedure creates around nuclei ring-like regions. The dilation growth can be restricted with the optional input stencil or mask RestrictiveStencil. The created stencil-type attribute is added to the output object list. The name of the created attribute is given by the input RegionName, default name is RingRegion."
+{
+
+	if(stencil!="body"&& ! defined("WholeCells[stencil]"))
+			error("The specified stencil is absent")
+	end()
+
+	Stencil2Objects(WholeCells[stencil])
+
+	if(RingOuterBorderShift>RingInnerBorderShift)
+		set(temp=RingOuterBorderShift)
+		set(RingOuterBorderShift=RingInnerBorderShift)
+		set(RingInnerBorderShift=temp)
+	end()
+	ObjectRegion(body="Body",ObjectOuterBorderShift=RingOuterBorderShift, ObjectInnerBorderShift=RingInnerBorderShift)
+
+	set(IllustrationTitle=RegionName)
+	if(ShowIllustrations==yes)
+		if(!defined("VisualImage"))
+			imageview(objects.Object_Region, IllustrationTitle, image=objects.Object_Region.image, title=IllustrationTitle)
+		else()
+			if(objects.count>0)
+				gamma(2.6,image=VisualImage)
+				carryobjects(image=Image,stencil=objects.Object_Region, data="Rainbow", shuffle=yes)
+				imageview(image, IllustrationTitle, image=image, gamma=2.6, title=IllustrationTitle)
+			else()
+				imageview(VisualImage, IllustrationTitle, image=VisualImage, gamma=2.6, title=IllustrationTitle)
+			end()
+		end()
+	end()
+	if(ShowRegionBorder and defined("objects.Object_Region"))
+		set(BorderLabel="BorderOf" & RegionName, bordertitle="Border of " & RegionName)
+		calcborder(Object_Region)
+		if(!defined("VisualImage"))
+			imageview(objects.Object_Region_border, BorderLabel, image=objects.Object_Region_border.image, title=bordertitle)
+		else()
+			gamma(2.6,image=VisualImage)
+			imageview(objects.Object_Region_border, BorderLabel, image=image, title=bordertitle)
+		end()
+	end()
+	SetAttr("" & RegionName,Objects.Object_Region, objects=WholeCells|WholeCells=objects)
+}

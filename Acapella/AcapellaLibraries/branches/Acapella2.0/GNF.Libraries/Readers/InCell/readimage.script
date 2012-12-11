@@ -1,0 +1,15 @@
+splitstring(imagefile,":")
+rename(filenames=split)
+set(basePath=filenames[0])
+pop(filenames,pos=0)
+if(basePath.length==1) //Dealing with Mapped drives
+	set(basePath=basePath & ":" & filenames[0])
+	pop(filenames,pos=0)
+end()
+set(basePath=regexreplace(basePath,"\\\\","/").text)
+
+if(at("/",basePath,-1)!=basePath.length)
+	set(basePath=basePath & "/")
+end()
+set(filenames=vec(basePath) & filenames)
+Readers::InCell::filenames_to_images(filenames)

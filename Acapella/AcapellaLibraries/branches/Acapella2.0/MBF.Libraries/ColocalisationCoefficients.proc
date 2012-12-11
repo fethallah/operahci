@@ -1,0 +1,488 @@
+//#############################################################################################
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * T.J.Collins
+//#   * MacBiophotonics, McMaster University, Hamilton, Canada
+//#   * www.macbiophotonics.ca
+//#
+//# Contributors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of proc edures used calculates the various colocalisation
+//* coefficients for two input images using a user defined objects list
+//*
+//*********************************************************************************************
+
+proc MBF_PearsonsCoefficient (
+	//INPUTS
+	image Ch1="Ch1" in "Channel 1 Image",
+	image Ch2="Ch2" in "Channel 2 Image to be colocalised",
+	objectlist objects = "objects" localcontext in "Objects to be analysed - the ROIs",
+	//OUTPUT
+	objectlist Objects out "Objectlits containing the added Pearson correlation attrinute \"PearsonR\"",
+	stencil Stencil=body dynadefault explicit  in "Stencil used to calculate the correlation",
+	String AttrName="PearsonsR" in "Name of the attribute containing the Pearson Correlation Values.",
+) CoLocalization "Calculates Pearson's coefficient, see Reference: Press, W.H., Flannery, B.P., Teukolsky, S.A. & Vetterling, W.T. (1988) Numerical Recipes in C. Cambridge University Press, Cambridge."
+
+{
+	set(originalObjects=objects)
+	stencil2Objects(stencil)
+	set(ROI_obj=objects)
+
+	///////create 32 bpp "mean intensity" images for Ch1
+	CalcIntensity(Image=Ch1, objects=ROI_obj, CalcStdDev=yes)
+	rename(ROI_obj = objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, sign = "signed")
+	carryobjects(ROI_obj.body, ROI_obj.intensity, image=result)
+	rename(Ch1m = image)
+
+	/////create (Ch1-mCh1) image.
+	minus(Ch1, Ch1m, result_type="long, signed")
+	rename(Ch1subCh1m = result)
+
+	///////create 32 bpp "mean intensity" images for Ch2
+	CalcIntensity(Image=Ch2, objects=ROI_obj, CalcStdDev=yes)
+	rename(Ch2_obj = objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, sign = "signed")
+	carryobjects(ROI_obj.body, Ch2_obj.intensity, image=result)
+	rename(Ch2m = image)
+
+	/////create (Ch2-mCh2) image.
+	minus(Ch2, Ch2m, result_type = "long, signed")
+	rename(Ch2subCh2m = result)
+
+	///create (Ch1-Ch1m)*(Ch2-Ch2m) = Product of the Differences from the Mean or PDM
+	mul(Ch2subCh2m, Ch1subCh1m, result_type = "long, signed")
+	rename(PDM = result)
+
+
+//numerator = sum((Ch1-Ch1m)*(Ch2-Ch2m) ) = sum(PDM)
+//to sum PDM image we need to create two images:
+// one of positive pixels and one of negative pixeks then subtract the two images(!)
+
+//create sum(PDM) pixel image
+
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="unsigned")
+
+	minus(PDM, 0, neg_method = "zero", result_type="float")
+	set(PDM_pos_image = result)
+
+	calcIntensity(Image = result, objects = ROI_obj, Total=yes)
+	carryObjects(ROI_obj.body, objects.intensity, image = result)
+	set(positive_PDM=image)
+//create sum(negative PDM) image
+	mul(PDM, -1, result_type = "long")
+	set(PDM_neg_image = result)
+	minus(result, 0, neg_method = "zero", result_type="float")
+
+	calcIntensity(Image = result, objects = ROI_obj, Total=yes)
+	carryObjects(ROI_obj.body, objects.intensity, image = result)
+	set(negative_PDM=image)
+//calulate Pnumerator
+	minus(positive_PDM, negative_PDM, result_type = "float, signed")
+	set(Pnumerator=result)
+
+//Pearson's denominator=sqrt(	sum((Ch1-Ch1m)^2) * sum((Ch2-Ch2m)^2) )
+//so we need to multiply (Ch1-Ch1m)*(Ch1-Ch1m) rhen sum the resulatna pixels
+//then repeat this for Ch2 and multiply the two summed images
+//then sqrt the resultant image for the Pdenominator
+//we already have Ch1-Ch1m
+//calculate (Ch1-mCh1) squared
+	mul(Ch1subCh1m, Ch1subCh1m, result_type = "float, signed")
+	rename(Ch1subCh1mSqrd = result)
+//...sum of
+	calcIntensity(body, Ch1subCh1mSqrd,objects = ROI_obj, total=yes)
+	rename( Ch1subCh1mSqrd_obj =objects)
+//repeat for Ch2
+	mul(Ch2subCh2m, Ch2subCh2m, result_type = "float, signed")
+	rename(Ch2subCh2mSqrd = result)
+	calcIntensity(body, Ch2subCh2mSqrd,objects = ROI_obj, total=yes)
+	rename( Ch2subCh2mSqrd_obj =objects)
+//generate 'sum of' images so we can multiply them
+//'sum of' image for Ch1
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body, Ch1subCh1mSqrd_obj.intensity, image = result)
+	rename(sumCh1subCh1mSqrd = image)
+//'sum of' image for Ch1
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign= "signed")
+	carryObjects(ROI_obj.body, Ch2subCh2mSqrd_obj.intensity, image = result)
+	rename(sumCh2subCh2mSqrd = image)
+
+//generate Pearsons denominator which
+	mul(sumCh2subCh2mSqrd, sumCh1subCh1mSqrd, result_type = "float, signed")
+//square root result
+	CompAny("sqrt(result)")
+	rename(Pdenominator = result)
+
+
+//generate pearsons image
+	div(Pnumerator, Pdenominator, result_type="float")
+	rename(Pearsons =result)
+	calcIntensity(body,Pearsons, objects = ROI_obj)
+	setattr(AttrName=""&AttrName,Value=objects.intensity, objects=originalObjects)
+
+//actual pearsons image creation
+	//blank(Ch1.width, Ch1.height)
+	//convelems(image, "floating", sign= "signed")
+	//carryobjects(ROI_obj.body, objects.intensity, image=result)
+	//rename(Pearsons=image)
+
+}
+
+
+proc MBF_ICQ(
+	//INPUTS
+	image Ch1 ="Ch1" in "Channel 1 Image of Cytosol",
+	image Ch2 ="Ch2" in "Channel 2 Image to be colocalised",
+	objectlist objects localcontext in "Objects to be analysed - the ROIs",
+	//OUTPUT
+	//image ICQ out "ICQ Image",
+	objectlist objects out "Objectlits containing the added ICQ correlation attribute",
+	stencil stencil=body dynadefault explicit  in "Stencil used to calculate the correlation",
+	String attrName="ICQ" in "Name of the attribute containing the ICQ Values.",
+)  CoLocalization "See Reference: Li, Qi, Lau, Anthony, Morris, Terence J., Guo, Lin, Fordyce, Christopher B., and Stanley, Elise F. (2004). A Syntaxin 1, G{alpha}o, and N-Type Calcium Channel Complex at a Presynaptic Nerve Terminal: Analysis by Quantitative Immunocolocalization. Journal of Neuroscience 24, 4070-4081."
+
+{
+	set(originalObjects=objects)
+	stencil2Objects(stencil)
+	set(ROI_obj=objects)
+//calculateICQ = Npixels with +ve PDM div N total pixels
+	CalcIntensity(Image=Ch1, objects=ROI_obj, CalcStdDev=no)
+	rename(ROI_obj = objects)
+	blank(Ch1.width, Ch1.height)
+	convert(4,image=image)
+	convelems(image, sign = "signed")
+	carryobjects(ROI_obj.body, ROI_obj.intensity, image=result)
+	rename(Ch1m = image)
+
+/////create (Ch1-mCh1) image.
+	minus(Ch1, Ch1m, result_type="long, signed")
+	rename(Ch1subCh1m = result)
+
+///////create 32 bpp "mean intensity" images for Ch2
+	CalcIntensity(Image=Ch2, objects=ROI_obj, CalcStdDev=no)
+	rename(Ch2_obj = objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign = "signed")
+	carryobjects(ROI_obj.body, Ch2_obj.intensity, image=result)
+	rename(Ch2m = image)
+
+/////create (Ch2-mCh2) image.
+	minus(Ch2, Ch2m, result_type = "long, signed")
+	rename(Ch2subCh2m = result)
+
+///create (Ch1-Ch1m)*(Ch2-Ch2m) = Product of the Differences from the Mean or PDM
+	mul(Ch2subCh2m, Ch1subCh1m, result_type = "long, signed")
+	rename(PDM = result)
+//counting positives for  value = N+ves ÷ Ntotal
+//remove  negative pixel values
+	minus( PDM, 0, result_type="automatic", neg_method="zero")
+	rename(positive_images = result)
+	mask(0.5, image=positive_images, userealvalues=yes)
+	rename(positivePixels= mask)
+//calculate number of pixels by adding up intesnities of mask pixels
+	calcIntensity(body, positivePixels, objects=ROI_obj, Total=yes)
+	rename(positive_obj = objects)
+//create ICQ numerator image
+	blank(Ch1.width, Ch1.height)
+	convelems(image, sign = "signed")
+	carryObjects(ROI_obj.body, positive_obj.intensity, image = result)
+	rename(ICQnumerator = image)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, sign = "signed")
+	calcAttr("area", objects=ROI_obj)
+	carryObjects(ROI_obj.body, objects.area, image = result)
+	rename(ICQdenominator = image)
+//calculate ICQ image = numerator / denominator
+	div(ICQnumerator, ICQdenominator, result_type="float")
+	rename(ICQ = result)
+	calcIntensity(body, ICQ, objects = ROI_obj)
+	setattr(AttrName=""&AttrName,Value=objects.intensity, objects=originalObjects)
+
+//create ICQ image
+	//blank(Ch1.width, Ch1.height)
+	//convelems(image, "floating", sign="unsigned")
+	//carryobjects(ROI_obj.body, objects.intensity, image = result)
+
+}
+
+
+proc MBF_MandersCoefficients(
+	//INPUTS
+	image Ch1="Ch1" in "Channel 1 Image of Cytosol - must subtract background",
+	image Ch2="Ch2" in "Channel 2 Image to be colocalised - must subtract background",
+	objectlist objects localcontext in "Objects to be analysed - the ROIs",
+	//OUTPUT
+	objectlist objects out "Objectlits containing the added Manders correlation \"MandersR\"",
+	stencil stencil=body dynadefault explicit  in "Stencil used to calculate the correlation",
+	String attrName="MandersR" in "Name of the attribute containing the manders correlation Values.",
+)  CoLocalization  "Calculates Manders colocalisation values.  See Reference:Manders, EEM, Verbeek, FJ., and Aten, JA. (1993). Measurement of co-localisation of objects in dual-colour confocal images. Journal of Microscopy 169, 375-382."
+
+{
+set(ROI_obj=objects)
+
+//calculate mander's overlap coefficients - not as imformative as Pearsons and ICQ
+//calculate sum(ch)
+	calcIntensity(body,Ch1, objects = ROI_obj, total=yes)
+	rename(Ch1sum_obj = objects)
+	calcIntensity(body,Ch2, objects = ROI_obj, total=yes)
+	rename(Ch2sum_obj = objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body, Ch1sum_obj.intensity, image = result)
+	rename(Ch1sum=image)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body, Ch2sum_obj.intensity, image = result)
+	rename(Ch2sum=image)
+//calculate sum(Ch1coloc)
+//generate s where signal is above zero
+//then multiply other channel by this 0/1 mask
+	set(maskthresh=1)
+	mask(image=Ch1, threshold=maskThresh, userealvalues=yes)
+	rename(Ch1mask=mask)
+	mask(image=Ch2, threshold=maskThresh, userealvalues=yes)
+	rename(Ch2mask=mask)
+//multiply Ch1 by Ch2mask to gerneate Ch1coloc
+	mul(Ch1, Ch2mask)
+	rename(Ch1coloc = result)
+//vice-versa
+	mul(Ch2, Ch1mask)
+	rename(Ch2coloc = result)
+//generate sum of chXcoloc images
+	calcIntensity(body,Ch1coloc, objects = ROI_obj, total=yes)
+	rename(Ch1coloc_obj = objects)
+	calcIntensity(body,Ch2coloc, objects = ROI_obj, total=yes)
+	rename(Ch2coloc_obj = objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body,Ch1coloc_obj.intensity, image = result)
+	rename(Ch1colocsum=image)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body, Ch2coloc_obj.intensity, image = result)
+	rename(Ch2colocsum=image)
+
+//calculate Manders coefficicnet = sum(Ch1coloc)÷sum(Ch1)
+	div(Ch1colocsum, Ch1sum, result_type="float")
+	rename(M1=result)
+	calcIntensity(body, M1, objects = ROI_obj)
+	rename(M1_obj=objects)
+	div(Ch2colocsum, Ch2sum, result_type="float")
+	rename(M2=result)
+	calcIntensity(body,M2, objects = ROI_obj)
+	rename(M2_obj=objects)
+
+//calculate Manders overlap - R
+
+	mul(Ch1, Ch2)
+	rename(Ch1Ch2=result)
+	calcIntensity(body, Ch1Ch2, objects=ROI_obj, Total=yes)
+	rename(Ch1Ch2_obj=objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body,Ch1Ch2_obj.intensity, image = result)
+	rename(Rnumerator=image)
+//calculate first part of denominator = sum(ch1^2)
+	mul(Ch1,Ch1)
+	rename(Ch1sqrd=result)
+	calcIntensity(body, Ch1sqrd, objects=ROI_obj, Total=yes)
+	rename(Ch1sqrd_obj=objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body,Ch1sqrd_obj.intensity, image = result)
+	rename(Ch1sqrdsum=image)
+//calculate second part of denominator = sum(ch2^2)
+	mul(Ch2,Ch2)
+	rename(Ch2sqrd=result)
+	calcIntensity(body, Ch2sqrd, objects=ROI_obj, Total=yes)
+	rename(Ch2sqrd_obj=objects)
+	blank(Ch1.width, Ch1.height)
+	convelems(image, "floating", sign="signed")
+	carryObjects(ROI_obj.body,Ch2sqrd_obj.intensity, image = result)
+	rename(Ch2sqrdsum=image)
+
+//cacluate denominator = sqrt(part1*part2)
+	mul(Ch2sqrdsum,Ch1sqrdsum, result_type = "float, signed")
+	CompAny("sqrt(result)")
+	rename(Rdenominator = result)
+
+//calculate Manders overlap coefficient
+	div(Rnumerator, Rdenominator,result_type="float")
+	rename(MandersR =result)
+	calcIntensity(body,MandersR, objects = ROI_obj)
+	rename(MandersR_obj = objects)
+
+//setting up output object list
+
+	setAttr(AttrName&"_M1", M1_obj.intensity, objects=ROI_obj)
+	setAttr(AttrName&"_M2", M2_obj.intensity, objects=objects)
+	setattr(""&AttrName,MandersR_obj.intensity, objects=objects)
+
+}
+
+
+
+proc MBF_CostesTest (
+	//INPUT
+	image Ch1=Ch1 in "Channel 1 Image of Cytosol",
+	image Ch2=Ch2 in "Channel 2 Image to be colocalised",
+	objectlist objects = objects in "Objects to be analysed - the ROIs",
+	double iterations = 10 in "Number of iterations",
+	double radius= 2 in "The pixel size to PSF ratio",
+	double sigma = 0.5 in "The sigma value for the PSF",
+	//OUTPUT
+	double r out "Pearson's Ch1 v C2",
+	double r2Mean out "Average Pearsons for Ch1 vs randomised Ch2",
+	double fx out "Percentile",
+	image randomImage out "Example ramdom image",
+)  CoLocalization "Performs an approximation of Costes colocalisation test by comparing Pearsons coefficents of Ch1 vs Ch2 with those generated by Ch1 vs a randomised image"
+{
+	set(ROI_obj=objects)
+	//generate meanCh2 image
+	calcintensity(body, Ch2, objects = ROI_obj)
+	rename(Ch2_obj=objects)
+	blank(Ch1.width, Ch1.height)
+	carryObjects(ROI_obj.body, Ch2_obj.intensity, image = image)
+	rename(mCh2 = image)
+	MBF_PearsonsCoefficient(Ch1, Ch2, ROI_obj)
+	rename(oPearsons_obj= objects)
+	//rename(oPearsons= Pearsons)
+	//stop()
+	set(outPutString =  oPearsons_obj.PearsonsR.mean)
+	////Gausian filter?
+	MBF_makeGaussianKernel(radius, 1)
+
+	//calclate pearsons for randomised images
+	//generate randomised image
+	set(iterations=5)
+	set(sumR2 =0)
+	set(noise = 15)
+	set(sumR2sqrd = 0)
+
+	mask(1, image=oPearsons_obj.body.image)
+	foreach(1..iterations)
+		blank(Ch1.width, Ch1.height)
+		gaussnoise(image, sigma)
+		rename(randomImage = result)
+		Convolution(ConvolutionKernel=gauss, image=randomImage)
+		set(randomImage = image)
+	//CHANGE RANDOM IMAGE INTENSITY TO EQUAL MEAN OF CH1 OBJ
+	//create scaling image
+
+		set(randomImage= (randomImage+mCh2)*mask)
+
+		MBF_PearsonsCoefficient(Ch1, randomImage, ROI_obj)
+	//	PearsonsCoefficient(Ch1, Ch2, ROI_obj)
+		set(sumR2 =sumR2+objects.PearsonsR.mean)
+		set(sumR2sqrd =sumR2sqrd+(objects.PearsonsR.mean*objects.PearsonsR.mean))
+		set(outputString =  outputString&","&objects.PearsonsR.mean)
+	end()
+
+		set(r2Mean =sumR2/iterations)
+		set(r2sd = sqrt(((iterations*(sumR2sqrd))-(sumR2*sumR2))/(iterations*(iterations-1))))
+
+	//calculate percentage of Rrand that is less than Robs
+	//code from:
+	//http://www.cs.princeton.edu/introcs/26function/MyMath.java.html
+	//Thanks to Bob Dougherty
+	//double fx = 0.5*(1+erf(r-r2mean)/(Math.sqrt(2)*r2sd));
+	set(fx = 50*(1+erf(oPearsons_obj.PearsonsR.mean-r2mean)/(sqrt(2)*r2sd)))
+	if(fx>100) set(fx=100) 	end()
+	if(fx<0) set(fx=0)	end()
+
+	set(r =oPearsons_obj.PearsonsR.mean)
+}
+
+proc CalcPercentOverlap(
+	image marker1Image in "Image to use to select objects for Marker1.",
+	image marker2Image in "Image to use to select objects for Marker2.",
+	double marker1CuttOff=0 in "Cut-off to use to select objects for Marker2.",
+	double marker2CuttOff=0 in "Cut-off to use to select objects for Marker2.",
+	String stencil=body  dynadefault explicit in  "Stencil in which the signal should be for both Marker1 and Marker2",
+	objectlist objects localcontext inout  "Object list conatining the stencil and the objects to study the overlap.",
+	boolean showIllustrations=true in "YES- Output illustrations are depicted. No- Output illustrations are not shown." ,
+) CoLocalization "Assess the percentage of overlap between marker1 and marker2. For a signal in a selected stencil above a given cut-off. Returns a new object with the following two attributes added: stencil_\"Marker1_Marker2_Percent_Overlap\" and stencil_\"Marker2_Marker1_Percent_Overlap\""
+{
+	Set(objectsIni=objects)
+	if(Not(defined("objects[stencil]")))
+		Error("The stencil: "&Stencil&" does not exits. Cannot calculate the Overlap")
+	end()
+
+	Stencil2Objects(stencil)
+
+	Mask(marker1CuttOff,image=marker1Image|marker1Mask=mask)
+	Mask(marker2CuttOff,image=marker2Image|marker2Mask=mask)
+	CalcAttr("Marker1",body and marker1Mask)
+	CalcArea(Marker1)
+	CalcAttr("Marker2",body and marker2Mask)
+	CalcArea(Marker2)
+	CalcAttr("Overlap", Marker2 and marker1Mask)
+	CalcArea(Overlap)
+
+	Set(objectsIni[prefix&"Marker1_Marker2_Percent_Overlap"]=objects.Overlap_area/objects.marker2_area*100)
+	Set(objectsIni[prefix&"Marker2_Marker1_Percent_Overlap"]=objects.Overlap_area/objects.marker1_area*100)
+	if(showIllustrations)
+		calcBorder(marker1)
+		calcBorder(marker2)
+		ImageView(objects.marker1_Border,image=marker1Image,Title="Marker1 fraction above cutOff", label="Marker1Object")
+		ImageView(objects.marker2_Border,image=marker2Image,Title="Marker2 fraction above cutOff", label="Marker2Object")
+		rgbJoin(green=objects.marker1.mask.image,red=objects.marker2.mask.image)
+		ImageView(vec(),image=image*255,Title="Marker1 (green) and Marker2 (Red) Overlap", label="Marker1-Marker2 Overlap")
+	end()
+
+	rename(objects=objectsIni)
+}
+
+proc MBF_MakeGaussianKernel(
+	double k in "kernelsize. Possible values: 3, 5, 7, 9, 11, 13, 15",
+	double sigma in "Sigma",
+	image gauss out "Gaussian Kernel image",
+)
+
+{	blank(k,k,1)
+	convert(4,image=image)
+	convelems(image, "floating", sign="signed")
+	foreach(0..k-1, "x")
+		foreach(0..k-1, "y")
+			set(G1 = 1/(2*3.141593*(sigma*sigma)))
+			set(x2 = x-((k-1)/2))
+			set(y2 = y-((k-1)/2))
+			set(G2 = exp(-(((x2*x2)+(y2*y2))/(2*(sigma*sigma)))))
+			set(image[x,y]= 1000*G1*G2)
+		end()
+	end()
+	rename(gauss = image)
+
+
+}

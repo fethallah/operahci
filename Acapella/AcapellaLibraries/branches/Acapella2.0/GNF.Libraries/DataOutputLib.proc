@@ -1,0 +1,339 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This library defines a set of tools for data output.
+//*
+//*********************************************************************************************
+
+proc dataOperaOutput(
+	memblock results in "Results is a memblock containing the n results that need to be outputed in the format: Resuts[0..n].Name, result[0..n].Value"
+)data output "Outputs the Data to the Opera collected in the Memblock results"
+{
+
+	foreach(0..results.length-1)
+		output(results[i].value, results[i].name)
+	end()
+}
+
+proc getSelectedAlgorithm(
+	string fileDir in "Path to the location of the file containing the list of nuclear detection algorithms set by \"saveSelectedAlgorithm()\"",
+	string selectedAlgorithm  out "String containing the algorithm to use to use if any. If no algorithms set yet, returns \"\"",
+	int numberRun=4 in "number of time the algortim \"saveSelectedAlgorithm()\" must be run before the name of nuclear detection algoritm can be returned",
+)input-output "obtains the nuclei algorithm to use for the plate if it is available"
+{
+	set(selectedAlgorithm ="")
+	eval(readfile(fileDir&"NucAlgorithSelected.txt"))
+	if(errorcode==0)
+		RegexReplace(content,"\s","")
+		SplitString(text,",")
+		Rename(listSelectedAlgorithms=split)
+		if(listSelectedAlgorithms.length>=numberRun)
+			set(algorithms=vec("A","B","C","D","E","F","G","H"))
+			create("vector", 0, algorithms.length, 0)
+			rename(counts=vector)
+			Foreach(0..listSelectedAlgorithms.length-1)
+				FindElem(listSelectedAlgorithms[i],algorithms)
+				if(pos!=-1)
+					set(counts[pos]=counts[pos]+1)
+				end()
+			end()
+			Sort_Prepare(counts,1)
+			set(selectedAlgorithm =algorithms[order[0]])
+		end()
+	end()
+}
+
+proc saveSelectedAlgorithm (
+	string fileDir in "Path to the location of the file containing the list of nuclear detection algorithms set by \"getSelectedAlgorithm()\"",
+	string selectedAlgorithm  in "String containing the algorithm that was selected.",
+	int numberRun=4 in "number of time the algorithm \"saveselectedAlgorithm()\" for a given plate",
+)input-output "obtains the nuclei algorithm to use for the plate if it is available"
+{
+	eval(readfile(fileDir&"/NucAlgorithSelected.txt"))
+	if(errorcode!=0)
+		Eval(Write(selectedAlgorithm , fileDir&"NucAlgorithSelected.txt", "ascii"))
+		if(errorcode==0)
+			Return()
+		else()
+			Goto("Append")
+		end()
+	else()
+		Label("Append")
+		set(counts=0)
+		While(counts<20)
+			eval(readfile(fileDir&"/NucAlgorithSelected.txt"))
+			if(errorcode==0)
+				RegexReplace(content,"\s","")
+				SplitString(text,",")
+				Rename(listSelectedAlgorithms=split)
+				if(listSelectedAlgorithms.length<=numberRun*20)
+					set(text=text&","&selectedAlgorithm )
+						Eval(Write(text, fileDir&"NucAlgorithSelected.txt", "ascii"))
+						if(errorCode==0)
+							Return()
+						end()
+				else()
+					return()
+				end()
+			end()
+		end()
+	end()
+	Error("Impossible to write: "&fileDir&"NucAlgorithSelected.txt. The directory may not be valid!")
+}
+
+proc Objectlist2Table(
+    objectlist objects in "Input object list",
+    table table out "Output table with all of the scalar attributes (features, but not stencil)",
+    ) object list attribute conversion "Converts an objectlist into a table representing scalar or string attributes of the objectlist."
+{
+	create("table")
+	foreach(objects.keys)
+		set(Key=objects[i])
+		if(Key.class=="stencil")
+			continue()
+		end()
+		if(Key.class=="vector" && Key.class!="intervalvector" && Key.class!="indexvector" && (Key.elemtype<8||Key.elemtype==13))
+			set(table[i]=Key)
+		end()
+	end()
+}
+
+proc outputMemblockData(
+	polytype data in "input data",
+	String dataName="" in "Name of the value to output",
+	string statValue="median" in "Statistical Agregate to use, or use \"AllValues\" to get \";\" seprated values",
+	int numFieldsInFocus=1 in "Enter the number of field in focus if necessary",
+	boolean isFromCompositObject=false in "used in case of the data outputed comes from a compositobject. This will prevent having the counts outputed twice",
+) data output  "Outputs the data contained into a container. Each objectsList, vector, variable contained. Include a variable \"numFieldInFocus\" to returns objects counts per field in focus."
+{
+	if(typeOf(data)!="memblock")
+		if(dataName=="numFieldsInFocus"||dataName=="class"||dataName=="description")
+			return()
+		end()
+		output(data,dataName)
+		return()
+	end()
+
+	if(defined("data.numFieldsInFocus"))
+		output(data.numFieldsInFocus,"FieldsInFocus")
+		set(numFieldsInFocus=data.numFieldsInFocus)
+	end()
+
+	if(data.class=="vector")
+	
+		//fix Acapella2.1 bug in calculating Stats value when NAN etc. are present
+		if(data.elemtype<8)
+			remap(inf, 0.0, image=data| data=image)
+			remap(-inf, 0.0, image=data| data=image)
+			remap(nan, 0.0, image=data| data=image)
+			if(data.length==0)
+				return()
+			end()
+		end()
+		//fix end
+	
+		if(data.elemtype==13) //printout all of the values for a string.
+			SprintfLoop("value", "%s;", data)
+		else()if(defined("data[statValue]"))
+			if(at("NumberOf",DataName,1)>0||at(DataName,"_Count",1)>0)
+				Set(statValue="Mean")
+			end()
+			set(value=data[statValue])
+		else()
+			warning("The statistical value requested: "&statValue&" does not exist for: "&dataName&" - " & data.description)
+			set(value=0/0)
+			return()
+		end()
+		end()
+
+		output(value,dataName&"_"&statValue)
+		return()
+	end()
+
+	if(data.class=="compositobjectlist")
+
+		compositObjectVerifier(data)
+		outputMemblockData(data.count.FullSet,dataName&"-FullSet_Number/Field","Mean")
+		outputMemblockData(data.FullSet,dataName&"-FullSet",statValue,numFieldsInFocus,isFromCompositObject=true)
+
+
+		foreach(data.keys,"keyName")
+			Set(keyNameDisplay=unquote(keyName,"Name").text)
+			Set(keyNameDisplay=unquote("@"&keyNameDisplay,"Name").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"_","-",first_only=false).text)
+			Set(keyNameDisplay=regexReplace(keyNameDisplay,"(\b\w|(?<=_)\w)","\u$1").text) //Capitalize the name of the objects
+			set(class="")
+			eval(set(class=data[keyName].class))
+			if(keyName=="FullSet"||class!="objectlist") //make sure that only the objects are outputed
+				continue()
+			end()
+			outputMemblockData(data.count[keyName]/data.count.FullSet*100,dataName&"-"&keyNameDisplay&"_%","Mean")	//add percentage values
+			outputMemblockData(data.count[keyName],dataName&"-"&keyNameDisplay&"_Number/Fields","Mean")
+			outputMemblockData(data[keyName],dataName&"-"&keyNameDisplay,statValue,isFromCompositObject=true)
+		end()
+	end()
+
+	if(data.class=="table"||data.class=="container"||data.class=="objectList")
+
+		Set(dataName=regexReplace(dataName,"(\b\w|(?<=_)\w)","\u$1").text) //Capitalize the name of the objects / tables / containers
+		set(dataName=iif(dataName=="","",dataName&"_"))
+		if((data.class=="objectList" || data.class=="table")&& ! isFromCompositObject) //make sure that the object list does not come from a compositobjectlist (value outputed earlier
+			output(data.count/numFieldsInFocus,dataName&"Number/Field_Mean")
+			Objectlist2Table(data|data=table)
+		end()
+		if(data.class=="table")
+			set(keys=data.columns)
+		else()
+			set(keys=data.keys)
+		end()
+		foreach(keys,"keyName")
+			if(keyName=="ObjectID"||keyName=="xCentre"||keyName=="yCentre"||keyName=="ParentID"||keyName=="ParentType")
+				continue()
+			end()
+			Set(keyNameDisplay=unquote(keyName,"Name").text)
+			Set(keyNameDisplay=unquote("@"&keyNameDisplay,"Name").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Full_Length","FullLength").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Half_Width","HalfWidth").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"ratio_(.+?)_To_","\1/").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"(.+)_(.+?)(_PearsonR_)","\1/\2\3").text)
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Percent_","%").text)
+
+			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"_","-",first_only=false).text)
+			outputMemblockData(data[keyName],dataName&keyNameDisplay,statValue,numFieldsInFocus)
+		end()
+		return()
+	end()
+}
+
+proc WriteObjectsTable(
+	table table in "The table to save in file",
+    string filename outputfilename  in  "The Output File", //using the flag outpufilename / filename flags allows to redirect the outputs!
+)
+data output "Saves a table in a text file. The column names are output in the first row and \"_\" are replaced by \"-\". \"ratio_xyz_To_vfw\" is replaced by \"xyz/vfw\"."
+{
+	set(text="")
+	set(keys=table.columns)
+	foreach(keys)
+		typeinfo(table[i])
+		if(typeinfo.elemclass == "memblock")
+			delete(table[i])
+		else()
+			Set(ColName=unquote(i,"Name").text)
+			Set(ColName=unquote("@"&ColName,"Name").text)
+			set(ColName=RegexReplace(i,"\t"," ").text)
+			set(ColName=RegexReplace(ColName,"ratio_(.+?)_To_","\1/").text)
+			set(ColName=RegexReplace(ColName,"(.+)_(.+?)(_PearsonR_)","\1/\2\3").text)
+			Set(colName=RegexReplace(colName,"Percent_","%").text)
+			set(ColName=RegexReplace(i,"_","-").text)
+			set(text=text & colName & "\t")
+		end()
+	end()
+
+	regexreplace(text,"\t$","\n")
+
+	write(table, "<text", "ascii", append=yes, precision=12)
+	regexreplace(text,"\t$","")
+	write(Text,filename,"ascii")
+}
+
+proc GZipData(
+	polytype data in "Data to write out",
+	String path in "Path of the file that you wish to save.",
+	String name="" in "Name of the file you wish to save.",
+	String extension="" in "Extension of the file you wish to save. \".gz\"  will be added at the end of the file.",
+	String label="" in "Text label used in the output of the saving path.label=\"\" will not return an output",
+) data output "Write your data in a compressed text file. This requires to have the Java installed along with the GZip.jar file.",
+{
+	set(extension=RegexReplace(extension,"^\.","").text)
+	if(defined("data.@class"))
+		if(data.@class=="objectlist"||data.@class=="table")
+			if(data.@class=="objectlist")
+				Objectlist2Table(data|data=table)
+			end()
+			if(data.@class=="table")
+				WriteObjectsTable(data,"<data")
+			end()
+		else()
+			if(data.length>0)
+				write(data,"<data","ascii")
+			else()
+				set(data="")
+			end()
+		end()
+	end()
+	
+	//FIX: Used to handle archived images
+	set(path=regexReplace(path,"archive(\W+)Opera", "projects$1Opera$1SingleCellData").text)	
+	set(path=regexReplace(path,"RFS(\W+)Opera", "projects$1Opera$1SingleCellData").text)
+	MkDir(path)
+	set(path=& path & name &"."& extension&".gz")
+	//FIX end
+	
+	if(version().version>=2&&version().subversion>=1)
+		//FIX Acapella 2.1 gzip compression bug linux
+		write(data,path,"ascii",append=false)
+	else()
+		//FIX Acapella 2.0 gzip compression bug
+		Run("java -jar //projects/Opera/Libraries/StdLib/GZip.jar stdin \""& path &"\"", stdin="<data",stderr ="<error")
+		if(Error!="")
+			Error("The file could not be compressed due to the following error: "&error)
+		end()
+	end()
+	if(label!="")
+		Output(path,label)
+	end()
+}
+
+proc writeChannelMapping(
+	vector Images in "Vector of images generated by ImageInit() containing the images organized by sublayout number (the order matches the coordinates provided in the sublayout data) and organized by z-stack number.",
+	String imagePath in "Path to the images where the channel mapping should be saved. If this is the containing directory, the wellID must be provided.",
+	String wellID="" in "Well ID for this channel mapping. This can be left empty if the imagepath contains the filename."	
+)data output ""
+{
+	foreach(0..images[0][0].length-1)
+		Push(chanIndex,i)
+		Push(chanName,images[0][0][i].Name)
+		Push(chanDesc,images[0][0][i].Desc)
+		SPrintfLoop("text","%s|",images[0][0][i].Purpose)
+		RegexReplace(text, "\|$","")
+		Push(chanPurp,text)
+	end()
+	
+	set(ChannelMapping=tbl(index=chanIndex,Name=chanName,Description=chanDesc,Purpose=chanPurp))
+	pathSplit(imagePath)
+	set(wellID=iif(length(wellID)==0,basename,wellID))
+	set(filename=dirname&"ChannelMapping-"&wellID)
+	writeTable(ChannelMapping, filename)
+	pathSplit(filename)
+	RenameFile(dirname,basename,"ChannelMapping")
+	if(fileinfo(filename).fileinfo.exists)
+		deleteFile(filename)
+	end()
+}

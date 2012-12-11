@@ -1,0 +1,152 @@
+//////////// CalcSERFeatures() (and related procedures)
+//////////// Development version 30.07.2009 by Peet Kask
+// ODe 2009-09-19: Replaced [internal] bei [hidden] and CalcIntensity by CalcStat for Acap 2.0
+package(Texture)
+
+
+proc CalcSERFeatures(
+	image image explicit in "Image to be analyzed", 
+	double scale explicit in "Scale of texture filtering (0...100)",
+	string stencilname="body" explicit in "Name of the region of interest",
+	string normalizationmode="regional" explicit in "Select between unnormalized, kernel, regional, and external modes. With external mode, norm-attribute must be given.",
+	objectlist objects inout "List of objects for which texture features are calculated. In output, calculated features appear as additional attributes.",
+	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
+	string AttrSuffix="" in "Suffix that should be appened after the Feature name.",
+	vector SERNames out "List of calculated feature-names",
+	vector SERIllustrations out "Masked, normalized and scaled SER-filtered images"
+) Texture "Calculation of Spot-Edge-Ridge texture features. Calculated features appear as additional attributes of the objectlist."
+{
+	// Preparations: Create objects out of the stencil of interest. Create norm-attribute if necessary.
+	set(objects_in=objects)
+	if(normalizationmode=="external" && !defined("objects.norm"))
+		error("Normalizationmode is external, but norm-attribute is absent in the objectlist")
+	end()
+	if(!defined("objects[stencilname]"))
+		error("Specified stencil is absent in the objectlist")
+	end()
+	Stencil2Objects(objects[stencilname])
+	if(normalizationmode=="external") 
+		setattr("norm", objects_in.norm) 
+	end()
+
+
+	//Calculate texture features as attributes of the objectlist
+	CalcSERFeaturesInner(image, scale, normalizationmode, objects)	// Out: objects with new attributes; SERnames; SERIllustrations (vector of images)
+	
+	//Copy features into the original objectlist:
+	rename(features=objects)
+	rename(objects=objects_in)
+	
+	Set(featureNames=SERNames)	
+	Set(AttrPrefix=iif(AttrPrefix!="",AttrPrefix&"_",""))
+	Set(AttrSuffix=iif(AttrSuffix!="","~"&AttrSuffix,""))
+	foreach(featureNames, "featureName")
+		Set(NewFeatureName=unquote("@"&AttrPrefix,"Name").text)
+		Set(NewFeatureName=quote(NewFeatureName & featureName & AttrSuffix ,"Name").quoted)
+		Set(NewFeatureName=RegexReplace(NewFeatureName,"@","",first_Only=true).text)
+		Set(objects[NewFeatureName]=features[featureName])
+	end()
+}
+
+proc CalcSERFeaturesInner(
+	image image in, 
+	double scale in,
+	string normalizationmode in,
+	objectlist objects inout "In input: objectlist with body stencil of our interest. In output: objectlist with texture features.",
+	vector SERnames out "The list of calculated feature-names",
+	vector SERIllustrations out "Vector of (scaled, normalized and masked) filtered images"
+)[hidden] Texture "Internal procedure called by CalcSERFeatures."
+{
+	Texture::Gaussian1st2ndDerivFilter(image, scale, Poleorder=3)	//Out: L0, Lx, Ly, Lxx, Lxy, Lyy, grad, E1, E2
+	DerivativesToSERImages(L0, grad, E1, E2)	//Out: SERImages (vector of filtered images), SERNames
+	rename(UnnormalizedSERImages=SERImages)
+	if(normalizationmode=="regional")
+		CalcStat("mean", Image=image, AttrName="norm")
+	end()
+	NormalizeSERImages(UnnormalizedSERImages, normalizationmode, L0, objects)	//Out: SERImages, SERIllustrations
+	ImagesToFeatures(SERImages, SERNames, objects)	//Out: objects with new attributes
+}
+
+proc DerivativesToSERImages(
+	image L0 explicit in,
+	image grad explicit in,
+	image E1 explicit in,
+	image E2 explicit in,
+	vector SERImages out "Vector of unnormalized SER-images",
+	vector SERNames out "Vector of SER feature-names"
+)[hidden] Texture "Internal procedure called by CalcSERFeaturesInner."
+{
+	push(SERNames, "SERSpot", "SERHole", "SEREdge", "SERRidge", "SERValley", "SERSaddle", "SERBright", "SERDark")
+	set(SEREdge=grad)
+	company("E1+E2" | trace=result)
+	company("-trace*step(-trace)" | SERBright=result)
+	company("trace*step(trace)" | SERDark=result)
+	company("E1*E1" | E11=result)
+	company("E1*E2" | E12=result)
+	company("E2*E2" | E22=result)
+	company("0.25*grad*grad" | gg=result)
+	company("E11+E22+gg+1e-8" | denom=result)
+	company("step(-trace)*E2*(E11-E22)/denom" | SERRidge=result)
+	company("step(trace)*E1*(E11-E22)/denom" | SERValley=result)
+	company("-2*E1*E2*trace*step(-E1)/denom" | SERSpot=result)
+	company("2*E1*E2*trace*step(E2)/denom" | SERHole=result)
+	company("-2*E1*E2*(E1-E2)*step(E1)*step(-E2)/denom" | SERSaddle=result)
+	foreach(SERNames, "name")
+		push(SERImages, _[name])
+	end()
+}
+
+proc NormalizeSERImages(
+	vector SERImages explicit inout "Unnormalized SER images in input, masked and suitably normalized ones in output",
+	string normalizationmode explicit in,
+	image L0=blank(0,0,0) explicit in "Normalization image; used only in kernel-mode",
+	objectlist objects in,
+	vector SERIllustrations out "Scaled integer-type images"
+)[hidden] Texture "Normalization of SER images. Creation of illustrative images."
+{
+	rename(SERImagesIn=SERImages)
+
+	goto(normalizationmode, "regional")
+	label("unnormalized")
+		foreach(SERImagesIn, "image_in")
+			And(image=image_in, mask=objects.body.mask.image | result=image)
+			push(SERImages, result)
+			convelems(result, "integer", 2, "unsigned", stretchdynamic=1)
+			push(SERIllustrations, result)
+		end()
+		return()
+
+	//Here, "regional" and "external" are equivalent cases
+	label("regional")
+	label("external")
+		foreach(SERImagesIn, "image_in")
+			//Create denominator image
+			company("0*image_in+1" | tmp=result)			
+			CarryObjects(objects.body, objects.norm, image=tmp | denom=image)
+			//Normalize:
+			company("objects.body.mask.image*image_in/denom")
+			push(SERImages, result)
+			convelems(result, "integer", 2, "unsigned", stretchdynamic=1)
+			push(SERIllustrations, result)
+		end()
+		return()
+
+	label("kernel")
+		foreach(0..SERImagesIn.length-1, "i")
+			company("objects.body.mask.image*SERImagesIn[i]/(L0+1)")
+			push(SERImages, result)
+			convelems(result, "integer", 2, "unsigned", stretchdynamic=1)
+			push(SERIllustrations, result)
+		end()
+}
+
+proc ImagesToFeatures(
+	vector images explicit in,
+	vector names explicit in,
+	objectlist objects explicit inout
+)[hidden] Texture "Internal procedure calculating intensities in a series of images for given objects"
+{
+	foreach(0..names.length-1, "i")
+		CalcStat("mean", Stencil=body, Image=images[i], AttrName=names[i])
+	end()
+}
