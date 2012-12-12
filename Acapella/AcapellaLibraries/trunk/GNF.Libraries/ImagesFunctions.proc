@@ -276,20 +276,17 @@ foreach(0..sourcedataProp.totalF-1, "field")
 					set(temp=cnt())
 					set(temp.image=image)
 					foreach(sourceData.columns,"key")
-						if(key!="sourceImage" && key!="Name"&&key!="Channel")
-							//added to fix Acapella bug in extracting resolution information
-							//if(at("resolution",key,1)>0)
-							//	Set(magnification =1*RegexReplace(SourceData.ObjectiveRef[0],"^(\d{1,2}).*$","\1").text)
-							//	set(temp[key]=(SourceData.CameraBinningX[0]/1352)*(444*20)/magnification) //At binning 1 the image size is ~1352 pixel wide and at 20x the field size is about 444um =>0.33µm/pix
-							//	continue()
-							//end()
+						if(key!="sourceImage" && key!="Name" && key!="ChannelName" && key!="Channel")
 							Set(temp[key]=sourceData[key][chanIndex])
-						else()
-							RegexReplace(sourceData.Name[chanIndex],"[0-9]*_","",first_only=true)
+						elif(key=="ChannelName")
+							RegexReplace(sourceData.ChannelName[chanIndex],"[0-9]+_","",first_only=true)
 							set(temp.Name=text) //contains the channel name  Chan1_Exp1
+						elif(key=="Channel")
 							set(temp.Desc=text) //Initiate the description to be the same as the name
 							set(temp.Purpose=vec())//initiate image purpose, typically it is a vector of string contaning: "marker", "nucDetection", "cytoDetection"...
 							set(temp.Chan=sourceData.channel[chanIndex])
+							set(temp.Channel=temp.Chan)
+						else()
 						end()
 					end()
 					push(cTemp,temp)
