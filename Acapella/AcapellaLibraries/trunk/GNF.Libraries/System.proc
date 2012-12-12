@@ -1,62 +1,80 @@
-proc RenameFile(
-	String path in "path containing the files",
-	String old in "old filename",
-	String new in "new filename",
+//#############################################################################################
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
 
-	boolean errorThrowing=false in "If this is true an error will be thrown, otherwise a simple warning will be given."
+//*********************************************************************************************
+//*
+//* This library defines a set of miscellaneous tools to interact with system.
+//*
+//*********************************************************************************************
 
-) Filesystem "Allows to rename a file to another name both file must be in the same path"
+// Previous functions (deleteFiles/renameFiles) were implemented in Acapella 2.6+ (with same names), removing functions to avoid issues
+
+
+
+proc getConfiguration(
+string filename="acapellaGNFLib.ini" in "name of the config file to get propperties from",
+Container config out "Object containing the configuration"
+)System "returns the configuration emeded into the selected file located at the root of this procedure"
 {
-	if(__platform__=="windows")
-		Set(filename=path&"/"&new)
-		if(fileinfo(filename).fileinfo.exists)
-			deleteFile(filename)
-		end()
-		sprintf("text","ren \"%s\\%s\" \"%s\"", path, old, new)
-		RegexReplace(text,"/","\\")
-		RegexReplace(text,"(.+?)\\\\\\\\","$1\\")
-		RegexReplace(text,"\"\\\\","\"\\\\\\\\")
-		Run(text, stderr="<errorMsg")
-	else()
-		sprintf("text","mv -f -T '%s/%s' '%s/%s'",path, old, path, new)
-		RegexReplace(text,"\\\\","/")
-		RegexReplace(text,"//","/")
-		Run(text, stderr="<errorMsg")
+	sprintf(configFile,"%s/%s",pathSplit(__file__).dirname,filename)
+	if(!fileInfo(configFile).fileinfo.is_readable)
+		//Error(sprintf(e,"The configuration file: '%s' is missing", configFile).e)
 	end()
-	if(errorlevel!=0)
-		sprintf("errorMsg","Rename command: %s; ErrorMessage %s", text,errorMsg)
-		if(errorThrowing)
-			error(errorMsg)
-		else()
-			warning(errorMsg)
-		end()
-	end()
+
+	//TODO: Change the hardcoded values and embed them into a config file placed in the same
+	// Directory as this procedure. For now hard coding these values
+
+	set(paths=cnt())
+	set(paths.tmp="%temp%")
+	set(paths.gzipJar="//Opera3654/Opera/Libraries/StdLib/GZip.jar")
+	set(paths.gzipJar="//Opera3654/Opera/Libraries/StdLib/GZip.jar")
+
+	set(config=cnt())
+	set(config.paths=paths)
 }
 
-proc deleteFile(
-	String path in "path of the file to delete",
-
-	boolean errorThrowing=false in "If this is true an error will be thrown, otherwise a simple warning will be given."
-
-) Filesystem "Allows to rename a file to another name both file must be in the same path"
-{
-	if(__platform__=="windows")
-		sprintf("text","del /f /q \"%s\"",path)
-		RegexReplace(text,"/","\\")
-		RegexReplace(text,"\\\\","\\")
-		Run(text, stderr="<errorMsg")
-	else()
-		sprintf("text","rm -f '%s'",path)
-		RegexReplace(text,"\"\\\\","\"\\\\\\\\")
-		RegexReplace(text,"//","/")
-		Run(text, stderr="<errorMsg")
-	end()
-		if(errorlevel!=0)
-		sprintf("errorMsg","Delete command: %s; ErrorMessage %s", text,errorMsg)
-		if(errorThrowing)
-			error(errorMsg)
-		else()
-			warning(errorMsg)
+proc convertPath2Platform(
+string path inout "Path that needs to be converted to match the current system",
+string platform=__platform__ in "System to use, either 'unix' or 'windows'"
+){
+	if(platform=="unix")
+		if(regex(path,"^\\w:").matches.length>0)
+			error(sprintf(e,"The Path you are trying to use: '%s' cannot be converted to unix format. Use UNC style paths").e)
 		end()
+		set(path=regexreplace(path,"\\\\","/").text)
+		set(path=regexreplace(path,"//","/").text) //In linux \ (and // are meaningless)
+		return()
+	elif(platform=="windows")
+		set(path=regexreplace(path,"/","\\\\").text)
+		set(path=regexreplace(path,"\\\\\\\\","\\\\").text)
+		set(path=regexreplace(path,"^\\\\(?=[^\\\\])","\\\\\\\\").text) //Make sure that UNC starts with '\\' and not '\'
+		return()
+	else()
+		error(sprintf(e,"The platform provided: '%s' is not valid. Must be one of 'unix' or 'windows'", platform).e)
 	end()
 }
