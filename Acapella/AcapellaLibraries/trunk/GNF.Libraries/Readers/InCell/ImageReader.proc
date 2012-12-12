@@ -5,7 +5,7 @@ proc filename_to_wellindex( string filename in, string wellindex out ) {
 		Error("The file selected: '"&filename&"' does not appear to be a valid InCell file.")
 	end()
 
-	set(row=encodedProps.row_n)
+	set(row=encodedProps.row)
 	set(col=encodedProps.col)
 	//set(field=1*encodedProps.field)
 
@@ -16,10 +16,7 @@ proc filename_to_wellindex( string filename in, string wellindex out ) {
 proc wellindex_to_filenames(string wellindex in, string imagetype="" in, string basepath="" in, container filenames out, string available_imagetype out) {
 
 	// wellindex needs to have 9 digits
-	while (length (wellindex) < 9)
-		set (wellindex = "0"&wellindex)
-	end()
-
+	sprintf(wellindex,"%09d",1*wellindex)
 
 	set(basePath=regexreplace(basePath,"\\\\","/").text)
 	if(at("/",basePath,-1)!=basePath.length)
@@ -72,6 +69,7 @@ proc filenames_to_images(vector filenames in, table sourcedata out, container so
 	set(filenames=sort(filenames).result)
 	set(filePaths=cnt())
 	set(channels=vec())
+	set(tempSourcedata=cnt())
 	set(index=0)
 	foreach(filenames, "filePath")
 		Readers::InCell::getEncodedProps(filePath)
@@ -95,62 +93,62 @@ proc filenames_to_images(vector filenames in, table sourcedata out, container so
 		push(SourceImage,image)
 		delete(image)
 
+		//Transfer all the properties registered into encodedProps
+		foreach(encodedProps.keys)
+			if(i=="")
+				continue()
+			end()
+			push(tempSourcedata[i],encodedProps[i])
+		end()
 
 
 		// determine its channel#:
-		set(chanName=encodedProps.channelName)
+		set(chanName=encodedProps.FilterCombinationRef)
 		if(channels.length==0)
 			set(channel_num=-1)
 		else()
 			set(channel_num=findElem(chanName,channels).pos)
 		end()
+		push(encodedProps.Channel,channel_num)
+		push(encodedProps.ChannelID,channel_num)
 		if(channel_num==-1)
 			push(channels,chanName)
-			set(channel_num=channels.length)
+			set(channel_num=channels.length-1)
 		end()
+		//Print The proper exposures and Camera (max 4 cameras)
+		sprintf(Name,"Exp%1dCam%2d",Chan_num%4+1,int(Chan_num/4)+1)
+		push(tempSourcedata.Name,Name)
 
-		push(Barcode,encodedProps.barcode)
-		push(CameraRef,"Camera_1")
-		push(Channel,channel_num)
-		push(Column,encodedProps.col)
-		push(Row,encodedProps.row_n)
-		push(Field,encodedProps.field)
-		push(FrameIndex,index)
-		push(FilterCombinationRef,chanName)
-		if(channel_num<5)
-			push(Name,"Exp1Cam"&channel_num)
-		else()
-			push(Name,"Exp2Cam"&channel_num)
-		end()
-		push(Plane,encodedProps.plane)
-		//follow opera convention filename is really filepath, cf ExperimentInfoParser.proc extractin of fileDir
-		push(SourceFileName,filePath)
-		push(Timepoint,encodedProps.timepoint)
-
+		push(tempSourcedata.FrameIndex,index)
 		set(index=index+1)
 	end()
 
-	set(sourcedata=tbl())
-	set(sourcedataprop=cnt())
 
+	set(sourcedata=tbl())
+	Foreach(tempSourcedata.keys)
+		push(sourcedata[i],tempSourcedata[i])
+	end()
 	if(!defined("SourceImage"))
 		error("The well requested does not appear to have been acquired on an InCell Instrument.")
 	end()
-	if(SourceImage.length<1)
+	if(SourceImage.length<1 || SourceImage.length!=sourcedata.rowcount)
 		error("The well requested does not appear to have been acquired on an InCell Instrument.")
 	end()
-
-	set(sourcedata=tbl(Barcode=Barcode, CameraRef=CameraRef, Channel=Channel, Column=Column, Row=Row, Field=Field, FrameIndex=FrameIndex,FilterCombinationRef=FilterCombinationRef,Name=Name, Plane=Plane, Sourcefilename=Sourcefilename, Timepoint=Timepoint,SourceImage=SourceImage))
+	Set(sourcedata.SourceImage=SourceImage)
 	delete(SourceImage)
+
+	set(sourcedataprop=cnt())
 	Set(sourcedataprop.NumberOfImages=sourcedata.rowcount)
 	Set(sourcedataprop.NumberOfChannels=uniq(Channel).result.length)
 	Set(sourcedataprop.NumberOfFields=uniq(Field).result.length)
 	Set(sourcedataprop.NumberOfPlanes=uniq(Plane).result.length)
 	Set(sourcedataprop.NumberOfTimepoints=uniq(Timepoint).result.length)
 	Set(sourcedataprop.ProviderName="GE-InCell")
-	//Set(sourcedataprop.WellIndex=wellIndex)
+	Set(sourcedataprop.WellIndex=filename_to_wellindex(filenames[0]).wellindex))
+	Set(sourcedataprop.WellName=Readers::wellName(sourcedataprop.WellIndex))
 
-	set(sourcedataprop.filePaths=filePaths)
+	//follow opera convention filename is really filepath, cf ExperimentInfoParser.proc extracting of fileDir
+	Set(sourcedataprop.SourceFileName=filePaths)
 }
 
 proc getEncodedProps(string filePath in, vector encodedProps out)[hidden]{
@@ -165,12 +163,19 @@ proc getEncodedProps(string filePath in, vector encodedProps out)[hidden]{
 
 	Set(encodedProps.ExpID=matches[0])
 	Set(encodedProps.Barcode=matches[1])
+	Set(encodedProps.PlateName=encodedProps.Barcode)
+
 	Set(encodedProps.Exp_Num=1*matches[2])
+
+	Set(encodedProps.PlateID=encodedProps.ExpID & "_" & encodedProps.Barcode & "_" & encodedProps.Exp_Num)
+
 	Set(encodedProps.filename=matches[3])
-	Set(encodedProps.row=matches[4])
-	Readers::row2num(encodedProps.row)
-	Set(encodedProps.row_n=1*row_n)
-	Set(encodedProps.col=1*matches[5])
+	Set(row_str=matches[4])
+	Set(encodedProps.Row_str = row_str)
+	Readers::row2num(row_str)
+	Set(encodedProps.Row=1*row_n)
+	Set(encodedProps.Col=1*matches[5])
+	Set(encodedProps.Column=encodedProps.Col)
 
 	//Get the list of properties of the image
 	Set(imageProps=matches[6])
@@ -178,29 +183,30 @@ proc getEncodedProps(string filePath in, vector encodedProps out)[hidden]{
 	Regex(imageProps,"\\bfld\\s+(\\d+)")
 	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
 	if(matches.length>0)
-		Set(encodedProps.field=1*matches[0])
+		Set(encodedProps.Field=1*matches[0])
 	else()
-		Set(encodedProps.field=1)
+		Set(encodedProps.Field=1)
 	end()
 
 	Regex(imageProps,"\\bwv\\s+(\\w+)\\s+-\\s+(\\w+)")
-	Set(encodedProps.channelEmission=matches[0])
-	Set(encodedProps.channelExcitation=matches[1])
-	Set(encodedProps.channelName=encodedProps.channelEmission&"-"&encodedProps.channelExcitation)
+	Set(encodedProps.ChannelEmission=matches[0])
+	Set(encodedProps.ChannelExcitation=matches[1])
+	Set(encodedProps.FilterCombinationRef=encodedProps.channelEmission&"-"&encodedProps.channelExcitation)
 
 	Regex(imageProps,"\\bz\\s+(\\d+)")
 	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
 	if(matches.length>0)
-		Set(encodedProps.plane=1*matches[0])
+		Set(encodedProps.Pplane=1*matches[0])
 	else()
-		Set(encodedProps.plane=1)
+		Set(encodedProps.Plane=1)
 	end()
 
 	Regex(imageProps,"\\bt\\s+(\\d+)")
 	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
 	if(matches.length>0)
-		Set(encodedProps.timepoint=1*matches[0])
+		Set(encodedProps.Timepoint=1*matches[0])
 	else()
-		Set(encodedProps.timepoint=1)
+		Set(encodedProps.Timepoint=1)
 	end()
+
 }
