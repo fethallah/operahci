@@ -1,14 +1,14 @@
 //#############################################################################################
-//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
 //# and libraries.
 //#
 //# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
 //# Authors:
 //#   * Ghislain M.C. Bonamy
-//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
 //#   * www.gnf.org
 //#
-//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
 //#
 //# This program is free software; you can redistribute it and/or modify
 //# it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ int pos out "The element index where the item partially matching the item was fo
 int startpos=0 in "Starting position index of the search. Negative value for backward searching",
 int occurence=1 in "Occurrence number of the term to find",
 boolean patialMatch=true in "Indicates whether the match should be partial (true) or identical (false).",
-) data processing "Finds the index of the selected occurrence for the specified item in a vector that at least partially matches the item."
+) data processing "Finds the index of the selected  occurrence  for the specified item in a vector that at least partially matches the item."
 {
 set(Pos=-1)
 if(startPos>vector.length-1||-1*startPos>vector.length-1)
@@ -78,7 +78,7 @@ end()
 
 proc reQuote(
 	String text inout "Text that should be quoted again",
-) Text Manipulation "This function allows to quote a String that is the composite of quoted and unquoted string"
+) Text Manipulation "This function allows to quote a String that is a mixture of quoted and unquoted string"
 {
 	RegexReplace(text,"@","",first_Only=true)
 	RegexReplace(Quote(text,"Name").quoted,"@40(\d{1,3})","@\1",first_Only=false)
