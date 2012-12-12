@@ -30,5 +30,21 @@ proc row2str(
 		set(row_n=row_n-26)
 		set(row=firstDoubleLetter)
 	end()
-	set(row=row&LETTERS[row_n-1])	
+	set(row=row&LETTERS[row_n-1])
+}
+
+proc wellName(
+	int wellIndex in "WellIndex to convert into a well name",
+	int wellName out "Numeric col value"
+)"Returns the well name from a well Index"
+{
+	// wellindex needs to have 9 digits
+	sprintf(wellindex,"%09s",wellindex)
+	Regex(wellIndex,"(\\d{3})(\\d{3})\d{3}")
+	if(matches.length!=2 || wellindex.length>9)
+		error("The WellIndex you provided is not valid")
+	end()
+	Set(row=matches[0])
+	Set(col=matches[1])
+	sprintf(wellName,"%03s%03s",row2str(row),col)
 }
