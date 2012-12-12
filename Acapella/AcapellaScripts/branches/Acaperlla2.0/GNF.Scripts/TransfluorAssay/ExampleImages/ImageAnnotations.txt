@@ -1,0 +1,2 @@
+001001000.flex: High Spot Count. 
+001002000.flex: Low Spot Count.

@@ -1,0 +1,314 @@
+//#############################################################################################
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This script allows to score cells (rim around the Nucleus), based on the
+//* intensity of the the "marker" channels.
+//*
+//*********************************************************************************************
+
+
+//TODO: add support for cytoplasmic detection, allow to select where the fluorescence is located
+
+Proc getChanInfo(memblock chanInfo out){
+
+	input(name, "Exp1Cam3", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
+	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 1..5000, step 1.0.")
+	push(chanPurpose,"nucDetection")
+	push(chanNames,name)
+	push(chanDesc,desc)
+	push(chanMin,minIntensity)
+	push(chanCutOff,0)
+
+
+	input(Name, "Exp1Cam1", "Marker1ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "GFP", "Marker1Description", type="String", description="Description of the first marker (ex. GFP). Do not use space or any other special characters.")
+	if(desc=="NA" || Name=="NA")
+		set(desc="NA",Name="NA")
+	end()
+	input(cutOff, 150, "Marker1 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")
+	Set(cutOff=iif(cutOff<1,1,cutOff))
+	push(chanPurpose,"marker")
+	push(chanNames,Name)
+	push(chanDesc,desc)
+	push(chanMin,0)
+	push(chanCutOff,cutOff)
+
+	input(Name, "NA", "Marker2ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "RFP", "Marker2Description", type="String", description="Description of the second marker (ex. RFP) or NA. Do not use space or any other special characters.")
+	if(desc=="NA" || Name=="NA")
+		set(desc="NA",Name="NA")
+	end()
+	input(cutOff, 150, "Marker2 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")
+	Set(cutOff=iif(cutOff<1,1,cutOff))
+	push(chanPurpose,"marker")
+	push(chanNames,Name)
+	push(chanDesc,desc)
+	push(chanMin,0)
+	push(chanCutOff,cutOff)
+
+
+	input(Name, "NA", "Marker3ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "MitoTracker", "Marker3Description", type="String", description="Description of the second marker (ex. RFP) or NA. Do not use space or any other special characters.")
+	if(desc=="NA" || Name=="NA")
+		set(desc="NA",Name="NA")
+	end()
+	input(cutOff, 150, "Marker3 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")
+	Set(cutOff=iif(cutOff<1,1,cutOff))
+	push(chanPurpose,"marker")
+	push(chanNames,Name)
+	push(chanDesc,desc)
+	push(chanMin,0)
+	push(chanCutOff,cutOff)
+
+
+
+	input(Name, "NA", "Marker4ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "MitoTracker", "Marker4Description", type="String", description="Description of the second marker (ex. RFP) or NA. Do not use space or any other special characters.")
+	if(desc=="NA" || Name=="NA")
+		set(desc="NA",Name="NA")
+	end()
+	input(cutOff, 150, "Marker4 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")
+	Set(cutOff=iif(cutOff<1,1,cutOff))
+	push(chanPurpose,"marker")
+	push(chanNames,Name)
+	push(chanDesc,desc)
+	push(chanMin,0)
+	push(chanCutOff,cutOff)
+
+
+
+	set(chanInfo=tbl(name=chanNames, desc=chanDesc,min=chanMin,purpose=chanPurpose, cutOff=chanCutOff))
+
+}
+
+
+Proc paramInit(memblock param out){
+
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")
+	EnvInfo()
+	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
+	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")
+	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
+	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of Cut-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
+	if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")
+		error("The Cut-Off type must be either  \"threshold\", \"folds\" or \"stddev\"")
+	end()
+	Pack(param,*)
+	keep(param)
+}
+
+Proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+	Unpack(param)
+	set(nucChanNum=chanInfo.number[findElem("nucDetection",chanInfo.purpose).pos])
+	set(nucChanMin=chanInfo.min[findElem("nucDetection",chanInfo.purpose).pos])
+	set(imageData=cnt())
+	if(images[nucChanNum].image.max>nucChanMin)
+		bckGndSubstraction(-1)
+
+		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
+
+		set(nucImage=images[nucChanNum].image)
+		Nuclei_Detection(nucImage)
+		RingRegion(stencil="body",WholeCells=nuclei,ShowIllustrations=false,ShowRegionBorder=false,VisualImage=nucImage|nuclei=wholeCells)
+		Stencil2Objects(Nuclei.RingRegion,CalcArea=false)
+		if(showIllustrations)
+			ImageView(objects.border,label="RingBorders", title="Ring Borders used.", image=nucImage,  gamma=2)
+		end()
+
+		Foreach(0..images.length-1)
+			set(image=images[i].image)
+			set(feature="Body_"&images[i].desc)
+			Mask(1)
+			set(image=image/mask)
+			CalcStat("mean", AttrName=feature&"_Intensity", image=image)
+			if(showIllustrations && FindElem("marker",images[i].purpose).pos>=0)
+				set(image=images[i].image+images[i].bckGndSubstracted)
+				//CalcBorder(RingRegion)
+
+				ImageView(Stencil2Objects(objects.body&&Mask.image).objects.border,label="RingBordChan-"&images[i].desc, title="Ring Borders for channel "&images[i].desc, image=image,  gamma=1)
+				if(cutOffType=="folds")
+					set(cutOff=(images[i].cutoff-1)*bckGndObjects[feature&"_MeanIntensity"].mean)
+				else()if(cutOffType=="stddev")
+					set(cutOff=images[i].cutoff*bckGndObjects[feature&"_StdDevIntensity"].mean)
+				else()
+					set(cutOff=images[i].cutoff)
+				end()
+				end()
+				add(images[i].bckGndSubstracted, image=objects.[feature&"_Intensity"]|data=image)
+				GraphView(data, label="RingIntChan-"&images[i].desc,title="Ring Intensity for channel "&images[i].desc&". CalculatedCutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity")
+				GraphView(tabulate(cutOff,objects.count).result, label="RingIntChan-"&images[i].desc,  append=true, presto_options="set[0].line.color red")
+				delete(data,image)
+			end()
+		end()
+		rename(WholeCells=objects)
+
+		set(Positive=cnt())
+		Foreach(0..images.length-1)
+			if(defined("images[i].purpose"))
+			if(searchElem("marker",images[i].purpose).pos>=0)
+				set(feature="Body_"&images[i].desc)
+				set(objects=WholeCells)
+				if(cutOffType=="folds")
+					set(formula=feature&"_Intensity>"&((images[i].cutoff-1)*bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean))
+				else()if(cutOffType=="stddev")
+					set(formula=feature&"_Intensity>"&(images[i].cutoff*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean))
+				else()
+					set(formula=feature&"_Intensity>"&(images[i].cutoff-images[i].bckGndSubstracted))
+				end()
+				end()
+
+				SplitMyObjects(formula,objects=objects)
+				Foreach(0..images.length-1,"k")
+					set(feature="Body_"&images[k].desc)
+					SetAttr(feature&"_FoldAboveNegative",objects[feature&"_Intensity"]/remainder[feature&"_Intensity"].median)
+				end()
+				if(showIllustrations)
+					set(image=images[i].image+images[i].bckGndSubstracted)
+					CarryObjects(nuclei.border,images[i].image.max/4,image=image)
+
+					set(mask=objects.body.mask&&mask(1,image=images[i].image).mask)
+					SetAttr(Selected,objects.body&&mask.image )
+					Calcborder(Selected)
+					ImageView(objects.selected_border.mask,label="RingBorderPos"&images[i].desc, title="Ring Borders poditives for "&images[i].desc & ". White contours correspond to all the Nuclei, Red contours to the positive objects.",image=image,  gamma=2)
+					delete(image)
+					DeleteAttr(Selected,Selected_border)
+				end()
+				push(positiveObjectsDesc,images[i].desc)
+				set(positive[images[i].desc]=objects)
+
+				Foreach(0..positiveObjectsDesc.length-1,"j")
+					if(at(images[i].desc,positiveObjectsDesc[j],1)==0)
+						set(combinationName=positiveObjectsDesc[j]&"_"&images[i].desc)
+						SplitMyObjects(formula,objects=positive[positiveObjectsDesc[j]])
+							Foreach(0..images.length-1,"k")
+								set(feature="Body_"&images[k].desc)
+								SetAttr(feature&"_FoldAboveNegative",objects[feature&"_Intensity"]/remainder[feature&"_Intensity"].median)
+							end()
+						push(positiveObjectsDesc,combinationName)
+						set(positive[combinationName]=objects)
+					end()
+				end()
+			end()
+			end()
+		end()
+		assembleCompositObject(Positive,objects=WholeCells|WholeCells=compositObject)
+
+		Stencil2Objects(Nuclei.body, CalcArea=false)
+		calcFeatures(images=vec(images[nucChanNum]),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells), CalcMorphologyFeatures=true|Nuclei=objects)
+		keep(bckGndObjects,Nuclei,WholeCells)
+		pack(imageData,*)
+	end()
+}
+Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
+
+	set(wholeWellData=cnt())
+	set(numFieldsInFocus=0)
+	Set(FeaturesTable=Tbl(),ROITable=Tbl())
+	if(images.length>0)
+	foreach(0..images.length-1, "field")
+	foreach(0..images[field].length-1, "stack")
+		imageAnalysis(images[field][stack],param)
+		if(imageData.length>0)
+			set(numFieldsInFocus=numFieldsInFocus+1)
+			if(param.getROI)
+				if(defined("imageData.Nuclei"))
+					getROITable(imageData.Nuclei,ObjectType="Nuclei")
+				end()
+				if(defined("imageData.WholeCells"))
+					getROITable(imageData.WholeCells,ObjectType="WholeCells")
+				end()
+			end()
+			if(param.getSingleCellFeatures)
+				Foreach(imageData.keys,"keyName")
+					Set(objects=ImageData[keyName])
+						if(objects.class=="objectlist"||objects.class=="compositObjectlist")
+							try() //Skip objects that do not have a real setncil stencil and for which a center of mass can be determined.
+								getFeaturesTable(objects,ObjectType=keyname)
+							Catch_Error()
+							end()
+						end()
+				end()
+			end()
+
+			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
+			rename(wholeWellData=newData)
+		end()
+		delete(imageData)
+	end()
+	end()
+	end()
+
+	Set(singleCellData=Cnt())
+	if(param.getSingleCellFeatures)
+		Set(singleCellData.Features=FeaturesTable)
+	end()
+	if(param.getROI)
+		Set(singleCellData.ROI=ROITable)
+	end()
+	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
+	pack(data,wholeWellData,singleCellData)
+}
+
+
+
+Proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
+	unpack(data)
+	delete(data)
+	if(Defined("singleCellData.Features"))
+		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellID,extension="feat",label="")
+	end()
+	if(Defined("singleCellData.ROI"))
+		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellID,extension="roi",label="")
+	end()
+	outputMemblockData( wholeWellData)
+}
+
+
+//#######################
+// Program Start
+//#######################
+getChanInfo()
+ParamInit()
+ImagesInit()
+chanAttrib()
+
+set(param.chanInfo=chanInfo)
+if(param.showIllustrations&&param.fieldSelected!=0)
+	set(param.fieldSelected=iif(param.fieldSelected<1,1,param.fieldSelected))
+	set(param.fieldSelected=iif(param.fieldSelected>images.length,images.length,param.fieldSelected))
+	set(Images=vec(images[param.fieldSelected-1]))
+end()
+
+Analysis()
+writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
+dataOutput(data,sourcedataprop,param.OutputStatType)

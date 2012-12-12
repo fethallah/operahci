@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FolderData code_version="1" date="05.04.2010  13:26:51">
+	<Description ReadOnly="0">The ImageInfo script measures the fluorescence information from different channels, such as brightness, Coef of variation etc. A mode allows one to detect the region not localized in background area.</Description>
+</FolderData>

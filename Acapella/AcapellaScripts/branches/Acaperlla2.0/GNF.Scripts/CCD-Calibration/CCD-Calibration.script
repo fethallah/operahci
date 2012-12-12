@@ -1,0 +1,144 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This script measures the image resolution by using the stage displacement,
+//* as well as the cross-channel correlation.
+//* This allows to ensure that a SkewCrop is working properly.
+//* To use this script overlapping images of beads need to be acquired. Sub-layouts for
+//* different resolution are provided with this script.
+//*
+//*********************************************************************************************
+
+proc Analysis(memblock images in, memblock data out, int bpp=1 in){
+		//initialize the container for the table of resolution
+		set(data=cnt())
+		set(data.measuredDistance=vec())
+		set(data.expectedDistance=vec())
+		set(data.resolution=vec())
+		set(numObs=0, deltaRes=0, meanRes=0, sRes=0)
+		set(data.chanCorrel=cnt())
+
+	foreach(0..images.length-1, "field")
+	foreach(0..images[field].length-1, "stack")
+		Set(images[field][stack]=bckGndSubstraction(images=images[field][stack]).images)
+		foreach(0..images[field][stack].length-1,"chan")
+				//set(chan2=(chan+1) ~ images[0][0].length)
+				if(field==0)
+					set(data["C"&chan]=cnt())
+					set(data["C"&chan].shiftX=vec())
+					set(data["C"&chan].shiftY=vec())
+					set(data["C"&chan].dX=vec())
+					set(data["C"&chan].dY=vec())
+					set(data["C"&chan].correlation=vec())
+				else()					
+						set(dX=images[field-1][0][0].PositionX@um-images[field][0][0].PositionX@um)
+						set(dY=images[field-1][0][0].PositionY@um-images[field][0][0].PositionY@um)
+						set(deltaX=dX/images[field][0][0].ImageResolutionX@um,deltaY=dY/images[field][0][0].ImageResolutionY@um)
+				end()
+				
+				if(field>0 && defined("images[field-1][stack][chan]") && defined("images[field][stack][chan]"))
+					set(image1= images[field-1][stack][chan].image)
+					set(image2= images[field][stack][chan].image)
+					set(image2=image2*image1.max/image2.max)
+               if( (Abs(deltaX)<0.9*image1.width && Abs(deltaY)<0.9*image1.height) && (deltaX==0 or deltaY==0))
+							set(maxShift=iif(Abs(deltaX)>Abs(deltaY),Abs(deltaX),Abs(deltaY)))
+							set(step=5)
+							set(shiftx=deltaX, shiftY=deltaY)
+							eval(shiftAnalyze())
+							If(errorcode==0)
+									push(data["C"&chan].shiftX,shiftX)
+									push(data["C"&chan].shiftY,shiftY)
+									push(data["C"&chan].dX,dX)
+									push(data["C"&chan].dY,dY)
+									push(data["C"&chan].correlation,correlation)
+									set(measuredDistance=sqrt(shiftX^2+shiftY^2)) //distance in pixels
+									push(data.measuredDistance,measuredDistance) //distance in pixels
+									set(expectedDistance=sqrt(dX^2+dY^2))	//distance in um from the stage
+									push(data.expectedDistance,expectedDistance)	//distance in um from the stage
+									push(data.resolution,expectedDistance/measuredDistance)  //resolution in pixels per micrometer
+							else()
+									printf(errors)
+							end()
+					end()
+				end()
+				
+				if(images[0][0].length>1&& chan<images[0][0].length-1)// && defined("images[field][stack][chan]") && defined("images[field][stack][chan2]"))
+					foreach(chan+1..images[field][stack].length-1,"chan2")
+						if(field==0)
+							set(data.chanCorrel["C"&chan&"_"&chan2]=cnt())
+							set(data.chanCorrel["C"&chan&"_"&chan2].PearsonsR=vec())
+						end()
+						set(image1= images[field][stack][chan].image)
+						set(image2= images[field][stack][chan2].image)
+						set(image2=image2*image1.max/image2.max)
+						Paste(image1,0,0,"max",image=image2)
+						ThresholdXX(TuneTh=3)
+						Mask()
+						Mask2Stencil(Method= "One large object", Neighbourhood=8)
+						Stencil2Objects()
+						MBF_PearsonsCoefficient(image1,image2,objects)
+						push(data.chanCorrel["C"&chan&"_"&chan2].PearsonsR,objects.PearsonsR.mean)
+					end()
+				end()
+		end()
+	end()
+	end()
+	set(data.meanRes=meanRes, data.varRes=sRes/numObs, data.numObs=numObs)
+}
+
+proc dataOutput(int data in, memblock images in){
+		output(images[0][0][0].ImageResolutionX@um,"Resolution(um/pix) Expected")
+		output(data.resolution.mean,"Resolution(um/pix) Calculated")
+		output(data.resolution.stddev,"Resolution (um/pix) Stdev")
+		output(data.resolution.length,"Resolution # Observations")
+		if(images[0][0].length>1)
+			foreach(0..images[0][0].length-1,"chan")
+			if(chan<images[0][0].length-1)
+				foreach(chan+1..images[0][0].length-1,"chan2")
+					output(data.chanCorrel["C"&chan&"_"&chan2].PearsonsR.mean,"Chan"&chan &"-"&chan2& " mean Pearson R")
+				end()
+			end()
+			end()
+			output(data.chanCorrel.C1_2.PearsonsR.length,"Cross-Channel Corelation # Observations")
+		end()
+}
+
+//#######################
+// Program Start
+//#######################
+ImagesInit()
+
+
+
+Analysis()
+
+writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
+dataOutput()
+wellMontage()

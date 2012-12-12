@@ -1,0 +1,310 @@
+//#############################################################################################
+//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Fundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the lattest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This script allows to detect parasite and extract various information about them
+//* it also relates these parasites to cells nuclei/cytoplasm and allows
+//* to calculate parasitemia ([Parasites-FullSet_Number/Field_Mean]/[Nuclei_Number/Field_Average].
+//*
+//*********************************************************************************************
+
+//TODO: add support for cytoplasmic detection, allow to select where parasites are located.
+//TODO: add parasitimia calculation
+
+Proc getChanInfo(memblock chanInfo out){
+
+
+	input(name, "Exp1Cam2", "ParasitesNuclearChannel", type="String", description="Channel containing the nuclei or center of parasites. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
+	input(desc, "SybrGreen", "ParasiteNuclearStainDescription", type="String", description="Description of the parasite nuclear channel (ex. SybrGreen).")
+	push(chanPurpose,"parasitesNucDetection")
+	push(chanNames,name)
+	push(chanDesc,desc)
+	push(chanMin,0)
+	push(chanCutOff,0)
+
+	input(Name, "NA", "ParasitesCytoplasmicChannelName", type="String", description="Channel containing the fluorescence from the Cytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "MGD", "ParasiteCytoplasmicStainDescription", type="String", description="Description of the Cytoplasmic stain.")
+	if(desc!="NA" && Name!="NA")
+		push(chanPurpose,"parasitesCytoDetection")
+		push(chanNames,Name)
+		push(chanDesc,desc)	
+		push(chanMin,0)
+		push(chanCutOff,0)
+		push(chanThreshold,0)
+	end()
+
+	input(name,"NA", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
+	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 1..5000, step 1.0.")
+	if(desc!="NA" && Name!="NA")
+		push(chanPurpose,"nucDetection")
+		push(chanNames,name)
+		push(chanDesc,desc)
+		push(chanMin,minIntensity)
+		push(chanCutOff,0)
+	end()
+
+	input(Name,  "NA", "CytoplasmicChannelName", type="String", description="Channel containing the fluorescence from theCytoplasmic stain. Can be same as Nuclear channel. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "MGD", "Cytoplasmic StainDescription", type="String", description="Description of the Cytoplasmic stain.")
+	if(desc!="NA" && Name!="NA")
+		push(chanPurpose,"cytoDetection")
+		push(chanNames,Name)
+		push(chanDesc,desc)	
+		push(chanMin,0)
+		push(chanCutOff,0)
+		push(chanThreshold,0)
+	end()
+
+	input(Name, "NA", "Marker1ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "GFP", "Marker1Description", type="String", description="Description of the first marker (ex. GFP). Do not use space or any other special characters.")
+	if(desc=="NA" || Name=="NA")
+		set(desc="NA",Name="NA")
+	end()
+	//input(cutOff, 150, "Marker1 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")	
+	//Set(cutOff=iif(cutOff<1,1,cutOff))
+	push(chanPurpose,"marker")
+	push(chanNames,Name)
+	push(chanDesc,desc)	
+	push(chanMin,0)
+	push(chanCutOff,0)
+
+	input(Name, "NA", "Marker2ChannelName", type="String", description="Channel containing the fluorescence from the second marker.Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
+	input(desc, "RFP", "Marker2Description", type="String", description="Description of the second marker (ex. RFP) or NA. Do not use space or any other special characters.")
+	if(desc=="NA" || Name=="NA")
+		set(desc="NA",Name="NA")
+	end()
+	//input(cutOff, 150, "Marker2 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")
+	//Set(cutOff=iif(cutOff<1,1,cutOff))
+	push(chanPurpose,"marker")
+	push(chanNames,Name)
+	push(chanDesc,desc)	
+	push(chanMin,0)
+	push(chanCutOff,0)
+
+	create("table")
+	set(table.name=chanNames, table.desc=chanDesc,table.min=chanMin,table.purpose=chanPurpose, table.cutOff=chanCutOff)
+	rename(chanInfo=table)
+}
+
+
+Proc paramInit(memblock param out){
+
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	EnvInfo()
+	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
+	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
+	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
+	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
+
+	Pack(param,*)
+	keep(param)
+}
+
+Proc imageAnalysis(memblock images in, memblock param in, container imageData out){
+	Unpack(param)
+
+	set(paraNucChanNum=0, paraCytoChanNum=-1, cytoChanNum=-1, cytoChanMin=0,nucChanNum=-1, nucChanMin=0)
+
+	set(paraNucChanNum=chanInfo.number[findElem("parasitesNucDetection",chanInfo.purpose).pos])
+
+	set(index=findElem("parasitesCytoDetection",chanInfo.purpose).pos)
+	if(index>=0)
+		set(paraCytoChanNum=chanInfo.number[index])
+	end()
+
+	set(index=findElem("cytoDetection",chanInfo.purpose).pos)
+	if(index>=0)
+		set(cytoChanNum=chanInfo.number[index])
+		set(cytoChanMin=chanInfo.min[index])
+	end()
+
+	set(index=findElem("nucDetection",chanInfo.purpose).pos)
+	if(index>=0)
+		set(nucChanNum=chanInfo.number[index])
+		set(nucChanMin=chanInfo.min[index])
+	end()
+
+	//set(marker1ChanNum=chanInfo.number[SearchElem("marker",chanInfo.purpose,occurence=1).pos])
+	//set(marker2ChanNum=chanInfo.number[SearchElem("marker",chanInfo.purpose,occurence=2).pos])
+
+	set(imageData=cnt())
+//verify that it is not an empty field
+	if(images[0].image.max>0)
+		bckGndSubstraction(-1,images=images)
+		Set(imageData.bckGndObjects=bckGndObjects) 
+		
+		convert(bpp=1,image=images[paraNucChanNum].image)
+		ParasiteDetection(image)
+		Stencil2Objects(parasites.body)
+		rename(Parasites=objects)
+		if(paraCytoChanNum>=0)
+			convert(bpp=1,image=images[paraCytoChanNum].image)
+			ParasiteCytoDetection(image)
+		end()	
+		
+		//Detect Nuclei and Cytoplasm if requested
+		if(nucChanNum>=0)
+			set(nucImage=images[nucChanNum].image)
+			convert(bpp=1,image=nucImage)
+			Nuclei_Detection(image)
+			CalcIntensity(Image=nucImage,objects=nuclei|nuclei=objects)
+			
+			if(cytoChanNum>=0)
+				convert(bpp=1,image=images[cytoChanNum].image)
+				Cytoplasm_Detection_Select(reference=image)
+			end()
+			
+			//Filtering/Normalizing of nuclei. Then select corresponding cells
+			rename(objects=nuclei)
+			ObjectFilter(intensity>nucChanMin)
+			DeleteAttr(intensity)		
+			rename(nuclei=objects)
+			
+			//Filter/Normalize Cytoplasms
+			if(cytoChanNum>=0)
+				Rename(objects=WholeCells)
+				CalcIntensity(image=Nuclei.body.mask.image)
+				ObjectFilter(intensity>0)
+				DeleteAttr(intensity)
+				RenameAttr(Nuclei=centers)
+				CalcFeatures(images=images)
+				Rename(WholeCells=Objects)	
+				Stencil2Objects(wholeCells.Nuclei, CalcArea=false)
+				CalcFeatures(images=vec(),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells))
+				Rename(Nuclei=objects)
+				
+				getFeatures(objects=Parasites,parentNames=vec("Nuclei","WholeCells"),parentObjects=cnt(Nuclei=Nuclei,WholeCells=WholeCells)|Parasites=objects)	
+				
+				Set(imageData.Nuclei=Nuclei, imageData.WholeCells=WholeCells)
+			else()
+				Stencil2Objects(nuclei.body, CalcArea=false)
+				CalcFeatures(images=images)
+				Rename(Nuclei=objects)
+				
+				getFeatures(objects=Parasites,images=images,parentNames=vec("Nuclei"),parentObjects=cnt(Nuclei=Nuclei)|Parasites=objects)	
+				
+				Set(imageData.Nuclei=Nuclei)
+			end()	
+			//get the set of objects associted with the well
+			SplitMyObjects("parentType!=\"WholeWell\"",objects=Parasites)
+			assembleCompositObject(cnt("InsideCell"=objects,"OutsideCell"=remainder),objects=Parasites|Parasites=compositObject)			
+			keep(imageData,Parasites)
+		else()
+			getFeatures(objects=Parasites,images=images|Parasites=objects)	
+		end()
+		set(imageData.Parasites=Parasites)
+	end()
+}
+Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
+
+	set(wholeWellData=cnt())
+	set(numFieldsInFocus=0)
+	Set(FeaturesTable=Tbl(),ROITable=Tbl())
+	if(images.length>0)
+	foreach(0..images.length-1, "field")
+	foreach(0..images[field].length-1, "stack")
+		imageAnalysis(images[field][stack],param)
+		if(imageData.length>0)
+			set(numFieldsInFocus=numFieldsInFocus+1)
+			if(param.getROI)
+				if(defined("imageData.Parasites"))
+					getROITable(imageData.Parasites,ObjectType="Parasites")
+				end()
+				if(defined("imageData.Nuclei"))
+					getROITable(imageData.Nuclei,ObjectType="Nuclei")
+				end()
+				if(defined("imageData.WholeCells"))
+					getROITable(imageData.WholeCells,ObjectType="WholeCells")
+				end()
+			end()
+			if(param.getSingleCellFeatures)
+				Foreach(imageData.keys,"keyName")
+					Set(objects=ImageData[keyName])
+						if(objects.class=="objectlist"||objects.class=="compositObjectlist")
+							try() //Skip objects that do not have a real setncil stencil and for which a center of mass can be determined.
+								getFeaturesTable(objects,ObjectType=keyname)
+							Catch_Error()
+							end()
+						end()
+				end()
+			end()
+			
+			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
+			rename(wholeWellData=newData)
+		end()
+		delete(imageData)
+	end()
+	end()
+	end()
+
+	Set(singleCellData=Cnt())
+	if(param.getSingleCellFeatures)
+		Set(singleCellData.Features=FeaturesTable)
+	end()
+	if(param.getROI)
+		Set(singleCellData.ROI=ROITable)
+	end()
+	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
+	pack(data,wholeWellData,singleCellData)
+}
+
+
+
+Proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
+	unpack(data)
+	delete(data)
+	if(Defined("singleCellData.Features"))
+		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellID,extension="feat",label="")
+	end()
+	if(Defined("singleCellData.ROI"))
+		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellID,extension="roi",label="")
+	end()
+	outputMemblockData( wholeWellData)
+}
+
+
+//#######################
+// Program Start
+//#######################
+getChanInfo()
+ParamInit()
+ImagesInit()
+chanAttrib()
+
+set(param.chanInfo=chanInfo)
+if(param.showIllustrations&&param.fieldSelected!=0)
+	set(param.fieldSelected=iif(param.fieldSelected<1,1,param.fieldSelected))
+	set(param.fieldSelected=iif(param.fieldSelected>images.length,images.length,param.fieldSelected))
+	set(Images=vec(images[param.fieldSelected-1]))
+end()
+
+Analysis()
+writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
+dataOutput(data,sourcedataprop,param.OutputStatType)

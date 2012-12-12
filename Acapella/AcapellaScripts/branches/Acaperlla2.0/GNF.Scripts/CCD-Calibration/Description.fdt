@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FolderData code_version="1" date="05.04.2010  13:16:32">
+	<Description ReadOnly="0">The CCD-Calibration script measures the quality of the skewcrop by measuring the quality of the alignement of images collected from a bead plate.
+This script does not require any Parameters.</Description>
+</FolderData>
