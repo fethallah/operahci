@@ -32,8 +32,6 @@
 //*
 //*********************************************************************************************
 
-// Previous functions (deleteFiles/renameFiles) were implemented in Acapella 2.6+ (with same names), removing functions to avoid issues
-
 
 
 proc getConfiguration(
