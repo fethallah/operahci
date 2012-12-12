@@ -202,7 +202,7 @@
 			<block start="/(\bif\b)/i" end="/(\bend\(\))/i" scheme="acapella"
 				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
 				region11="PairEnd" />
-				
+
 			<block start="/(\bif\b)/i" end="/(\bend\(\))/i" scheme="acapella"
 				region00="ScturctureFolding" region01="PairStart" region10="ScturctureFolding"
 				region11="PairEnd" />
@@ -226,7 +226,9 @@
 				<word name="while" />
 				<word name="if" />
 				<word name="else()" />
+				<word name="elif()" />
 				<word name="break()" />
+				<word name="return()" />
 				<word name="try()" />
 				<word name="catch_error()" />
 				<word name="catch_warning()" />
