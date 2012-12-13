@@ -55,9 +55,9 @@ Container config out "Object containing the configuration"
 	DeleteFile(filename)
 	pathSplit(filename)
 	set(paths.tmp=dirname)
-	set(paths.archiveRoot="//Opera3654/Opera/Libraries/StdLib/GZip.jar")
+	set(paths.archiveRoot="")
 	set(paths.storageRoot="//CIA-286/Images/")
-	set(paths.gzipJar="")
+	set(paths.gzipJar="//Opera3654/Opera/Libraries/StdLib/GZip.jar")
 
 	set(config=cnt())
 	set(config.paths=paths)
