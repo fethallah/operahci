@@ -48,7 +48,13 @@ Container config out "Object containing the configuration"
 	// Directory as this procedure. For now hard coding these values
 
 	set(paths=cnt())
-	set(paths.tmp="%temp%")
+
+	//Extract actual temp diretory from system. In future need to test if tmp path in
+	//system file exists or replace with system one...
+	MakeTempFileName()
+	DeleteFile(filename)
+	pathSplit(filename)
+	set(paths.tmp=dirname)
 	set(paths.gzipJar="//Opera3654/Opera/Libraries/StdLib/GZip.jar")
 	set(paths.gzipJar="//Opera3654/Opera/Libraries/StdLib/GZip.jar")
 

@@ -526,7 +526,7 @@ proc GetWellInfo(
 			Set(filename=RegexReplace(filename,"rmca:","").text)
 		end()
 		//TODO: Use config file to set the temp directory value
-		Set(filename="%TEMP%/"&filename)
+		Set(filename=getConfiguration().config.paths.tmp&filename)
 		pathSplit(filename)
 		set(sourcedataprop.fileDir=dirname)
 		set(sourcedataprop.filename=filename)
