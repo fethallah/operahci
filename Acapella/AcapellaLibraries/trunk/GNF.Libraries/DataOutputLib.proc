@@ -290,7 +290,7 @@ proc GZipData(
 	end()
 
 	//FIX: Used to handle archived images
-	push(archiveRoots,SplitString(getConfiguration().config.paths.archiveRoot,";:").Split) //make sure archive roots is a vector
+	set(archiveRoots=SplitString(getConfiguration().config.paths.archiveRoot,";:").Split) //make sure archive roots is a vector
 	if(archiveRoots.length>0)
 		set(storageRoot= getConfiguration().config.paths.storageRoot)
 		set(storageRoot= convertPath2Platform(storageRoot).path)
