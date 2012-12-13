@@ -44,7 +44,7 @@ proc MBF_PearsonsCoefficient (
 	image Ch2="Ch2" in "Channel 2 Image to be colocalised",
 	objectlist objects = "objects" localcontext in "Objects to be analysed - the ROIs",
 	//OUTPUT
-	objectlist Objects out "Objectlits containing the added Pearson correlation attrinute \"PearsonR\"",
+	objectlist Objects out "Objectlits containing the added Pearson correlation attrinute "PearsonR"",
 	stencil Stencil=body dynadefault explicit  in "Stencil used to calculate the correlation",
 	String AttrName="PearsonsR" in "Name of the attribute containing the Pearson Correlation Values.",
 ) CoLocalization "Calculates Pearson's coefficient, see Reference: Press, W.H., Flannery, B.P., Teukolsky, S.A. & Vetterling, W.T. (1988) Numerical Recipes in C. Cambridge University Press, Cambridge."
@@ -204,7 +204,7 @@ proc MBF_ICQ(
 ///create (Ch1-Ch1m)*(Ch2-Ch2m) = Product of the Differences from the Mean or PDM
 	mul(Ch2subCh2m, Ch1subCh1m, result_type = "long, signed")
 	rename(PDM = result)
-//counting positives for  value = N+ves � Ntotal
+//counting positives for  value = N+ves ï¿½ Ntotal
 //remove  negative pixel values
 	minus( PDM, 0, result_type="automatic", neg_method="zero")
 	rename(positive_images = result)
@@ -243,7 +243,7 @@ proc MBF_MandersCoefficients(
 	image Ch2="Ch2" in "Channel 2 Image to be colocalised - must subtract background",
 	objectlist objects localcontext in "Objects to be analysed - the ROIs",
 	//OUTPUT
-	objectlist objects out "Objectlits containing the added Manders correlation \"MandersR\"",
+	objectlist objects out "Objectlits containing the added Manders correlation "MandersR"",
 	stencil stencil=body dynadefault explicit  in "Stencil used to calculate the correlation",
 	String attrName="MandersR" in "Name of the attribute containing the manders correlation Values.",
 )  CoLocalization  "Calculates Manders colocalisation values.  See Reference:Manders, EEM, Verbeek, FJ., and Aten, JA. (1993). Measurement of co-localisation of objects in dual-colour confocal images. Journal of Microscopy 169, 375-382."
@@ -293,7 +293,7 @@ set(ROI_obj=objects)
 	carryObjects(ROI_obj.body, Ch2coloc_obj.intensity, image = result)
 	rename(Ch2colocsum=image)
 
-//calculate Manders coefficicnet = sum(Ch1coloc)�sum(Ch1)
+//calculate Manders coefficicnet = sum(Ch1coloc)ï¿½sum(Ch1)
 	div(Ch1colocsum, Ch1sum, result_type="float")
 	rename(M1=result)
 	calcIntensity(body, M1, objects = ROI_obj)
@@ -432,7 +432,7 @@ proc CalcPercentOverlap(
 	String stencil=body  dynadefault explicit in  "Stencil in which the signal should be for both Marker1 and Marker2",
 	objectlist objects localcontext inout  "Object list conatining the stencil and the objects to study the overlap.",
 	boolean showIllustrations=true in "YES- Output illustrations are depicted. No- Output illustrations are not shown." ,
-) CoLocalization "Assess the percentage of overlap between marker1 and marker2. For a signal in a selected stencil above a given cut-off. Returns a new object with the following two attributes added: stencil_\"Marker1_Marker2_Percent_Overlap\" and stencil_\"Marker2_Marker1_Percent_Overlap\""
+) CoLocalization "Assess the percentage of overlap between marker1 and marker2. For a signal in a selected stencil above a given cut-off. Returns a new object with the following two attributes added: stencil_"Marker1_Marker2_Percent_Overlap" and stencil_"Marker2_Marker1_Percent_Overlap""
 {
 	Set(objectsIni=objects)
 	if(Not(defined("objects[stencil]")))
