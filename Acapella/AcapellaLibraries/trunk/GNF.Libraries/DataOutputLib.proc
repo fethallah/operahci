@@ -339,6 +339,7 @@ proc writeChannelMapping(
 	set(ChannelMapping=tbl(index=chanIndex,Name=chanName,Description=chanDesc,Purpose=chanPurp))
 	pathSplit(imagePath)
 	set(wellID=iif(length(wellID)==0,basename,wellID))
+	mkdir(dirname)
 	set(tempFilename=dirname&"ChannelMapping-"&wellID)
 	set(filename=dirname&"ChannelMapping")
 	writeTable(ChannelMapping, tempFilename)
