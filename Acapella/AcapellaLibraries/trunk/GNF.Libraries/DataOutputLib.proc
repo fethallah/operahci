@@ -345,7 +345,7 @@ proc writeChannelMapping(
 	set(tempFilename=dirname&"ChannelMapping-"&wellID)
 	set(filename=dirname&"ChannelMapping")
 	writeTable(ChannelMapping, tempFilename)
-	MoveFiles(tempFilename,filename)
+	RenameFile(tempFilename,filename)
 	if(fileinfo(filename).fileinfo.exists)
 		DeleteFile(filename)
 	end()
