@@ -290,15 +290,17 @@ proc GZipData(
 	end()
 
 	//FIX: Used to handle archived images
-	push(archiveRoots,getConfiguration().config.paths.archiveRoot) //make sure archive roots is a vector
-	set(storageRoot= getConfiguration().config.paths.storageRoot)
-	set(storageRoot= convertPath2Platform(storageRoot).path)
-	foreach(archiveRoots,"archiveRoot")
-		set(archiveRoot= convertPath2Platform(archiveRoot).path)
-		if(at(path, archiveRoot)==1)
-			set(path=storageRoot&"/"&substr(path,archiveRoot.length+1,path.length))
-			convertPath2Platform()
-			break()
+	push(archiveRoots,SplitString(getConfiguration().config.paths.archiveRoot,";:").Split) //make sure archive roots is a vector
+	if(archiveRoots.length>0)
+		set(storageRoot= getConfiguration().config.paths.storageRoot)
+		set(storageRoot= convertPath2Platform(storageRoot).path)
+		foreach(archiveRoots,"archiveRoot")
+			set(archiveRoot= convertPath2Platform(archiveRoot).path)
+			if(at(path, archiveRoot)==1)
+				set(path=storageRoot&"/"&substr(path,archiveRoot.length+1,path.length))
+				convertPath2Platform()
+				break()
+			end()
 		end()
 	end()
 	MkDir(path)
