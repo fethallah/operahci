@@ -199,5 +199,5 @@ if(param.showIllustrations&&param.fieldSelected!=0)
 end()
 
 Analysis()
-writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
+writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
 dataOutput()

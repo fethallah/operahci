@@ -139,6 +139,6 @@ ImagesInit()
 
 Analysis()
 
-writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
+writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
 dataOutput()
 wellMontage()
