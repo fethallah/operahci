@@ -67,6 +67,8 @@ proc convertPath2Platform(
 string path inout "Path that needs to be converted to match the current system",
 string platform=__platform__ in "System to use, either 'unix' or 'windows'"
 ){
+
+	//TODO: Handle user paths (~/, ~USER/, %USERPROFILE%...)
 	if(platform=="unix")
 		if(regex(path,"^\\w:").matches.length>0)
 			error(sprintf(e,"The Path you are trying to use: '%s' cannot be converted to unix format. Use UNC style paths").e)
