@@ -33,7 +33,6 @@
 //*
 //*********************************************************************************************
 
-
 #include <acapella/DI_acapella.h>
 #include <algorithm>
 #include <memblock/pmemblock.h>
@@ -57,50 +56,43 @@ private:
 	virtual void Run();
 
 	void polygonize(PVector coordinatesX, PVector coordinatesY,
-			std::stringstream& boundingBoxMin,
-			std::stringstream& boundingBoxMax,
-			std::stringstream& initCoordinate, std::stringstream& chain,
-			std::stringstream& coordinates);
+			unsigned int& boundingBoxMinX, unsigned int& boundingBoxMinY,
+			unsigned int& boundingBoxMaxX, unsigned int& boundingBoxMaxY,
+			unsigned int& iniX, unsigned int& iniY, PVector chainCode, std::stringstream& chainCodeStr );
 private:
 	// module parameters
 	const PIntervalVector stencil;
-	PVector boundingBoxMinCoordinateList;
-	PVector boundingBoxMaxCoordinateList;
-	PVector inialCoordinate;
-	PVector chainCode;
-	PVector coordinatesList;
+	bool chainCodeAsString;
+	PTable table;
 };
 
 void ExtractROI::Declare() {
 	// Declare module groups and general description
-	module(
-			0,
-			"Object list manipulations, GNF_Dataprocessing",
-			"Returns a vector with the coordinates for the stencil provided as a polygon. Coordinates are reported in the for \"X;Y\" and the coordinate system is: (X=0;Y=0) corresponds to the top left and Y increases going down, X increases going up. This follows Acapella nomenclature.");
+	module(0, "Object list manipulations, GNF_Dataprocessing",
+			"Returns a table containing information about the different ROI (Region of Interest) encoded in the Stencil.\n"
+					"The ROI path is encoded as a chain code which require a start point (cf. iniX and iniY) and then can be traced by following the chain "
+					"of next moves encoded by the following array of vector (encoding matrix):<br>"
+					"{ { 1, 0 }, { 1, 1 }, { 0, 1 }, { -1, 1 },{ -1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 } }<br>"
+					"The Chain code is counter clockwise, in this case a value of  0 moves the vector by x+1 and y+0<br>"
+					"Vectors are reported in the encoding matrix as \"{X,Y}\". The coordinate system is: (X=0;Y=0) corresponds to the top left of the image "
+					"and Y increases going down, X increases going up. This follows Acapella nomenclature.");
 	// Declare module input parameters
 	input(stencil, "Stencil (intervalvector)", PAR_POSITIONAL,
 			"Stencil containing the border of the ROI to extract.");
+		// Declare module input parameters
+	input(chainCodeAsString, "chainCodeAsString (boolean)", PAR_BOOLEAN,
+			"Indicates if you wish to have the chain code returned as a vector or as a string (default: true).");
 	// Declare module output parameters
 
-	output(
-			boundingBoxMinCoordinateList,
-			"boundingBoxMinCoordinateList (vector: string)",
-			0,
-			"Vector containing the smallest coordinates for each ROI bounding box (xMin;yMin).");
-	output(
-			boundingBoxMaxCoordinateList,
-			"boundingBoxMaxCoordinateList (vector: string)",
-			0,
-			"Vector containing the largest coordinates for each ROI bounding box (xMax;yMax).");
-	output(inialCoordinate, "inialCoordinate (vector: string)", 0,
-			"Vector containing the Initial coordinate use by the chain code");
-	output(
-			chainCode,
-			"chainCode (vector: string)",
-			0,
-			"Vector containing the chaincode as text (Chain code is counter clockwise and starts at 0 move by x+1 and y+0.");
-	output(coordinatesList, "coordinatesList (vector: string)", 0,
-			"Vector containing the coordinates for each ROI returned as a chain code.");
+	output(table, "table (table)", 0,
+			"Table containing the information about various properties of the object. The following columns are:"
+					"<li>'BoundingBoxMinX': Contains the X coordinates for bottom left corner of each ROI bounding box."
+					"<li>'BoundingBoxMinY': Contains the Y coordinates for bottom left corner of each ROI bounding box."
+					"<li>'BoundingBoxMaxX': Contains the X coordinates for top right corner of each ROI bounding box."
+					"<li>'BoundingBoxMaxY': Contains the Y coordinates for top right corner of each ROI bounding box."
+					"<li>'IniX': Contains the X coordinates for the starting point of the chain code encoding the ROI."
+					"<li>'IniY': Contains the Y coordinates for the starting point of the chain code encoding the ROI."
+					"<li>'ChainCode': Contains a vector of vector or vector of strings (depending on 'chainCodeAsString') representing the ROI shape.");
 }
 
 void ExtractROI::Run() {
@@ -108,18 +100,38 @@ void ExtractROI::Run() {
 	const int* inner, *outer;
 	unpack_two_layer_const(stencil, inner, outer);
 	int objectNum = stencil->IntervalCount();
-	boundingBoxMinCoordinateList = Vector::Create(objectNum, Vector::String);
-	safestring* boundingBoxMinCoordinateListValue =
-			boundingBoxMinCoordinateList->StringPointer();
-	boundingBoxMaxCoordinateList = Vector::Create(objectNum, Vector::String);
-	safestring* boundingBoxMaxCoordinateListValue =
-			boundingBoxMaxCoordinateList->StringPointer();
-	inialCoordinate = Vector::Create(objectNum, Vector::String);
-	safestring* inialCoordinateValue = inialCoordinate->StringPointer();
-	chainCode = Vector::Create(objectNum, Vector::String);
-	safestring* chainCodeValue = chainCode->StringPointer();
-	coordinatesList = Vector::Create(objectNum, Vector::String);
-	safestring* coordinatesListValue = coordinatesList->StringPointer();
+
+	PVector boundingBoxMinXList = Vector::Create(objectNum,
+			Vector::UnsignedInt);
+	unsigned int* boundingBoxMinXListValue =
+			boundingBoxMinXList->UnsignedIntPointer();
+	PVector boundingBoxMinYList = Vector::Create(objectNum,
+			Vector::UnsignedInt);
+	unsigned int* boundingBoxMinYListValue =
+			boundingBoxMinYList->UnsignedIntPointer();
+
+	PVector boundingBoxMaxXList = Vector::Create(objectNum,
+			Vector::UnsignedInt);
+	unsigned int* boundingBoxMaxXListValue =
+			boundingBoxMaxXList->UnsignedIntPointer();
+	PVector boundingBoxMaxYList = Vector::Create(objectNum,
+			Vector::UnsignedInt);
+	unsigned int* boundingBoxMaxYListValue =
+			boundingBoxMaxYList->UnsignedIntPointer();
+
+	PVector iniXList = Vector::Create(objectNum, Vector::UnsignedInt);
+	unsigned int* iniXListValue = iniXList->UnsignedIntPointer();
+	PVector iniYList = Vector::Create(objectNum, Vector::UnsignedInt);
+	unsigned int* iniYListValue = iniYList->UnsignedIntPointer();
+
+	PVector chainCodeList = Vector::Create(objectNum, Vector::PMemory);
+	PMemBlock* chainCodeListValue = chainCodeList->PMemoryPointer();
+
+	PVector chainCodeStrList = Vector::Create(objectNum, Vector::String);
+	safestring* chainCodeStrListValue = chainCodeStrList->StringPointer();
+
+	table = Table::Create();
+
 	unsigned int width, height;
 	stencil->GetImageDimensions(width, height);
 	// i iterates over objects 1..n. i is an index into the outer array
@@ -139,25 +151,40 @@ void ExtractROI::Run() {
 			coordinatesYValues[index] = inner[j] / width;
 			index++;
 		}
-		std::stringstream boundingBoxMin, boundingBoxMax, chain,
-				initCoordinate, coordinates;
-		ExtractROI::polygonize(coordinatesX, coordinatesY, boundingBoxMin,
-				boundingBoxMax, initCoordinate, chain, coordinates);
-		boundingBoxMinCoordinateListValue[i - 1] = Printf("%d")(
-				boundingBoxMin.str());
-		boundingBoxMaxCoordinateListValue[i - 1] = Printf("%d")(
-				boundingBoxMax.str());
-		chainCodeValue[i - 1] = Printf("%d")(chain.str());
-		inialCoordinateValue[i - 1] = Printf("%d")(initCoordinate.str());
-		coordinatesListValue[i - 1] = Printf("%d")(coordinates.str());
+		unsigned int boundingBoxMinX, boundingBoxMinY, boundingBoxMaxX,
+				boundingBoxMaxY, iniX, iniY;
+		PVector chainCode = Vector::Create(0, Vector::UnsignedInt);
+		std::stringstream chainCodeStr;
+
+		ExtractROI::polygonize(coordinatesX, coordinatesY, boundingBoxMinX,
+				boundingBoxMinY, boundingBoxMaxX, boundingBoxMaxY, iniX, iniY,
+				chainCode, chainCodeStr);
+		boundingBoxMinXListValue[i - 1] = boundingBoxMinX;
+		boundingBoxMinYListValue[i - 1] = boundingBoxMinY;
+		boundingBoxMaxXListValue[i - 1] = boundingBoxMaxX;
+		boundingBoxMaxYListValue[i - 1] = boundingBoxMaxY;
+		iniXListValue[i - 1] = iniX;
+		iniYListValue[i - 1] = iniY;
+		chainCodeListValue[i - 1] = chainCode;
+		chainCodeStrListValue[i - 1] = Printf("%s")(chainCodeStr.str());
 
 	}
+	table->SetColumn("BoundingBoxMinX", boundingBoxMinXList);
+	table->SetColumn("BoundingBoxMinY", boundingBoxMinYList);
+	table->SetColumn("BoundingBoxMaxX", boundingBoxMaxXList);
+	table->SetColumn("BoundingBoxMaxY", boundingBoxMaxYList);
+	table->SetColumn("IniX", iniXList);
+	table->SetColumn("IniY", iniYList);
+	if(chainCodeAsString)
+		table->SetColumn("ChainCode", chainCodeStrList);
+	else
+		table->SetColumn("ChainCode", chainCodeList);
 }
 
 void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
-		std::stringstream& boundingBoxMin, std::stringstream& boundingBoxMax,
-		std::stringstream& initCoordinate, std::stringstream& chain,
-		std::stringstream& coordinates) {
+		unsigned int& boundingBoxMinX, unsigned int& boundingBoxMinY,
+		unsigned int& boundingBoxMaxX, unsigned int& boundingBoxMaxY,
+		unsigned int& iniX, unsigned int& iniY, PVector chainCode, std::stringstream& chainCodeStr) {
 
 	int* coordinatesXValues = coordinatesX->IntPointer();
 	int* coordinatesYValues = coordinatesY->IntPointer();
@@ -168,15 +195,18 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 	if (objectSize == 0)
 		return;
 	if (objectSize == 1) {
-		coordinates << coordinatesXValues[0] << ";" << coordinatesYValues[0];
-		boundingBoxMin << coordinatesXValues[0] << ";" << coordinatesYValues[0];
-		boundingBoxMax << coordinatesXValues[0] << ";" << coordinatesYValues[0];
-		initCoordinate << coordinatesXValues[0] << ";" << coordinatesYValues[0];
-		chain << "";
+		boundingBoxMinX = coordinatesXValues[0];
+		boundingBoxMinY = coordinatesYValues[0];
+		boundingBoxMaxX = coordinatesXValues[0];
+		boundingBoxMaxY = coordinatesYValues[0];
+		iniX = coordinatesXValues[0];
+		iniY = coordinatesYValues[0];
+		//chainCode already set to empty vector
+		chainCodeStr << "";
 		return;
 	}
-	const char connectorCode[][2] = { { 1, 0 }, { 1, 1 }, { 0, 1 }, { -1, 1 },
-			{ -1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 } };
+	const char connectorCode[][2] = { { 1, 0 }, { 1, 1 }, { 0, 1 }, { -1, 1 }, {
+			-1, 0 }, { -1, -1 }, { 0, -1 }, { 1, -1 } };
 	for (int i = 0; i < objectSize; i++) {
 		if (coordinatesXValues[i] < xMin)
 			xMin = coordinatesXValues[i];
@@ -188,8 +218,10 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 			yMax = coordinatesYValues[i];
 	}
 
-	boundingBoxMin << xMin << ";" << yMin;
-	boundingBoxMax << xMax << ";" << yMax;
+	boundingBoxMinX = xMin;
+	boundingBoxMinY = yMin;
+	boundingBoxMaxX = xMax;
+	boundingBoxMaxY = yMax;
 	width = xMax - xMin + 1;
 	height = yMax - yMin + 1;
 
@@ -200,7 +232,6 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 	for (int i = 0; i < objectSize; i++)
 		bitmap[coordinatesYValues[i] - yMin][coordinatesXValues[i] - xMin] = 1;
 
-
 	int xIni = 0, yIni = 0; //yIni = height - 1;
 	//Find the first point to initialize contour tracing
 	for (xIni = 0; xIni < width; xIni++)
@@ -208,7 +239,8 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 			if (bitmap[yIni][xIni] != 0)
 				break;
 
-	initCoordinate << (xIni + xMin) << ";" << (yIni + yMin);
+	iniX = (xIni + xMin);
+	iniY = (yIni + yMin);
 	int x = xIni, xOld = xIni, y = yIni, yOld = yIni;
 	int dirOld = 4, dirNew = 5;
 	std::vector<int> polygonXList;
@@ -230,7 +262,8 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 				xOld = x;
 				yOld = y;
 				bitmap[y][x]++;
-				chain << dirNew;
+				chainCode->push_back(dirNew);
+				chainCodeStr << dirNew;
 
 				//Only store the coordinates on a direction change
 				if (dirNew != dirOld) {
@@ -250,7 +283,7 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 
 				dirOld = dirNew;
 				// Reset Connector Loop
-				connectorLoopNum=0;
+				connectorLoopNum = 0;
 				// Set new direction as backward direction (will be incremented at the end of the loop)
 				dirNew = (dirNew + 4) % 8;
 			}
@@ -266,10 +299,6 @@ void ExtractROI::polygonize(PVector coordinatesX, PVector coordinatesY,
 		//increase the number of loop that was done over the connectorCode. Maximum number of value is 8 (0..7).
 		connectorLoopNum++;
 	}
-
-	for (int i = 0; i < (int) polygonXList.size(); i++)
-		coordinates << (polygonXList[i] + xMin) << ";" << (polygonYList[i] + yMin) << ",";
-
 
 	polygonXList.clear();
 	polygonYList.clear();
