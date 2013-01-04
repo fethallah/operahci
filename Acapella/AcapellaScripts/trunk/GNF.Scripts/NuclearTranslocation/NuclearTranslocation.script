@@ -40,7 +40,7 @@ Proc getChanInfo(memblock chanInfo out){
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
 	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 0..1000.")
-	push(chanPurpose,"nucDetection")	
+	push(chanPurpose,"nucDetection")
 	push(chanNames,name)
 	push(chanDesc,desc)
 	push(chanMin,minIntensity)
@@ -58,21 +58,21 @@ Proc getChanInfo(memblock chanInfo out){
 	end()
 	push(chanPurpose,"cytoDetection")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 	push(pearsonRCutOffVec,0.0)
 
 	input(Name, "Exp1Cam1", "Marker1ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
 	input(desc, "GFP", "Marker1Description", type="String", description="Description of the first marker (ex. GFP).")
-	input(cutOff, 150, "Marker1 Positive CuttOff", type="i",  description="Cutt-off value used to define cells expressing the first marker. Allowed range: 1..1000, step 0.1.")	
+	input(cutOff, 150, "Marker1 Positive CuttOff", type="i",  description="Cutt-off value used to define cells expressing the first marker. Allowed range: 1..1000, step 0.1.")
 	input(pearsonRCutOff, 0, "Nuclear Translocation CutOff", type="d",  description="CutOff for PearsonR to classify cells as translocated or not. Use 0 if you do not wish to split cells in translocated vs. non translocated. Allowed range: -1..1, step 0.01.")
 	if(pearsonRCutOff<-1||pearsonRCutOff>1)
 		Error("The cutt-off must be >= to 1")
-	end()	
+	end()
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 	push(pearsonRCutOffVec,pearsonRCutOff)
@@ -85,12 +85,12 @@ Proc getChanInfo(memblock chanInfo out){
 
 Proc paramInit(memblock param out){
 
-	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")
 	EnvInfo()
 	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
-	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
-	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")
+	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
 	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 
 	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
@@ -119,12 +119,12 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	set(imageData=cnt())
 	if(images[nucChanNum].image.max>nucChanMin)
 		bckGndSubstraction(-1,images=images)
-		
+
 		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
-		
+
 		set(nucImage=images[nucChanNum].image)
 		Nuclei_Detection(nucImage)
-		
+
 		if(cytoChanNum>=0)
 			set(minCytoIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[cytoChanNum].desc&"_StdDevIntensity"].mean)
 			convert(bpp=1,image=images[cytoChanNum].image)
@@ -171,7 +171,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		end()
 		Stencil2Objects(objects.body)
 		CalcMassCentre()
-		rename(nuclei=objects,objects=wholeCells)				
+		rename(nuclei=objects,objects=wholeCells)
 		CalcIntensity(image=Nuclei.MassCentre.mask.image)
 		ObjectFilter(intensity>0)
 		DeleteAttr(intensity)
@@ -179,14 +179,14 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		CalcStat("mean",image=images[markerChanNum].image,Stencil=Centers,AttrName=images[markerChanNum].desc&"_NuclearIntensity")
 		CalcStat("mean",image=images[markerChanNum].image,Stencil=Cytoplasm,AttrName=images[markerChanNum].desc&"_CytoplasmicIntensity")
 		SetAttr(images[markerChanNum].desc&"_Ratio_Nuc_To_CytoIntensity",objects[images[markerChanNum].desc&"_NuclearIntensity"]/objects[images[markerChanNum].desc&"_CytoplasmicIntensity"])
-		
+
 		MBF_PearsonsCoefficient(images[markerChanNum].image,images[nucChanNum].image,objects|temp=objects)
 		setAttr(images[markerChanNum].desc&"_PearsonR",temp.PearsonsR, Objects=Objects)
 		delete(temp)
 
 		CalcFeatures(images=vec())
 		set(WholeCells=objects)
-		
+
 		if(cutOffType=="folds")
 			set(formula=(images[markerChanNum].cutoff-1)&"*"&bckGndObjects["Body_"&images[markerChanNum].desc&"_MeanIntensity"].mean)
 		else()if(cutOffType=="stddev")
@@ -209,7 +209,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				set(cutOff=images[markerChanNum].cutoff-images[markerChanNum].bckGndSubstracted)
 			end()
 			end()
-			
+
 			GraphView(wholeCells.[images[markerChanNum].desc&"_CytoplasmicIntensity"], label=images[markerChanNum].desc&"-Intensity",title="Intensity for channel "&images[markerChanNum].desc&". CalculatedCutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity, set[0].line.color black")
 			GraphView(wholeCells.[images[markerChanNum].desc&"_NuclearIntensity"], label=images[markerChanNum].desc&"-Intensity", append=true, presto_options="graph.yaxis.title Intensity, set[0].line.color green")
 			GraphView(tabulate(cutOff,wholeCells.count).result, label=images[markerChanNum].desc&"-Intensity", append=true, presto_options="set[0].line.color Red")
@@ -221,17 +221,17 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		set(cutOff=images[markerChanNum].pearsonRCutOff)
 		if(cutOff != 0)
 			ObjectFilter(images[markerChanNum].desc&"_PearsonR>cutOff", objects=wholeCells)
-			if(showIllustrations)				
+			if(showIllustrations)
 				ObjectFilter(images[markerChanNum].desc&"_PearsonR>cutOff", objects=wholeCells)
 				GraphView(wholeCells.[images[markerChanNum].desc&"_PearsonR"], label=images[markerChanNum].desc&"-PearsonR",title="PearsonR for "&images[markerChanNum].desc&". CutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity, set[0].line.color black")
 				GraphView(tabulate(cutOff,wholeCells.count).result, label=images[markerChanNum].desc&"-PearsonR", append=true, presto_options="set[0].line.color Red")
 				ImageView(objects.cytoplasm_border,label=images[markerChanNum].desc&"Translocated", title="Cells which exibit translocation for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
 				ImageView(remainder.cytoplasm_border,label=images[markerChanNum].desc&"NotTranslocated", title="Cells which do not exibit translocation for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
 			end()
-			
+
 			set(objectSet["FullSet_Translocated"]=objects)
 			set(objectSet["FullSet_NotTranslocated"]=remainder)
-				
+
 			ObjectFilter(images[markerChanNum].desc&"_PearsonR>cutOff", objects=positiveCells)
 			if(showIllustrations)
 				GraphView(positiveCells.[images[markerChanNum].desc&"_PearsonR"], label=images[markerChanNum].desc&"-PositivePearsonR",title="PearsonR for "&images[markerChanNum].desc&" positive cells. CutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity, set[0].line.color black")
@@ -239,17 +239,17 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				ImageView(objects.cytoplasm_border,label=images[markerChanNum].desc&"PosTranslocated", title="Cells which exibit translocation and are fositive for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
 				ImageView(remainder.cytoplasm_border,label=images[markerChanNum].desc&"PosTranslocated", title="Cells which do not exibit translocation and are fositive for "&images[markerChanNum].desc&". Cell count="&objects.Count, image=images[markerChanNum].image,  gamma=2)
 			end()
-				
+
 			set(objectSet[images[markerChanNum].desc&"_PositiveTranslocated"]=objects)
 			set(objectSet[images[markerChanNum].desc&"_PositiveNotTranslocated"]=remainder)
 		end()
-			
+
 		assembleCompositObject(objectSet,objects=wholeCells|wholeCells=compositObject)
-			
+
 		CalcFeatures(objects=nuclei,images=vec(images[nucChanNum]),parentNames=("WholeCells"),parentObjects=cnt("WholeCells"=WholeCells)|Nuclei=Objects)
 		keep(bckGndObjects,Nuclei,WholeCells)//,PositiveCells)
 		pack(imageData,*)
-	end()	
+	end()
 }
 
 Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
@@ -282,7 +282,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 						end()
 				end()
 			end()
-			
+
 			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
 			rename(wholeWellData=newData)
 		end()
@@ -301,21 +301,6 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
 	pack(data,wholeWellData,singleCellData)
 }
-
-
-Proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
-	unpack(data)
-	delete(data)
-	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
-	end()
-	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
-	end()
-	outputMemblockData( wholeWellData)
-}
-
-
 
 //#######################
 // Program Start

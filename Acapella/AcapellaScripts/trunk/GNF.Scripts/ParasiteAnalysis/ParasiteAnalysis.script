@@ -53,7 +53,7 @@ Proc getChanInfo(memblock chanInfo out){
 	if(desc!="NA" && Name!="NA")
 		push(chanPurpose,"parasitesCytoDetection")
 		push(chanNames,Name)
-		push(chanDesc,desc)	
+		push(chanDesc,desc)
 		push(chanMin,0)
 		push(chanCutOff,0)
 		push(chanThreshold,0)
@@ -75,7 +75,7 @@ Proc getChanInfo(memblock chanInfo out){
 	if(desc!="NA" && Name!="NA")
 		push(chanPurpose,"cytoDetection")
 		push(chanNames,Name)
-		push(chanDesc,desc)	
+		push(chanDesc,desc)
 		push(chanMin,0)
 		push(chanCutOff,0)
 		push(chanThreshold,0)
@@ -86,11 +86,11 @@ Proc getChanInfo(memblock chanInfo out){
 	if(desc=="NA" || Name=="NA")
 		set(desc="NA",Name="NA")
 	end()
-	//input(cutOff, 150, "Marker1 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")	
+	//input(cutOff, 150, "Marker1 Positive cutOff", type="i",  description="Cut-off value to use to define. Allowed range: 1..5000, step 1.0.")
 	//Set(cutOff=iif(cutOff<1,1,cutOff))
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,0)
 
@@ -103,7 +103,7 @@ Proc getChanInfo(memblock chanInfo out){
 	//Set(cutOff=iif(cutOff<1,1,cutOff))
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,0)
 
@@ -115,11 +115,11 @@ Proc getChanInfo(memblock chanInfo out){
 
 Proc paramInit(memblock param out){
 
-	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")
 	EnvInfo()
 	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
-	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")
 	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
 	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 
@@ -158,8 +158,8 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 //verify that it is not an empty field
 	if(images[0].image.max>0)
 		bckGndSubstraction(-1,images=images)
-		Set(imageData.bckGndObjects=bckGndObjects) 
-		
+		Set(imageData.bckGndObjects=bckGndObjects)
+
 		convert(bpp=1,image=images[paraNucChanNum].image)
 		ParasiteDetection(image)
 		Stencil2Objects(parasites.body)
@@ -167,26 +167,26 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		if(paraCytoChanNum>=0)
 			convert(bpp=1,image=images[paraCytoChanNum].image)
 			ParasiteCytoDetection(image)
-		end()	
-		
+		end()
+
 		//Detect Nuclei and Cytoplasm if requested
 		if(nucChanNum>=0)
 			set(nucImage=images[nucChanNum].image)
 			convert(bpp=1,image=nucImage)
 			Nuclei_Detection(image)
 			CalcIntensity(Image=nucImage,objects=nuclei|nuclei=objects)
-			
+
 			if(cytoChanNum>=0)
 				convert(bpp=1,image=images[cytoChanNum].image)
 				Cytoplasm_Detection_Select(reference=image)
 			end()
-			
+
 			//Filtering/Normalizing of nuclei. Then select corresponding cells
 			rename(objects=nuclei)
 			ObjectFilter(intensity>nucChanMin)
-			DeleteAttr(intensity)		
+			DeleteAttr(intensity)
 			rename(nuclei=objects)
-			
+
 			//Filter/Normalize Cytoplasms
 			if(cytoChanNum>=0)
 				Rename(objects=WholeCells)
@@ -195,29 +195,29 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				DeleteAttr(intensity)
 				RenameAttr(Nuclei=centers)
 				CalcFeatures(images=images)
-				Rename(WholeCells=Objects)	
+				Rename(WholeCells=Objects)
 				Stencil2Objects(wholeCells.Nuclei, CalcArea=false)
 				CalcFeatures(images=vec(),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells))
 				Rename(Nuclei=objects)
-				
-				getFeatures(objects=Parasites,parentNames=vec("Nuclei","WholeCells"),parentObjects=cnt(Nuclei=Nuclei,WholeCells=WholeCells)|Parasites=objects)	
-				
+
+				getFeatures(objects=Parasites,parentNames=vec("Nuclei","WholeCells"),parentObjects=cnt(Nuclei=Nuclei,WholeCells=WholeCells)|Parasites=objects)
+
 				Set(imageData.Nuclei=Nuclei, imageData.WholeCells=WholeCells)
 			else()
 				Stencil2Objects(nuclei.body, CalcArea=false)
 				CalcFeatures(images=images)
 				Rename(Nuclei=objects)
-				
-				getFeatures(objects=Parasites,images=images,parentNames=vec("Nuclei"),parentObjects=cnt(Nuclei=Nuclei)|Parasites=objects)	
-				
+
+				getFeatures(objects=Parasites,images=images,parentNames=vec("Nuclei"),parentObjects=cnt(Nuclei=Nuclei)|Parasites=objects)
+
 				Set(imageData.Nuclei=Nuclei)
-			end()	
+			end()
 			//get the set of objects associted with the well
 			SplitMyObjects("parentType!=\"WholeWell\"",objects=Parasites)
-			assembleCompositObject(cnt("InsideCell"=objects,"OutsideCell"=remainder),objects=Parasites|Parasites=compositObject)			
+			assembleCompositObject(cnt("InsideCell"=objects,"OutsideCell"=remainder),objects=Parasites|Parasites=compositObject)
 			keep(imageData,Parasites)
 		else()
-			getFeatures(objects=Parasites,images=images|Parasites=objects)	
+			getFeatures(objects=Parasites,images=images|Parasites=objects)
 		end()
 		set(imageData.Parasites=Parasites)
 	end()
@@ -255,7 +255,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 						end()
 				end()
 			end()
-			
+
 			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
 			rename(wholeWellData=newData)
 		end()
@@ -274,21 +274,6 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
 	pack(data,wholeWellData,singleCellData)
 }
-
-
-
-Proc dataOutput(container data in, Container sourcedataprop in, int statValue="median" in){
-	unpack(data)
-	delete(data)
-	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
-	end()
-	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
-	end()
-	outputMemblockData( wholeWellData)
-}
-
 
 //#######################
 // Program Start

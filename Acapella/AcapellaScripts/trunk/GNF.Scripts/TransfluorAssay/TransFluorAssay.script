@@ -38,7 +38,7 @@ Proc getChanInfo(memblock chanInfo out){
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
 	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive.Allowed range: 0..1000.")
-	push(chanPurpose,"nucDetection")	
+	push(chanPurpose,"nucDetection")
 	push(chanNames,name)
 	push(chanDesc,desc)
 	push(chanMin,minIntensity)
@@ -50,47 +50,47 @@ Proc getChanInfo(memblock chanInfo out){
 	if(desc!="NA" && Name!="NA")
 		push(chanPurpose,"cytoDetection")
 		push(chanNames,Name)
-		push(chanDesc,desc)	
+		push(chanDesc,desc)
 		push(chanMin,minIntensity)
 		push(chanCutOff,0)
 	end()
 
 	input(Name, "Exp1Cam1", "Marker1 ChannelName", type="String", description="Channel containing the fluorescence from the first marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",.")
 	input(desc, "GFP", "Marker1 Description", type="String", description="Description of the first marker (ex. GFP).")
-	//input(cutOff, 150, "Marker1 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the first marker. Allowed range: 1..1000, step 0.1.")	
+	//input(cutOff, 150, "Marker1 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the first marker. Allowed range: 1..1000, step 0.1.")
 	//if(cutOff<1)
 	//	Error("The cutt-off must be >= to 1")
-	//end()	
+	//end()
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,0)//cutOff)
 
 	input(Name, "NA", "Marker2 ChannelName", type="String", description="Channel containing the fluorescence from the second marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "RFP", "Marker2 Description", type="String", description="Description of the second marker (ex. RFP).")
-	//input(cutOff, 150, "Marker2 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the second marker. Allowed range: 1..1000, step 0.1.")	
+	//input(cutOff, 150, "Marker2 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the second marker. Allowed range: 1..1000, step 0.1.")
 	if(desc!="NA" && Name!="NA")
 		//if(cutOff<1)
 		//	Error("The cutt-off must be >= to 1")
-		//end()	
+		//end()
 		push(chanPurpose,"marker")
 		push(chanNames,Name)
-		push(chanDesc,desc)	
+		push(chanDesc,desc)
 		push(chanMin,0)
 		push(chanCutOff,0)//cutOff)
 	end()
 
 	input(Name, "NA", "Marker3 ChannelName", type="String", description="Channel containing the fluorescence from the third marker. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\",\"NA\".")
 	input(desc, "Alexa647", "Marker3 Description", type="String", description="Description of the third marker (ex. Alexa647).")
-	//input(cutOff, 150, "Marker3 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the third marker. Allowed range: 1..1000, step 0.1.")	
+	//input(cutOff, 150, "Marker3 Positive CuttOff", type="d",  description="Cutt-off value used to define cells expressing the third marker. Allowed range: 1..1000, step 0.1.")
 	if(desc!="NA" && Name!="NA")
 		//if(cutOff<1)
 		//	Error("The cutt-off must be >= to 1")
-		//end()	
+		//end()
 		push(chanPurpose,"marker")
 		push(chanNames,Name)
-		push(chanDesc,desc)	
+		push(chanDesc,desc)
 		push(chanMin,0)
 		push(chanCutOff,0)//cutOff)
 	end()
@@ -103,12 +103,12 @@ Proc getChanInfo(memblock chanInfo out){
 
 Proc paramInit(memblock param out){
 
-	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")
 	EnvInfo()
 	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
-	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
-	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")
+	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
 	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\",\"AllValues\".")
 	//input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the cell to be considered positive\" \"folds: number of fold above the background to be considered as positive\", \" stddev: number of bckground standard deviation to be considered as positive\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
 	//if(cutOffType!="threshold"&&cutOffType!="folds"&&cutOffType!="stddev")
@@ -133,12 +133,12 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	set(imageData=cnt())
 	if(images[nucChanNum].image.max>nucChanMin)
 		bckGndSubstraction(-1,images=images)
-		
+
 		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
-		
+
 		set(nucImage=images[nucChanNum].image)
 		Nuclei_Detection(nucImage)
-		
+
 		if(cytoChanNum>=0)
 			set(minCytoIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[cytoChanNum].desc&"_StdDevIntensity"].mean)
 			set(cytoImage=images[cytoChanNum].image)
@@ -184,31 +184,31 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		DeleteAttr(intensity,contrast,AreaInGeneralUnits,border)
 		CalcFeatures(images=vec(images[nucChanNum]),parentNames=("WholeCells"),parentObjects=cnt("WholeCells"=WholeCells),CalcMorphologyFeatures=false,CalcCorrelationFeatures=false)
 		CalcMassCentre()
-		rename(nuclei=objects,objects=wholeCells)				
+		rename(nuclei=objects,objects=wholeCells)
 		CalcIntensity(image=Nuclei.MassCentre.mask.image)
 		ObjectFilter(intensity>0)
 		DeleteAttr(intensity,border,centers_border,cytoplasm_border,CytoplasmAndCenters)
 		RenameAttr(Nuclei=centers)
-		
+
 		Set(WholeCells=objects)
-		
+
 		//generate a set of images containing the images from the marker only
 		set(markerImages=vec())
 		foreach(findChanNum(images,"marker","purpose").indexList,"index")
 			push(markerImages,images[index])
 		end()
 		rename(images=markerImages)
-		
+
 		CalcFeatures(CalcMorphologyFeatures=false,CalcCorrelationFeatures=true) //get the features for the cells and only for the marker channels
 		Rename(WholeCells=objects)
 		Foreach(0..images.length-1, "markerChanNum")
 			Set(temp=WholeCells)
 			Spot_Detection_Select(images[markerChanNum].image,ShowOutputParameters=false)
 			Rename(WholeCells=temp)
-			
+
 			//Generate image containing only SpotIntensity
 			Set(spotImage=spots.Body.mask.image*images[markerChanNum].image)
-			
+
 			Set(objects=Nuclei)
 			Set(preFix=Quote("_Spots/Cells").quoted)
 			Set(preFix=appendQuotedText(images[markerChanNum].desc,preFix).text)
@@ -217,20 +217,20 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			CalcStat("Mean",image=spotImage, AttrName=preFix&"_AverageIntensity")
 			CalcStat("Sum",image=spotImage, AttrName=preFix&"_IntegratedIntensity")
 			Rename(Nuclei=Objects)
-		
+
 			Set(objects=wholeCells)
 			CalcStat("Sum",image=spots.SpotCenters.mask.image, AttrName=preFix&"_Count")
 			CalcStat("Sum",image=spots.Body.mask.image, AttrName=preFix&"_Area")
 			CalcStat("Mean",image=spotImage, AttrName=preFix&"_AverageIntensity")
 			CalcStat("Sum",image=spotImage, AttrName=preFix&"_IntegratedIntensity")
 			Set(wholeCells=objects)
-			
+
 			rename(objects=spots)
 			DeleteAttr(CellIntensity, ContrastOK, ReferenceIntensity, ReferenceRegions, ReferenceRegions_area, ReferenceRegions_intensity, SpotToCellIntensityOK)
 			set(Spots=objects)
 			containedObjects(nuclei,objects, objectsStencil="SpotCenters", overlap=false)
 			rename(spotsInNuclei=objects,spotsInCytoplasm=remainder)
-			
+
 			if(showIllustrations)
 				Set(image=NucImage)
 				If(cytoChanNum!=-1)
@@ -241,7 +241,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				carrypixels(image=image, mask=spotsInCytoplasm.border.mask, data=image.max)
 				carrypixels(image=image, mask=spotsInNuclei.border.mask, data=image.max)
 				carrypixels(image=image, mask=objects.cytoplasm_border.mask, data=image.max*0.3)
-				
+
 				carrypixels(image=image, mask=spotsInCytoplasm.border.mask, data="green")
 				carrypixels(image=image, mask=spotsInNuclei.border.mask, data="red")
 				carrypixels(image=image, mask=objects.cytoplasm_border.mask, data="blue")
@@ -252,9 +252,9 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			Set(imageData["Spots_"&images[markerChanNum].desc]=Spots)
 			Delete(Spots)
 		end()
-			
+
 		Set(imageData.bckGndObjects=bckGndObjects,imageData.Nuclei=Nuclei,ImageData.WholeCells=WholeCells)
-	end()	
+	end()
 }
 Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
 
@@ -286,7 +286,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 						end()
 				end()
 			end()
-			
+
 			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
 			rename(wholeWellData=newData)
 		end()
@@ -305,18 +305,6 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
 	pack(data,wholeWellData,singleCellData)
 }
-Proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
-	unpack(data)
-	delete(data)
-	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
-	end()
-	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
-	end()
-	outputMemblockData( wholeWellData)
-}
-
 
 //#######################
 // Program Start

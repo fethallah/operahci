@@ -39,7 +39,7 @@ proc getChanInfo(memblock chanInfo out){
 	input(name, "Exp1Cam1", "NucChannelName", type="String", description="Channel containing the Nuclear stain. Allowed values: \"Exp1Cam1\",\"Exp1Cam2\",\"Exp1Cam3\",\"Exp1Cam4\",\"Exp2Cam1\",\"Exp2Cam2\",\"Exp2Cam3\",\"Exp2Cam4\".")
 	input(desc, "Hoechst", "Nuclear StainDescription", type="String", description="Description of the Nuclear channel (ex. Hoechst, MGD...).")
 	input(minIntensity, 150, "Min Nuclear Channel Intensity", type="i",  description="Minimum intensity for the Nuclear channel images to be considered as positive. Allowed range: 0..1000.")
-	push(chanPurpose,"nucDetection")	
+	push(chanPurpose,"nucDetection")
 	push(chanNames,name)
 	push(chanDesc,desc)
 	push(chanMin,minIntensity)
@@ -52,7 +52,7 @@ proc getChanInfo(memblock chanInfo out){
 		input(minIntensity, 150, "Min Cytoplasmic Channel Intensity", type="d",  description="Minimum intensity for the Cytoplasmic channel images to be considered as positive. Allowed range: 1..1000, step 0.1.")
 		push(chanPurpose,"cytoDetection")
 		push(chanNames,Name)
-		push(chanDesc,desc)	
+		push(chanDesc,desc)
 		push(chanMin,minIntensity)
 		push(chanCutOff,0)
 		push(chanThreshold,0)
@@ -65,13 +65,13 @@ proc getChanInfo(memblock chanInfo out){
 
 	if(cutOff<1 || threshold<1)
 		Error("The cutt-off and threshold must be >= to 1")
-	end()	
+	end()
 	if(cutOff<1)
 		Error("The cutt-off must be >= to 1")
-	end()	
+	end()
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 	push(chanThreshold,threshold)
@@ -83,10 +83,10 @@ proc getChanInfo(memblock chanInfo out){
 
 	if(cutOff<1||threshold<1)
 		Error("The cutt-off and threshold must be >= to 1")
-	end()	
+	end()
 	push(chanPurpose,"marker")
 	push(chanNames,Name)
-	push(chanDesc,desc)	
+	push(chanDesc,desc)
 	push(chanMin,0)
 	push(chanCutOff,cutOff)
 	push(chanThreshold,threshold)
@@ -98,13 +98,13 @@ proc getChanInfo(memblock chanInfo out){
 
 proc paramInit(memblock param out){
 
-	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")  
+	input(showIllustrations, false, "showIllustrations", type="b", description="Indicate whether or not you want to see the illustrations for the objects detected. Used in combination with fieldToAnalyze. This option is deactivated on the RMCA.")
 	EnvInfo()
 	Set(showIllustrations=showIllustrations && env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
 	input(fieldSelected, 1, "fieldToAnalyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
 
-	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")  
-	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.") 	
+	input(getSingleCellFeatures, false, "Save Single-Cell Features", type="b", description="Indicate whether or not you want to save the single cell features to a file.")
+	input(getROI, false, "Save ROI", type="b", description="Indicate whether or not you want to save the Nuclear and cellular outlines to a file.")
 	input(OutputStatType, "Median", "Well Aggregation", type="String", description="Select how the multiple fields should be agregated accross Channles. Allowed values: \"Mean\", \"Median\",\"Min\",\"Max\",\"Sum\".")
 
 	input(cutOffType, "threshold", "Cut-Off type", type="string", description="Enter the type of cutt-off you wish to use. Each of these methods corresponds to: \"threshold: intensity of the signal considered as positive;\" \"folds: number of fold above the background for the signal to be considered as positive;\", \" stddev: number of bckground standard deviation above the background for the signal to be considered as positive.\". Allowed values: \"threshold\", \"folds\", \"stddev\".")
@@ -148,12 +148,12 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				push(thresholds,images[i].threshold-images[i].bckGndSubstracted)
 			end()end()
 		end()
-		
+
 		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean+1)
-		
+
 		set(nucImage=images[nucChanNum].image)
 		Nuclei_Detection(nucImage)
-		
+
 		if(cytoChanNum>=0 && Compartment !="Nuclei")
 			//set(minCytoIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean)
 			convert(bpp=1,image=images[cytoChanNum].image)
@@ -163,7 +163,7 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			//DeleteAttr(Intensity)
 			//Rename(WholeCells=objects)
 		end()
-		
+
 		//Filtering/Normalizing of nuclei. Then select corresponding cells
 		ObjectFilter(intensity>minNucIntensity,objects=nuclei)
 		if(showIllustrations)
@@ -172,7 +172,7 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		DeleteAttr(intensity)
 		normalizeObjects(Normalization)
 		rename(nuclei=objects)
-		
+
 		//Filter/Normalize Cytoplasms
 		if(cytoChanNum>=0 && Compartment !="Nuclei")
 			Rename(objects=WholeCells)
@@ -181,8 +181,8 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			DeleteAttr(intensity)
 			normalizeObjects(Normalization)
 			Rename(WholeCells=Objects)
-		end()	
-		
+		end()
+
 		Set(data=cnt())
 		if(at("Nuclei",compartment,1)>0)
 			Stencil2Objects(Nuclei.body,Neighbourhood=8,CalcArea=false)
@@ -196,31 +196,31 @@ proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			Stencil2Objects(WholeCells.cytoplasm,Neighbourhood=8,CalcArea=false)
 			set(data.Cytoplasm=objects)
 		end()
-		
+
 		foreach(data.keys)
 			set(objects=data[i])
 			if(method=="%Overlap"||method=="All Methods")
 				CalcPercentOverlap(images[marker1ChanNum].image,images[marker2ChanNum].image,thresholds[marker2ChanNum],thresholds[marker2ChanNum])
-			
+
 			end()
 			if(method=="PearsonsCoefficient"||method=="All Methods")
 				MBF_PearsonsCoefficient(images[marker1ChanNum].image,images[marker2ChanNum].image)
 			end()
-			if(method=="ICQ"||method=="All Methods")			
+			if(method=="ICQ"||method=="All Methods")
 				MBF_ICQ(images[marker1ChanNum].image,images[marker2ChanNum].image)
 			end()
-			if(method=="MandersCoefficient"||method=="All Methods")		
+			if(method=="MandersCoefficient"||method=="All Methods")
 				MBF_MandersCoefficients(images[marker1ChanNum].image,images[marker2ChanNum].image)
 			end()
 			set(data[i]=objects)
 		end()
-		
+
 		Foreach(0..images.length-1)
 			CalcIntensity(image=images[i].image)
 			Set(objects[images[i].desc&"_Intensity"]=objects.Intensity)
 			DeleteAttr(intensity)
-		end()		
-		
+		end()
+
 		set(data.bckGndObjects=bckGndObjects)
 		rename(imageData=data)
 		keep(imageData)
@@ -257,7 +257,7 @@ proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 						end()
 				end()
 			end()
-			
+
 			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
 			rename(wholeWellData=newData)
 		end()
@@ -276,18 +276,6 @@ proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
 	pack(data,wholeWellData,singleCellData)
 }
-proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
-	unpack(data)
-	delete(data)
-	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
-	end()
-	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
-	end()
-	outputMemblockData( wholeWellData)
-}
-
 
 //#######################
 // Program Start

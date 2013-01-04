@@ -175,12 +175,6 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	set(data.numFieldsInFocus=numFieldsInFocus)
 }
 
-Proc dataOutput(container data in, container param in, vector images in){
-	outputMemblockData(data,statValue=param.OutputStatType)
-}
-
-
-
 //#######################
 // Program Start
 //#######################
@@ -200,4 +194,4 @@ end()
 
 Analysis()
 writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
-dataOutput()
+dataOutput(data,sourcedataprop,param.OutputStatType)

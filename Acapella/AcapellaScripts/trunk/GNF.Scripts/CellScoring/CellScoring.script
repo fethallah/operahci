@@ -279,21 +279,6 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	pack(data,wholeWellData,singleCellData)
 }
 
-
-
-Proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
-	unpack(data)
-	delete(data)
-	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
-	end()
-	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
-	end()
-	outputMemblockData( wholeWellData)
-}
-
-
 //#######################
 // Program Start
 //#######################
