@@ -379,7 +379,7 @@ proc combineMemBlocksV0(
 
 	if(type=="memblock")
 	if(newData.class=="objectlist"&&deleteGeometry)
-		objectsDeleteGeometry(newData)
+		objectlistDeleteGeometry(newData)
 		rename(newData=objects)
 	end()
 		if(not(defined("oldData")))
@@ -399,7 +399,7 @@ proc combineMemBlocksV0(
 					rename(newData=objects)
 				end()
 				if(deleteGeometry)
-					objectsDeleteGeometry(newData)
+					objectlistDeleteGeometry(newData)
 					rename(newData=objects)
 				end()
 				AddObjects(newData,CheckOverlap=false,objects=oldData)
@@ -450,7 +450,7 @@ proc combineMemBlocks(
 {
 
 	if(newData.class=="objectlist"&&deleteGeometry)
-		objectsDeleteGeometry(newData)
+		objectlistDeleteGeometry(newData)
 		rename(newData=objects)
 	end()
 	if(typeOf(newData)!="memblock")
@@ -525,21 +525,36 @@ proc combineMemBlocks(
 	end()
 }
 
-proc objectsDeleteGeometry(
+proc objectlistDeleteGeometry(
 	objectlist objects in "List of objects to for which the stencils should be removed",
-	objectlist objects out "Objects without any stencil attributes",
+	objectlist objects out "Objects without any stencil attributes"
 )
 {
-	set(keys=objects.keys)
-	Foreach(keys,"keyName")
-		if(defined("objects[keyName][type]"))
-			if(objects[keyName].type=="stencil"||objects[keyName].class=="intervalVector")
-				eval("deleteAttr("&keyName&")")
-			end()
-		end()
+create("objectlist")
+foreach(objects.keys)
+	set(class=objects[i].class)
+	if(class=="stencil"||class=="image")
+		continue()
 	end()
-return()
+	set(elemtype=objects[i].elemtype)
+	if(class=="vector" && class!="intervalvector" && class!="indexvector" && (elemtype<8||elemtype==9||elemtype==13))
+		set(objectlist[i]=objects[i])
+	end()
+end()
+rename(objects=objectlist)
 }
+
+proc objectlist2container(
+	objectlist objects in "List of objects to convert into memblock",
+	container container out "memblock containing all the elements of the objectlist"
+)
+{
+create("container")
+foreach(objects.keys)
+	set(container[i]=objects[i])
+end()
+}
+
 
 proc ObjectsDistances(
 	objectlist objects in "Object for which distance should be calculated.",
@@ -611,8 +626,34 @@ proc CalcWidthLengthSafe(
 		setAttr(Half_Width,factor*temp.Half_Width)
 }
 
+proc CalcROI(
+	objectlist objects in "Object list contaning an attribute border to export",
+	objectlist objects out "Object list outputed containing an array of ROI data"
+) output "Returns an object list that contains the ROI information. Complex shapes can be used and each objects may have multiple sub-parts. The column 'fill' from the ROI table from each object indicates wether the closed shaped should be filled (1) or not (0), thus allowing to redraw the original shape."
+{
+if((Not(defined("objects.border")) && Not(defined("objects.body")))|| objects.size==0)
+	set(objects.ROI=vec())
+	return()
+end()
+
+if(Not(defined("objects.border")))
+		Calcborder()
+end()
+
+Set(objectsIni=objects)
+Foreach(0..objectsIni.count-1)
+	Mask2Stencil(objectsIni[i].border, Neighbourhood=8)
+	Stencil2Objects()
+	FillObjects()
+	CalcStat(Measure="min",image=objectsIni.body.mask.image,AttrName="fill")
+	push(ROIarray, ExtractROI(stencil,chainCodeAsString=true).table)
+end()
+Rename(objects=objectsIni)
+set(objects.ROI=ROIarray)
+}
+
 proc getROITable(
-Memblock objects in "Object list contaning an attribute border to export",
+objectlist objects in "Object list contaning an attribute border to export",
 Table ROITable=none inout "Table containing a list of ROI formated as polygons that were already calculated for other fields. If a table is provided new data will be append to it. This tables also maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number.",
 int time=0 in "timeSeries number for the object provided(index is 0 based)",
 int stack=0 in "z stack number for the object provided(index is 0 based)",
@@ -633,16 +674,21 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 		Rename(table=ROItable)
 	end()
 	if((Not(defined("objects.border")) && Not(defined("objects.body")))|| objects.size==0)
-		AppendTable(other=tbl(TimePoint=vec(),StackNum=vec(),FieldNum=vec(),ObjectType=vec(),ObjectID=vec(),BoundingBoxMinCoordinates=vec(),BoundingBoxMaxCoordinates=vec(),XYini=vec(), ChainCode=vec())|ROItable=table)
+		AppendTable(other=tbl(TimePoint=vec(),StackNum=vec(),FieldNum=vec(),ObjectType=vec(),ObjectID=vec(),BoundingBoxMinX=vec(),BoundingBoxMinY=vec(),BoundingBoxMaxX=vec(),BoundingBoxMaxY=vec(),IniX=vec(),IniY=vec(), ChainCode=vec())|ROItable=table)
 		Return()
 	end()
 	if(Not(defined("objects.border")))
 		Calcborder()
 	end()
-	ExtractROI(objects.border)
 	addObjectID()
 	set(length=objects.count)
-	AppendTable(other=tbl(TimePoint=create("vector", 0, length, time).vector,StackNum=create("vector", 0, length, stack).vector,FieldNum=create("vector", 0, length, field).vector,ObjectType=create("vector", 13, length, ObjectType).vector,ObjectID=Objects.ObjectID,BoundingBoxMinCoordinates=boundingBoxMinCoordinateList,BoundingBoxMaxCoordinates=boundingBoxMaxCoordinateList,XYini=inialCoordinate, ChainCode=chainCode),|ROItable=table)
+	set(ROItable=ExtractROI(objects.border,chainCodeAsString=true).table)
+	set(ROItable.TimePoint=create("vector", 0, length, time).vector)
+	set(ROItable.StackNum=create("vector", 0, length, stack).vector)
+	set(ROItable.FieldNum=create("vector", 0, length, field).vector)
+	set(ROItable.ObjectType=create("vector", 13, length, ObjectType).vector)
+	set(ROItable.ObjectID=Objects.ObjectID)
+	AppendTable(other=ROItable|ROItable=table)
 }
 
 proc getFeaturesTable(
