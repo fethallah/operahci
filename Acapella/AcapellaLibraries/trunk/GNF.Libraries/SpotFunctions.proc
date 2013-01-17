@@ -575,6 +575,9 @@ bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before per
 	objectFilter(area>minSpotsArea*1.5)
 	objectFilter(intensity>minSpotsIntensity*1.5)
 
+	if(showIllustrations)
+		ImageView(objects.border, label="Parasites Borders",title="Adjust per Minimum Parasite Area, Parasite Minimum Intensity and Parasite minimum Distance.",image=image, gamma=2.0, )
+	end()
 
 
 	calcStat("max",AttrName ="IntensityMax")
@@ -591,13 +594,6 @@ bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before per
 	CalcWidthLength()
 	SetAttr(Ratio_width_length,2*objects.half_width/objects.full_length)
 
-
-
-
-
-	if(showIllustrations)
-		ImageView(objects.border, label="Parasites Borders",title="Adjust per Minimum Parasite Area, Parasite Minimum Intensity and Parasite minimum Distance.",image=image, gamma=2.0, )
-	end()
 	Rename(parasites=objects)
 	keep(parasites)
 }
