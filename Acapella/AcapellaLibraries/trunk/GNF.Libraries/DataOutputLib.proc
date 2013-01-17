@@ -345,7 +345,7 @@ proc writeChannelMapping(
 	set(wellID=iif(length(wellID)==0,basename,wellID))
 
 	//FIX adding the check for directory due to bug with MKDIR in Acapella 2.7, does not work with UNC paths
-	if(! FileInfo(dirname).exist)
+	if(! FileInfo(dirname).exists)
 		mkdir(dirname)
 	end()
 	set(tempFilename=dirname&"ChannelMapping-"&wellID)
