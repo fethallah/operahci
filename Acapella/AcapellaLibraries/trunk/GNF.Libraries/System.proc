@@ -35,53 +35,115 @@
 
 
 proc getConfiguration(
-string filename="acapellaGNFLib.ini" in "name of the config file to get propperties from",
+String filename="acapellaGNFLib.ini" in "name of the config file to get propperties from",
 Container config out "Object containing the configuration"
-)System "returns the configuration emeded into the selected file located at the root of this procedure"
+)System "Returns the configuration emeded into the selected file located at the root of this procedure"
 {
-	sprintf(configFile,"%s/%s",pathSplit(__file__).dirname,filename)
-	if(!fileInfo(configFile).fileinfo.is_readable)
-		//Error(sprintf(e,"The configuration file: '%s' is missing", configFile).e)
-	end()
+sprintf(configFile,"%s/%s",pathSplit(__file__).dirname,filename)
+readIni(configFile|config=ini)
 
-	//TODO: Change the hardcoded values and embed them into a config file placed in the same
-	// Directory as this procedure. For now hard coding these values
-
-	set(paths=cnt())
-
+if(filename=="acapellaGNFLib.ini" && !defined("config.paths.tmp"))
 	//Extract actual temp diretory from system. In future need to test if tmp path in
 	//system file exists or replace with system one...
+	if(!defined("config.paths"))
+		set(config.paths=cnt())
+	end()
+	set(config.paths.tmp = getLocalTempDir().dirname)
+end()
+}
+
+proc getLocalTempDir(
+	string dirname out "Path to the temporary folder on the system"
+) System "Returns the path to the temporary directory on the system"
+{
 	MakeTempFileName()
 	DeleteFile(filename)
 	pathSplit(filename)
-	set(paths.tmp=dirname)
-	set(paths.archiveRoot="")
-	set(paths.storageRoot="//CIA-286/Images/")
-	set(paths.gzipJar="//Opera3654/Opera/Libraries/StdLib/GZip.jar")
-
-	set(config=cnt())
-	set(config.paths=paths)
 }
 
 proc convertPath2Platform(
 string path inout "Path that needs to be converted to match the current system",
 string platform=__platform__ in "System to use, either 'unix' or 'windows'"
-){
+)System "Converts path provided as strings into a valid representation on the target system."
+{
 
-	//TODO: Handle user paths (~/, ~USER/, %USERPROFILE%...)
-	if(platform=="unix")
-		if(regex(path,"^\\w:").matches.length>0)
-			error(sprintf(e,"The Path you are trying to use: '%s' cannot be converted to unix format. Use UNC style paths").e)
-		end()
-		set(path=regexreplace(path,"\\\\","/").text)
-		set(path=regexreplace(path,"//","/").text) //In linux \ (and // are meaningless)
-		return()
-	elif(platform=="windows")
-		set(path=regexreplace(path,"/","\\\\").text)
-		set(path=regexreplace(path,"\\\\\\\\","\\\\").text)
-		set(path=regexreplace(path,"^\\\\(?=[^\\\\])","\\\\\\\\").text) //Make sure that UNC starts with '\\' and not '\'
-		return()
-	else()
-		error(sprintf(e,"The platform provided: '%s' is not valid. Must be one of 'unix' or 'windows'", platform).e)
+//TODO: Handle user paths (~/, ~USER/, %USERPROFILE%...)
+if(platform=="unix")
+	if(regex(path,"^\\w:").matches.length>0)
+		error(sprintf(e,"The Path you are trying to use: '%s' cannot be converted to unix format. Use UNC style paths").e)
 	end()
+	set(path=regexreplace(path,"\\\\","/").text)
+	set(path=regexreplace(path,"//","/").text) //In linux \ (and // are meaningless)
+	return()
+elif(platform=="windows")
+	set(path=regexreplace(path,"/","\\\\").text)
+	set(path=regexreplace(path,"\\\\\\\\","\\\\").text)
+	set(path=regexreplace(path,"^\\\\(?=[^\\\\])","\\\\\\\\").text) //Make sure that UNC starts with '\\' and not '\'
+	return()
+else()
+	error(sprintf(e,"The platform provided: '%s' is not valid. Must be one of 'unix' or 'windows'", platform).e)
+end()
+}
+
+proc readIni(
+string filename in "path of the INI file that you want to use.",
+container ini out "Conatiner representing the INI file that you read."
+) System "Reads an INI file into an object so that each Groups (eg. [MyGroup1\MyGroup2\MyGroup3]) represents one branch into the ini container returned. The values are placed into the structure created. If you provide a ';'delimited sets of value for one key eg. 'MyValues=3;2;3;6;4' a vector o values will be entered in the selected group."
+{
+rename(iniFile=filename)
+if(!fileInfo(iniFile).fileinfo.is_readable)
+	Error(sprintf(e,"The configuration file: '%s' is missing", iniFile).e)
+end()
+ReadFile(iniFile)
+SplitString(content,"\n",Trim=true|Content=Split)
+set(ini=cnt(),lineIndex=0, currentGroup="ini")
+Foreach(Content,"line")
+	Set(lineIndex=lineIndex+1)
+
+	//Handle comments and empty lines
+	Regex(line, "^;")
+	if(matches.length>0 || line=="")
+		continue()
+	end()
+
+	//Handle Groups
+	Regex(line, "^\\[(.*?)\\]$")
+	if(matches.length>0)
+		set(currentKey=matches[0])
+		RegexReplace(currentKey,"/$",""|currentKey=text)
+		RegexReplace(currentKey,"\\\\","/"|currentKey=text)
+
+		if(Regex(currentKey, "^[\\w/]+$").matches.length==0)
+			Error(sprintf("text","Invalid Ini file: ''%s'. The group: '%s' at line %s, contains an invalid characters.",iniFile, line, lineIndex).text)
+		end()
+		SplitString(currentKey,"/"|keys=Split)
+		Set(currentGroup="ini")
+		Foreach(keys,"key")
+			set(currentGroup=currentGroup&"."&key)
+			if(!defined(currentGroup))
+				set(_[currentGroup]=cnt())
+			end()
+		End()
+		continue()
+	end()
+
+	//Handle Values
+	Regex(line, "^(.+?)=(.+)$")
+	if(matches.length>0)
+		set(key=matches[0],value=matches[1])
+		if(Regex(key, "^\\w+$").matches.length==0)
+			Error(sprintf("text","Invalid Ini file: ''%s'. The key: '%s' at line %s, contains an invalid characters.",iniFile, key, lineIndex).text)
+		end()
+
+		SplitString(value,";"|values=split)
+		if(values.length==1)
+			RegexReplace(value,"(?:^\")|(?:\"$)",""|value=text)
+			set(_[currentGroup][key]=value)
+		else()
+			set(_[currentGroup][key]=values)
+		end()
+		continue()
+	end()
+	Error(sprintf("text","Invalid Ini file: '%s'. Unexpected error at line %s.",iniFile, line, lineIndex).text)
+End()
 }
