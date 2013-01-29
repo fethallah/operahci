@@ -62,7 +62,7 @@ proc getLocalTempDir(
 }
 
 proc convertPath2Platform(
-string path inout "Path that needs to be converted to match the current system",
+string dirname inout "Path that needs to be converted to match the current system",
 string platform=__platform__ in "System to use, either 'unix' or 'windows'"
 )System "Converts path provided as strings into a valid representation on the target system."
 {

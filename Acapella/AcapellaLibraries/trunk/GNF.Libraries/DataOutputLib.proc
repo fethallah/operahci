@@ -265,7 +265,7 @@ data output "Saves a table in a text file. The column names are output in the fi
 
 proc GZipData(
 	polytype data in "Data to write out",
-	String path in "Path of the file that you wish to save.",
+	String dirname in "Path of the file that you wish to save.",
 	String name="" in "Name of the file you wish to save.",
 	String extension="" in "Extension of the file you wish to save. \".gz\"  will be added at the end of the file.",
 	String label="" in "Text label used in the output of the saving path.label=\"\" will not return an output",
@@ -293,17 +293,22 @@ proc GZipData(
 	set(archiveRoots=SplitString(getConfiguration().config.paths.archiveRoot,";:").Split) //make sure archive roots is a vector
 	if(archiveRoots.length>0)
 		set(storageRoot= getConfiguration().config.paths.storageRoot)
-		set(storageRoot= convertPath2Platform(storageRoot).path)
+		set(storageRoot= convertPath2Platform(storageRoot).dirname)
 		foreach(archiveRoots,"archiveRoot")
-			set(archiveRoot= convertPath2Platform(archiveRoot).path)
-			if(at(path, archiveRoot)==1)
-				set(path=storageRoot&"/"&substr(path,archiveRoot.length+1,path.length))
+			set(archiveRoot= convertPath2Platform(archiveRoot).dirname)
+			if(at(dirname, archiveRoot)==1)
+				set(dirname=storageRoot&"/"&substr(path,archiveRoot.length+1,path.length))
 				convertPath2Platform()
 				break()
 			end()
 		end()
 	end()
-	MkDir(path)
+
+	//FIX adding the check for directory due to bug with MKDIR in Acapella 2.7, does not work with UNC paths
+	set(testDir=substr(dirname,1,dirname.length-1))
+	if(! FileInfo(testDir).fileinfo.exists)
+		mkdir(dirname)
+	end()
 
 	set(path=& path & name &"."& extension&".gz")
 	//FIX end
@@ -362,10 +367,10 @@ proc dataOutput(container data in, Container sourcedataprop in, String statValue
 	unpack(data)
 	delete(data)
 	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
+		GZipData(singleCellData.Features,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
 	end()
 	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
+		GZipData(singleCellData.ROI,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
 	end()
 	outputMemblockData( wholeWellData)
 }
