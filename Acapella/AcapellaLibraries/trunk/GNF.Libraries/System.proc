@@ -35,14 +35,17 @@
 
 
 proc getConfiguration(
-String filename="acapellaGNFLib.ini" in "name of the config file to get propperties from",
+String path in "Path of the configuration file. The path can be absolute (ie. start with '/' or '\\') or relative starts with '.' or nothing.",
 Container config out "Object containing the configuration"
-)System "Returns the configuration emeded into the selected file located at the root of this procedure"
+)System "Returns the configuration embedded into the selected file located at the root of this procedure"
 {
-sprintf(configFile,"%s/%s",pathSplit(__file__).dirname,filename)
+if(at( "/",path)!=1 && at( "\\",path)!=1)
+	sprintf(configFile,"%s/%s",pathSplit(__file__).dirname,path)
+end()
+
 readIni(configFile|config=ini)
 
-if(filename=="acapellaGNFLib.ini" && !defined("config.paths.tmp"))
+if(path=="GNF.ini" && !defined("config.paths.tmp"))
 	//Extract actual temp diretory from system. In future need to test if tmp path in
 	//system file exists or replace with system one...
 	if(!defined("config.paths"))
@@ -62,9 +65,9 @@ proc getLocalTempDir(
 }
 
 proc convertPath2Platform(
-string dirname inout "Path that needs to be converted to match the current system",
-string platform=__platform__ in "System to use, either 'unix' or 'windows'"
-)System "Converts path provided as strings into a valid representation on the target system."
+string path inout "Path that needs to be converted to match the current system",
+string platform = __platform__ in "System to use, either 'unix' or 'windows'"
+)System "Converts path provided as strings into a valid representation on the target system. This is useful for running external commands."
 {
 
 //TODO: Handle user paths (~/, ~USER/, %USERPROFILE%...)
@@ -86,15 +89,16 @@ end()
 }
 
 proc readIni(
-string filename in "path of the INI file that you want to use.",
-container ini out "Conatiner representing the INI file that you read."
-) System "Reads an INI file into an object so that each Groups (eg. [MyGroup1\MyGroup2\MyGroup3]) represents one branch into the ini container returned. The values are placed into the structure created. If you provide a ';'delimited sets of value for one key eg. 'MyValues=3;2;3;6;4' a vector o values will be entered in the selected group."
+string path in "path of the INI file that you want to use.",
+container ini out "Container representing the INI file that you read."
+)
+System "Reads an INI file into an object so that each Groups (eg. [MyGroup1\MyGroup2\MyGroup3]) represents one branch into the ini container returned. The values are placed into the structure created. If you provide a ';'delimited sets of value for one key eg. 'MyValues=3;2;3;6;4' a vector o values will be entered in the selected group."
 {
-rename(iniFile=filename)
-if(!fileInfo(iniFile).fileinfo.is_readable)
-	Error(sprintf(e,"The configuration file: '%s' is missing", iniFile).e)
+rename(path=path)
+if(!fileInfo(path).fileinfo.is_readable)
+	Error(sprintf(e,"The configuration file: '%s' is missing", path).e)
 end()
-ReadFile(iniFile)
+ReadFile(path)
 SplitString(content,"\n",Trim=true|Content=Split)
 set(ini=cnt(),lineIndex=0, currentGroup="ini")
 Foreach(Content,"line")
@@ -114,7 +118,7 @@ Foreach(Content,"line")
 		RegexReplace(currentKey,"\\\\","/"|currentKey=text)
 
 		if(Regex(currentKey, "^[\\w/]+$").matches.length==0)
-			Error(sprintf("text","Invalid Ini file: ''%s'. The group: '%s' at line %s, contains an invalid characters.",iniFile, line, lineIndex).text)
+			Error(sprintf("text","Invalid Ini file: ''%s'. The group: '%s' at line %s, contains an invalid characters.",path, line, lineIndex).text)
 		end()
 		SplitString(currentKey,"/"|keys=Split)
 		Set(currentGroup="ini")
@@ -132,7 +136,7 @@ Foreach(Content,"line")
 	if(matches.length>0)
 		set(key=matches[0],value=matches[1])
 		if(Regex(key, "^\\w+$").matches.length==0)
-			Error(sprintf("text","Invalid Ini file: ''%s'. The key: '%s' at line %s, contains an invalid characters.",iniFile, key, lineIndex).text)
+			Error(sprintf("text","Invalid Ini file: ''%s'. The key: '%s' at line %s, contains an invalid characters.",path, key, lineIndex).text)
 		end()
 
 		SplitString(value,";"|values=split)
@@ -144,6 +148,6 @@ Foreach(Content,"line")
 		end()
 		continue()
 	end()
-	Error(sprintf("text","Invalid Ini file: '%s'. Unexpected error at line %s.",iniFile, line, lineIndex).text)
+	Error(sprintf("text","Invalid Ini file: '%s'. Unexpected error at line %s.",path, line, lineIndex).text)
 End()
 }
