@@ -185,7 +185,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			rename(objects=nuclei)
 			ObjectFilter(intensity>nucChanMin)
 			DeleteAttr(intensity)
-			rename(nuclei=objects)
+			rename(Nuclei=objects)
 
 			//Filter/Normalize Cytoplasms
 			if(cytoChanNum>=0)
