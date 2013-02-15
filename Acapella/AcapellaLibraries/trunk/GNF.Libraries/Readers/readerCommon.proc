@@ -1,7 +1,41 @@
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
+
+//*********************************************************************************************
+//*
+//* This procedure file contains general methods used to extract info from images
+//*
+//*********************************************************************************************
+
 proc row2num(
 	string row in "Row string to convert to numeric value",
 	int row_n out "Numeric row value"
-)"Converts row string to row number (starting at 1)"
+)[hidden] ImageReader "Converts row string to row number (starting at 1)"
 {
 	set(row_n=0)
 	if(row.length>2)
@@ -19,7 +53,7 @@ proc row2str(
 	int row_n in "Numeric row value to convert",
 	String firstDoubleLetter="A" in "Indicate what first letter should be used for rows >26. Choose between 'A' or 'Z'",
 	int row out "Corresponding row string"
-)"Converts row number to row letters."
+)[hidden] ImageReader "Converts row number to row letters."
 {
 	if(firstDoubleLetter!="A" && firstDoubleLetter!="Z")
 		error("The first letter of a row that has an index >26, should be 'A' or 'Z'.")
@@ -36,7 +70,7 @@ proc row2str(
 proc wellName(
 	int wellIndex in "WellIndex to convert into a well name",
 	int wellName out "Numeric col value"
-)"Returns the well name from a well Index"
+)[hidden] ImageReader "Returns the well name from a well Index"
 {
 	// wellindex needs to have 9 digits
 	sprintf(wellindex,"%09s",wellindex)

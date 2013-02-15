@@ -1,15 +1,37 @@
-splitstring(imagefile,":")
-rename(filenames=split)
-set(basePath=filenames[0])
-pop(filenames,pos=0)
-if(basePath.length==1) //Dealing with Mapped drives
-	set(basePath=basePath & ":" & filenames[0])
-	pop(filenames,pos=0)
-end()
-set(basePath=regexreplace(basePath,"\\\\","/").text)
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
 
-if(at("/",basePath,-1)!=basePath.length)
-	set(basePath=basePath & "/")
-end()
-set(filenames=vec(basePath) & filenames)
-Readers::InCell::filenames_to_images(filenames)
+//*********************************************************************************************
+//*
+//* This script placed into the directory containing the images to read allows to read
+//* InCell images
+//*
+//*********************************************************************************************
+
+
+Readers::InCell::filenames_to_images(imagefile)

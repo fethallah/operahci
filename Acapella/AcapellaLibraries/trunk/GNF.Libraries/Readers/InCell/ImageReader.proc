@@ -1,5 +1,43 @@
-proc filename_to_wellindex( string filename in, string wellindex out ) {
+//#############################################################################################
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
+//# and libraries.
+//#
+//# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
+//# Authors:
+//#   * Ghislain M.C. Bonamy
+//#   * Genomics Institute of the Novartis Research Foundation (GNF), San Diego, CA 92122
+//#   * www.gnf.org
+//#
+//# You can obtain the latest version of this software at: http://code.google.com/p/operahci/
+//#
+//# This program is free software; you can redistribute it and/or modify
+//# it under the terms of the GNU General Public License as published by
+//# the Free Software Foundation; either version 2 of the License, or
+//# (at your option) any later version.
+//#
+//# This program is distributed in the hope that it will be useful,
+//# but WITHOUT ANY WARRANTY; without even the implied warranty of
+//# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//# GNU General Public License for more details.
+//#
+//# You should have received a copy of the GNU General Public License
+//# along with this program; if not, write to the Free Software
+//# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//# or go to: http://www.apache.org/licenses/
+//#############################################################################################
 
+//*********************************************************************************************
+//*
+//* InCell Procedure for extracting images information, reading images and getting wellIDs
+//* or list of images for a given well index
+//*
+//*********************************************************************************************
+
+proc filename_to_wellindex(
+	string filename in,
+	string wellindex out
+) [hidden] ImageReader "Enables translating a filename into a well index"
+{
 	Readers::InCell::getEncodedProps(filename)
 	if(encodedProps.length==0)
 		Error("The file selected: '"&filename&"' does not appear to be a valid InCell file.")
@@ -13,7 +51,14 @@ proc filename_to_wellindex( string filename in, string wellindex out ) {
 	sprintf(wellindex,"%03d%03d000",row,col)
 }
 
-proc wellindex_to_filenames(string wellindex in, string imagetype="" in, string basepath="" in, container filenames out, string available_imagetype out) {
+proc wellindex_to_filenames(
+	string wellindex in,
+	string imagetype="" in,
+	string basepath="" in,
+	container filenames out,
+	string available_imagetype out
+) [hidden] ImageReader "Enables translating a well index into a filename"
+{
 
 	// wellindex needs to have 9 digits
 	sprintf(wellindex,"%09d",1*wellindex)
@@ -64,7 +109,27 @@ proc wellindex_to_filenames(string wellindex in, string imagetype="" in, string 
 }
 
 
-proc filenames_to_images(vector filenames in, table sourcedata out, container sourcedataprop out)[hidden] {
+proc filenames_to_images(
+	vector imagefile in,
+	table sourcedata out,
+	container sourcedataprop out
+) [hidden] ImageReader "read the images and fetches the metadata for them."
+{
+
+	splitstring(imagefile,":")
+	rename(filenames=split)
+	set(basePath=filenames[0])
+	pop(filenames,pos=0)
+	if(basePath.length==1) //Dealing with Mapped drives
+		set(basePath=basePath & ":" & filenames[0])
+		pop(filenames,pos=0)
+	end()
+	set(basePath=regexreplace(basePath,"\\\\","/").text)
+
+	if(at("/",basePath,-1)!=basePath.length)
+		set(basePath=basePath & "/")
+	end()
+	set(filenames=vec(basePath) & filenames)
 
 	set(filenames=sort(filenames).result)
 	set(filePaths=cnt())
