@@ -151,3 +151,35 @@ Foreach(Content,"line")
 	Error(sprintf("text","Invalid Ini file: '%s'. Unexpected error at line %s.",path, line, lineIndex).text)
 End()
 }
+
+//fix bug in mkdir that prevent UNC path to be properly created
+proc mkdir2(
+	String dirname in "The name of the directory to be created. Can be absolute, or relative to the current directory.",
+	string mode="777" in "Directory attributes, for Linux only. This mode is combined with the user's umask, which normally prohibits write access to group/others. Default: 777 (i.e. access is effectively controlled by the umask value only).",
+
+	boolean errorThrowing=false in "If this is true an error will be thrown, otherwise a simple warning will be given."
+) Filesystem "Creates a new directory. Also creates unexisting parent directories recursively."
+{
+
+	set(dirname=convertPath2Platform(dirname).path)
+	set(dirname=regexreplace(dirname,"/$|\\\\$","").text)
+	if(FileInfo(dirname).fileinfo.exists)
+		return()
+	end()
+
+	if(__platform__=="windows")
+		sprintf("cmd","mkdir \"%s\"",dirname)
+		Run(cmd, stderr="<errorMsg")
+	else()
+		sprintf("cmd","mkdir -p '%s' -m '%s'",mode, dirname)
+		Run(cmd, stderr="<errorMsg")
+	end()
+		if(errorlevel!=0)
+		sprintf("errorMsg","mkdir command: %s; ErrorMessage: %s", cmd, errorMsg)
+		if(errorThrowing)
+			error(errorMsg)
+		else()
+			warning(errorMsg)
+		end()
+	end()
+}
