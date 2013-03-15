@@ -367,79 +367,6 @@ proc bckGndSubstraction(
 		Rename(bckGndObjects=objects)
 }
 
-proc combineMemBlocksV0(
-	polytype oldData = none in  "Contains the info about the original data.",
-	polytype newData in "Contains the info about the data to add",
-	polytype newData out "Contains the new combined data",
-	boolean deleteGeometry = false in "Used if objects is ObjectList type. Deletes the geometric attributes (Body, Border, Index, Zone, OuterZone) from the resulting object list. This avoids the possibility to have overlapping objects. Use this flag if the object lists might contain overlaps and you are not interested in the geometrical attributes afterwards. Parameter introduced in Cells library ver. 1.4.1.41",
-	boolean KeepAutoRecalc = false in "Used if objects is ObjectList type. This parameter affects the attributes which have marked re-calculatable in both object lists. If KeepAutoRecalc is switched on these attributes preserve their AutoRecalc support, otherwise they become static as all of the other attributes. Note that depending on the attribute nature the necessary information required for recalculation might have been lost after merging the object lists, so the default setting is \"off\". Parameter introduced in Cells library ver. 1.4.1.41. Previous behaviour was to preserve autorecalc flags always. "
-)object list manipulations "Combine the info contained within a memblock from a polytype into another. For objectList, the addObjects method is used, for table and arrays, the append method is used, for any other data (double, integer, string etc.) the data is pushed into a vector."
-{
-	set(type=typeOf(newData))
-
-	if(type=="memblock")
-	if(newData.class=="objectlist"&&deleteGeometry)
-		objectlistDeleteGeometry(newData)
-		rename(newData=objects)
-	end()
-		if(not(defined("oldData")))
-			Return()
-		end()
-		if(typeOf(oldData)!="memblock"||oldData.length==0)
-			Return()
-		else()
-			TypeInfo(newData)
-			if(typeInfo.type=="objectList")
-				if(defined("newData.zone")) //added to fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
-					DeleteAttr(zone,objects=newData)
-					rename(newData=objects)
-				end()
-				if(defined("newData.outerzone"))//added to fix a bug with Acapella and/or recursive procedures. SHould be removed when bug is fixed.
-					DeleteAttr(outerzone,objects=newData)
-					rename(newData=objects)
-				end()
-				if(deleteGeometry)
-					objectlistDeleteGeometry(newData)
-					rename(newData=objects)
-				end()
-				AddObjects(newData,CheckOverlap=false,objects=oldData)
-				Rename(newData=objects)
-				Return()
-			else() if(typeInfo.type=="array")
-				Append(oldData,newData)
-				rename(newData=oldData)
-				Return()
-			else()if(typeInfo.type=="table")
-				AppendTable(oldData,newData)
-				rename(newData=table)
-				Return()
-			else() if(typeInfo.type=="container" && newData.length==oldData.length)
-				rename(data=newData)
-				Foreach(0..data.length-1)
-					set(keyName=data.keys[i])
-					if(defined("oldData."keyName))
-						combineMemBlocks(oldData[keyName], data[keyName])
-						set(data[keyName]=newData)
-					else()
-						Warning("An memblock does not contain the same number of elements as the memblock it is added too. This object will set to empty")
-						set(data[keyName]=cnt())
-						Continue()
-					end()
-				end()
-				rename(newData=data)
-				Return()
-			else()
-				Warning("The new memblock \"newData\" can not be added to the previous memblock \"oldData\"")
-				set(newData=cnt())
-				return()
-			end()end()end()end()
-		end()
-	else()
-
-	end()
-}
-
-
 proc combineMemBlocks(
 	polytype oldData = none in  "Contains the info about the original data.",
 	polytype newData in "Contains the info about the data to add",
@@ -449,7 +376,7 @@ proc combineMemBlocks(
 )object list manipulations "Combine the info contained within a memblock from a polytype into another. For objectList, the addObjects method is used, for table and arrays, the append method is used, for any other data (double, integer, string etc.) the data is pushed into a vector."
 {
 
-	if(newData.class=="objectlist"&&deleteGeometry)
+	if(newData.class=="objectlist" && deleteGeometry)
 		objectlistDeleteGeometry(newData)
 		rename(newData=objects)
 	end()
@@ -558,8 +485,8 @@ end()
 
 proc ObjectsDistances(
 	objectlist objects in "Object for which distance should be calculated.",
-	vector distances out "vector containing the distances between each objects pair.",
-	vector shortestDistance out "vector containing the distance from each object center to the closest object center.",
+	vector distances out "Data containing the vector of distances between each points, or if default is used, the distance to nearest points.",
+	boolean ReturnShortest=true in "Indicate if the vector return should only contain the shortest distance. If this is false, the fector will have length Nx(N-1)/2, where N is the number of objects.",
 	string stencil = "body" in "Stencil to use to calculate the distances.",
 ) statistics "Returns the pairwise distances between each the center of mass of the stecil in the object provided. In case where objects has fewer than 2 elements, distances and shortestDistance is set to 0. "
 {
@@ -572,7 +499,7 @@ if(Not(defined("objects."&prefix &"masscentre")))
 	CalcMassCentre()
 End()
 
-PairWiseDistance(objects[prefix &"masscentre"].x.target,objects[prefix &"masscentre"].y.target)
+PairWiseDistance(objects[prefix &"masscentre"].x.target,objects[prefix &"masscentre"].y.target, ReturnShortest)
 }
 
 proc CalcWidthLengthSafe(
@@ -727,7 +654,6 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 	end()
 
 	addObjectID()
-	//CalcFeatures()
 
 	Set(index=tbl(TimePoint=create("vector", 0, length, time).vector,StackNum=create("vector", 0, length, stack).vector,FieldNum=create("vector", 0, length, field).vector,ObjectType=create("vector", 13, length, ObjectType).vector,ObjectID=objects.ObjectID,ParentType=objects.parentType,ParentID=objects.ParentID))
 	deleteAttr(parentType)
@@ -747,6 +673,7 @@ proc addObjectID(
 	if(Not(defined("objects.ObjectID")))
 		if(Not(defined("objects.masscentre")))
 			CalcMassCentre()
+			Delete(objects.MassCentreX, objects.MassCentreY)
 		end()
 		CalcStat("Max",AttrName="ObjectID", image=objects.index,stencil=masscentre)
 	end()
@@ -779,6 +706,7 @@ proc AssociateObject2Parents(
 
 	if(Not(defined("objects.masscentre")))
 		CalcMassCentre()
+		Delete(objects.MassCentreX, objects.MassCentreY)
 	end()
 	foreach(parentNames,"name")
 		if(defined("ParentObjects[name]"))
@@ -827,6 +755,7 @@ proc AssociateObject2Phenotypes(
 	end()
 	if(Not(defined("objects.masscentre")))
 		CalcMassCentre()
+		Delete(objects.MassCentreX, objects.MassCentreY)
 	end()
 	foreach(Phenotypes.keys,"name")
 		if(defined("Phenotypes[name]"))
