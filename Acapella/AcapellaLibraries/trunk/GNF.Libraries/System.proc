@@ -40,10 +40,15 @@ Container config out "Object containing the configuration"
 )System "Returns the configuration embedded into the selected file located at the root of this procedure"
 {
 if(at( "/",path)!=1 && at( "\\",path)!=1)
-	sprintf(configFile,"%s/%s",pathSplit(__file__).dirname,path)
+	sprintf(configFile,"%s%s",pathSplit(__file__).dirname,path)
 end()
 
 readIni(configFile|config=ini)
+
+set(platform = __platform__ )
+if(defined("ini." & platform))
+	set(ini=mergeContainer(ini, ini[platform]).container)
+end()
 
 if(path=="GNF.ini" && !defined("config.paths.tmp"))
 	//Extract actual temp diretory from system. In future need to test if tmp path in
@@ -92,7 +97,7 @@ proc readIni(
 string path in "path of the INI file that you want to use.",
 container ini out "Container representing the INI file that you read."
 )
-System "Reads an INI file into an object so that each Groups (eg. [MyGroup1\MyGroup2\MyGroup3]) represents one branch into the ini container returned. The values are placed into the structure created. If you provide a ';'delimited sets of value for one key eg. 'MyValues=3;2;3;6;4' a vector o values will be entered in the selected group."
+System "Reads an INI file into an object so that each Groups (eg. [MyGroup1\MyGroup2\MyGroup3]) represents one branch into the ini container returned. The values are placed into the structure created. If you provide a ';'delimited sets of value for one key eg. 'MyValues=3;2;3;6;4' a vector o values will be entered in the selected group. Notion of Super groups is also introduce to further group set of objects. Super groups are provided by a line containing a line with the following template: '{A_Super_Group_Label}'."
 {
 rename(path=path)
 if(!fileInfo(path).fileinfo.is_readable)
@@ -100,7 +105,7 @@ if(!fileInfo(path).fileinfo.is_readable)
 end()
 ReadFile(path)
 SplitString(content,"\n",Trim=true|Content=Split)
-set(ini=cnt(),lineIndex=0, currentGroup="ini")
+set(ini=cnt(),lineIndex=0, currentGroup="ini", superGroup="")
 Foreach(Content,"line")
 	Set(lineIndex=lineIndex+1)
 
@@ -110,8 +115,21 @@ Foreach(Content,"line")
 		continue()
 	end()
 
+	//Handle Super Groups
+	Regex(line, "^\\s*\\{(.*?)\\}\\s*$")
+	if(matches.length>0)
+		set(currentKey=matches[0])
+
+		if(Regex(currentKey, "^\\s*\\w+\\s*$").matches.length==0)
+			Error(sprintf("text","Invalid Ini file: ''%s'. The super group: '%s' at line %s, contains an invalid characters.",path, line, lineIndex).text)
+		end()
+		set(superGroup="ini"&"."&currentKey)
+		set(_[superGroup]=cnt())
+		continue()
+	end()
+
 	//Handle Groups
-	Regex(line, "^\\[(.*?)\\]$")
+	Regex(line, "^\\s*\\[(.*?)\\]\\s*$")
 	if(matches.length>0)
 		set(currentKey=matches[0])
 		RegexReplace(currentKey,"/$",""|currentKey=text)
@@ -121,7 +139,7 @@ Foreach(Content,"line")
 			Error(sprintf("text","Invalid Ini file: ''%s'. The group: '%s' at line %s, contains an invalid characters.",path, line, lineIndex).text)
 		end()
 		SplitString(currentKey,"/"|keys=Split)
-		Set(currentGroup="ini")
+		Set(currentGroup=iif(superGroup=="", "ini", superGroup))
 		Foreach(keys,"key")
 			set(currentGroup=currentGroup&"."&key)
 			if(!defined(currentGroup))
