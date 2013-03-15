@@ -411,8 +411,8 @@ private: // implementation
 private: // module parameters
 	const PVector xCoord;
 	const PVector yCoord;
+	bool isShortest;
 	PVector distances;
-	PVector shortestDistance;
 };
 
 void pairWiseDistance::Declare() {
@@ -421,9 +421,9 @@ void pairWiseDistance::Declare() {
 	// Declare module input parameters
 	input(xCoord, "X (vector: double)", PAR_POSITIONAL, "Vector containing the X-coordinates for the set of points.");
 	input(yCoord, "Y (vector: double)", PAR_POSITIONAL, "Vector containing the Y-coordinates for the set of points.");
+	input(isShortest, "ReturnShortest (boolean)", PAR_POSITIONAL, "Indicates if you should want only to retrieve the shortest distance.", true);
 	// Declare module output parameters
-	output(distances, "Distances (vector: double)", 0, "Data containing the vector of distances between each points to the rest of the points.");
-	output(shortestDistance, "shortestDistance (vector: double)", 0, "Data providing the distance to the nearest point.");
+	output(distances, "Distances (vector: double)", 0, "Data containing the vector of distances between each points, or if default is used, the distance to nearest points.");
 }
 
 void pairWiseDistance::Run() {
@@ -434,35 +434,33 @@ void pairWiseDistance::Run() {
 	const double* yCoordVal=yCoord->DoublePointer();
 
 	int size = (int) xCoord->Length();
-	distances=Vector::Create((size*(size-1))/2, Vector::Double);
-	shortestDistance=Vector::Create(size,Vector::Double);
+	if(isShortest)
+		distances=Vector::Create(size,Vector::Double);
+	else
+		distances=Vector::Create((size*(size-1))/2, Vector::Double);
 	double* distancesValues = distances->DoublePointer();
-	double* shortestDistanceValues = shortestDistance->DoublePointer();
 	double x=0, y=0, xCoordFact=xCoord->Factor(), yCoordFact=yCoord->Factor();
-	double shortestDist=0,currentVal=0;
-	int shortestDistIndex=0;
-	int index=1, fillIndex=0;
-	for(int i=0;i < size-1;i++){
-		shortestDist=std::numeric_limits<double>::max();
-		for(int j=index;j < size;j++){
+	double currentVal=0;
+	int fillIndex=0;
+	for(int i=0; i<size-1; i++){
+		if(isShortest)
+			distancesValues[i]=std::numeric_limits<double>::max();
+
+		for(int j=i+1; j<size; j++){
+
 			x=(xCoordVal[i]-xCoordVal[j])*xCoordFact;
 			x*=x;
 			y=(yCoordVal[i]-yCoordVal[j])*yCoordFact;
 			y*=y;
 			currentVal=sqrt(x+y);
-			distancesValues[fillIndex]=currentVal;
-			if(shortestDist>currentVal){
-				shortestDist=currentVal;
-				shortestDistIndex=j;
+			if(isShortest){
+				distancesValues[i] = std::min(distancesValues[i],currentVal);
+				distancesValues[j] = distancesValues[j]==0? currentVal : std::min(distancesValues[j],currentVal);
 			}
-
-			if(shortestDistanceValues[i]==0){ //only modify values that have not been set yet
-				shortestDistanceValues[i]=shortestDist;
-				shortestDistanceValues[shortestDistIndex]=shortestDist;
-			}
+			else
+				distancesValues[fillIndex]=currentVal;
 			fillIndex++;
 		}
-		index++;
 	}
 }
 
