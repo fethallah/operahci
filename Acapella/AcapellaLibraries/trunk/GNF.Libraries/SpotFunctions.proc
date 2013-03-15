@@ -380,6 +380,7 @@ object recognition, cell compartment "Detects the vacuole from a cytoplasmic ima
 	RenameAttr(IntensityKurtosis=CentralMoment4)
 	CalcAttr(Roundness)
 	CalcMassCentre()
+	Delete(objects.MassCentreX, objects.MassCentreY)
 	CalcArea(border)
 	CalcArea()
 	RenameAttr(perimeter=border_area)
@@ -497,6 +498,7 @@ object recognition, cell compartment "Detects the microNuclei in the image, usin
 	RenameAttr(IntensityKurtosis=CentralMoment4)
 	CalcAttr(Roundness)
 	CalcMassCentre()
+	Delete(objects.MassCentreX, objects.MassCentreY)
 	CalcArea(border)
 	CalcArea()
 	RenameAttr(perimeter=border_area)
@@ -533,18 +535,20 @@ proc ParasiteDetection_parameters(
 	input(Algorithm,"B","Parasite Detection Algorithm: Parasite Detection",type="s",description="Specifies the algorithm to use for parasite detection. Allowed values:\"A\",\"B\",\"C\",\"D\".")
 
 	input(SpotMinimumDistance,3.0 , "ParasiteMinimumDistance: Parasite Detection","d", "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite. Allowed range: 1..100, step 1.")
-	input(SpotPeakRadius, 1.0, "ParasitePeakRadius: Parasite Detection","d", "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Allowed range: 1..8, step 1.")
-
+	input(SpotPeakRadius, 1.0, "ParasitePeakRadius: Parasite Detection","d", "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Allowed range: 0..10, step 1.")
 	input(SpotReferenceRadius, 5.0,  "ParasiteReferenceRadius: Parasite Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Parasite center.  Allowed range: 1..8, step 1.")
 	input(SpotMinimumContrast,0.5, "ParasiteMinimumContrast: Parasite Detection", "d","Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa. Allowed range: 0..1, step 0.05.")
 	input(SpotMinimumToCellIntensity, 10.0, "ParasiteMinimumToCellIntensity: Parasite Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..500, step 0.1.")
+
+	input(ScanParameter, "None", "Parameter SCAN: Parasite Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition. Possible values: \"None\", \"Algorithm\", \"SpotMinimumDistance\",\"SpotPeakRadius\",\"SpotReferenceRadius\",\"SpotMinimumContrast\",\"SpotMinimumToCellIntensity\".")
+
+	input(accuratParasiteDetection, true, "Accurate Detection: Parasite Detection", "b", "Indicate if you want to run the accurate spot detection. This only works well if parasites are not do dense and not adjacents.")
 
 	input(SpotMinIntensity, 100, "Min Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
 	input(SpotMaxIntensity,   0, "Max Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. A Value of 0 means no filtering. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
 	input(SpotMinArea,10,"Minimum Parasite Area: Parasite Detection","i","Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
 	input(SpotMaxArea,0, "Maximum Parasite Area: Parasite Detection","i","Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. A Value of 0 means no filtering. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
 
-	input(ScanParameter, "None", "Parameter SCAN: Parasite Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition. Possible values: \"None\", \"Algorithm\", \"SpotMinimumDistance\",\"SpotPeakRadius\",\"SpotReferenceRadius\",\"SpotMinimumContrast\",\"SpotMinimumToCellIntensity\".")
 
 	Pack(parameters,*)
 }
@@ -562,6 +566,8 @@ proc ParasiteDetection_inner
 	double SpotReferenceRadius=5 in "Radius of Reference Region around the intensity maximum, i.e. around Parasite center. Typical range  2.0 .. 5.0.",
 	double SpotMinimumContrast=0.5 in "Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Range from 0..1. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa.",
 	double SpotMinimumToCellIntensity=10 in "Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..oo.",
+
+	boolean accuratParasiteDetection=true in "Indicate if you want to run the accurate spot detection. This only works well if parasites are not do dense and not adjacents.",
 
 	double SpotMinIntensity=100 in "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. Adjust with \"ParasiteOutline2\" preview.",
 	double SpotMaxIntensity=0 in "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. Adjust with \"ParasiteOutline2\" preview.",
@@ -595,14 +601,21 @@ proc ParasiteDetection_inner
 		delete(objects)
 	end()
 
-	Mask(SpotMinIntensity/1.5)
-	Mask2Stencil()
-	Centers2objects(spots.spotCenters,SpotMinimumDistance*3,image=image,MinArea=SpotMinArea,stencil=stencil)
-	FillObjects()
+	if(accuratParasiteDetection)
+		Mask(SpotMinIntensity/1.5)
+		Mask2Stencil()
+		Centers2objects(spots.spotCenters,SpotMinimumDistance*3,image=image,MinArea=SpotMinArea,stencil=stencil)
+		FillObjects()
 
-	//Filters any objects that was not detected using the spot detection first
-	CalcStat("sum",image=spots.spotCenters.mask.image,AttrName="NumberBrightSpots")
-	objectFilter(NumberBrightSpots>0)
+		//Filters any objects that was not detected using the spot detection first
+		CalcStat("sum",image=spots.spotCenters.mask.image,AttrName="spotsNumber")
+		objectFilter(spotsNumber>0)
+	else()
+		rename(objects=Spots)
+		set(spotsNumber=create("vector", 0, objects.count, 1).vector)
+		stencil2objects(objects.body, CalcArea=False)
+		set(objects.spotsNumber=spotsNumber)
+	end()
 
 	if(showIllustrations)
 		set(label="ParasiteOutline1")
@@ -651,7 +664,9 @@ proc ParasiteDetection_inner
 		set(label="ParasiteOutline3V")
 		ImageView(objects.border, label=label,title=title,image=imageIni, gamma=2.0)
 	end()
-	stencil2objects(objects.body)
+	set(spotsNumber=objects.spotsNumber)
+	stencil2objects(objects.body, CalcArea=False)
+	set(objects.spotsNumber=spotsNumber)
 	Rename(Parasites=objects)
 	keep(Parasites)
 }
