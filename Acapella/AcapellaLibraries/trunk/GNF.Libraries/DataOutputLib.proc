@@ -115,12 +115,12 @@ proc Objectlist2Table(
 {
 	create("table")
 	foreach(objects.keys)
-		set(Key=objects[i])
-		if(Key.class=="stencil")
+		set(val=objects[i])
+		if(val.class=="stencil" || i=="MassCentreX" || i=="MassCentreY")
 			continue()
 		end()
-		if(Key.class=="vector" && Key.class!="intervalvector" && Key.class!="indexvector" && (Key.elemtype<8||Key.elemtype==13))
-			set(table[i]=Key)
+		if(val.class=="vector" && val.class!="intervalvector" && val.class!="indexvector" && (val.elemtype<8||val.elemtype==13))
+			set(table[i]=val)
 		end()
 	end()
 }
@@ -214,7 +214,7 @@ proc outputMemblockData(
 			set(keys=data.keys)
 		end()
 		foreach(keys,"keyName")
-			if(keyName=="ObjectID"||keyName=="xCentre"||keyName=="yCentre"||keyName=="ParentID"||keyName=="ParentType")
+			if(keyName=="ObjectID"||keyName=="xCentre"||keyName=="yCentre"||keyName=="MassCentreX"||keyName=="MassCentreY"||keyName=="ParentID"||keyName=="ParentType")
 				continue()
 			end()
 			Set(keyNameDisplay=unquote(keyName,"Name").text)
@@ -234,7 +234,7 @@ proc outputMemblockData(
 
 proc WriteObjectsTable(
 	table table in "The table to save in file",
-    string filename outputfilename  in  "The Output File", //using the flag outpufilename / filename flags allows to redirect the outputs!
+    string filename outputfilename  in  "The Output File" //using the flag outpufilename / filename flags allows to redirect the outputs!
 )
 data output "Saves a table in a text file. The column names are output in the first row and \"_\" are replaced by \"-\". \"ratio_xyz_To_vfw\" is replaced by \"xyz/vfw\"."
 {
