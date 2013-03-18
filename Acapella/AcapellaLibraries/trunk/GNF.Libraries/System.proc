@@ -46,8 +46,8 @@ end()
 readIni(configFile|config=ini)
 
 set(platform = __platform__ )
-if(defined("ini." & platform))
-	set(ini=mergeContainer(ini, ini[platform]).container)
+if(defined("config." & platform))
+	set(config=mergeContainer(config, config[platform]).container)
 end()
 
 if(path=="GNF.ini" && !defined("config.paths.tmp"))
