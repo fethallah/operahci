@@ -150,7 +150,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			set(feature="Body_"&images[i].desc)
 			Mask(1)
 			set(image=image/mask)
-			CalcStat("mean", AttrName=feature&"_Intensity", image=image)
+			CalcStat("mean", AttrName=feature&"_MeanIntensity", image=image)
 			if(showIllustrations && FindElem("marker",images[i].purpose).pos>=0)
 				set(image=images[i].image+images[i].bckGndSubstracted)
 				//CalcBorder(RingRegion)
@@ -164,7 +164,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 					set(cutOff=images[i].cutoff)
 				end()
 				end()
-				add(images[i].bckGndSubstracted, image=objects.[feature&"_Intensity"]|data=image)
+				add(images[i].bckGndSubstracted, image=objects.[feature&"_MeanIntensity"]|data=image)
 				GraphView(data, label="RingIntChan-"&images[i].desc,title="Ring Intensity for channel "&images[i].desc&". CalculatedCutOff="&round(cutOff*100)/100, presto_options="graph.yaxis.title Intensity")
 				GraphView(tabulate(cutOff,objects.count).result, label="RingIntChan-"&images[i].desc,  append=true, presto_options="set[0].line.color red")
 				delete(data,image)
@@ -179,18 +179,18 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				set(feature="Body_"&images[i].desc)
 				set(objects=WholeCells)
 				if(cutOffType=="folds")
-					set(formula=feature&"_Intensity>"&((images[i].cutoff-1)*bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean))
+					set(formula=feature&"_MeanIntensity>"&((images[i].cutoff-1)*bckGndObjects["Body_"&images[i].desc&"_MeanIntensity"].mean))
 				else()if(cutOffType=="stddev")
-					set(formula=feature&"_Intensity>"&(images[i].cutoff*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean))
+					set(formula=feature&"_MeanIntensity>"&(images[i].cutoff*bckGndObjects["Body_"&images[i].desc&"_StdDevIntensity"].mean))
 				else()
-					set(formula=feature&"_Intensity>"&(images[i].cutoff-images[i].bckGndSubstracted))
+					set(formula=feature&"_MeanIntensity>"&(images[i].cutoff-images[i].bckGndSubstracted))
 				end()
 				end()
 
 				SplitMyObjects(formula,objects=objects)
 				Foreach(0..images.length-1,"k")
 					set(feature="Body_"&images[k].desc)
-					SetAttr(feature&"_FoldAboveNegative",objects[feature&"_Intensity"]/remainder[feature&"_Intensity"].median)
+					SetAttr(feature&"_FoldAboveNegative",objects[feature&"_MeanIntensity"]/remainder[feature&"_MeanIntensity"].median)
 				end()
 				if(showIllustrations)
 					set(image=images[i].image+images[i].bckGndSubstracted)
@@ -212,7 +212,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 						SplitMyObjects(formula,objects=positive[positiveObjectsDesc[j]])
 							Foreach(0..images.length-1,"k")
 								set(feature="Body_"&images[k].desc)
-								SetAttr(feature&"_FoldAboveNegative",objects[feature&"_Intensity"]/remainder[feature&"_Intensity"].median)
+								SetAttr(feature&"_FoldAboveNegative",objects[feature&"_MeanIntensity"]/remainder[feature&"_MeanIntensity"].median)
 							end()
 						push(positiveObjectsDesc,combinationName)
 						set(positive[combinationName]=objects)
@@ -279,6 +279,19 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	pack(data,wholeWellData,singleCellData)
 }
 
+
+proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
+	unpack(data)
+	delete(data)
+	if(Defined("singleCellData.Features"))
+		GZipData(singleCellData.Features,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
+	end()
+	if(Defined("singleCellData.ROI"))
+		GZipData(singleCellData.ROI,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
+	end()
+	outputMemblockData( wholeWellData)
+}
+
 //#######################
 // Program Start
 //#######################
@@ -295,5 +308,5 @@ if(param.showIllustrations&&param.fieldSelected!=0)
 end()
 
 Analysis()
-writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
+//writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
 dataOutput(data,sourcedataprop,param.OutputStatType)
