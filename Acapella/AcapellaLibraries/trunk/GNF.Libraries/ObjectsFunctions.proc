@@ -45,35 +45,28 @@ String ContainerStencil="body" in "Optional input. Stencil to use in the list \"
 boolean overlap=true in "Optional input. Indicate whether the objects in \"Objects\" can simply overlap (true), or whether they need to be contained within \"Container\" (false)."
 ) mask operations,object list manipulations "Split the object lits provided into an objects list containing objects that are contained or overlapping with the \"Container\" and the remainder containing objects that are not overlapping and/or contained in \"Container\""
 {
-	set(image=Container[""&ContainerStencil].mask.image)
-	And(image,image=Objects[""&ObjectsStencil].mask.image)
-	set(AttributePrefix=iif(objectsStencil!="body",objectsStencil&"_",""))
-	if(defined("Objects."&AttributePrefix&"intensity"))
-		Eval("RenameAttr(intensityTemp="&AttributePrefix&"intensity)")
-	end()
-	Eval("CalcIntensity("&objectsStencil&",image,AutoRecalc=false)")
-	rename(iniOverlap=image)
-	if(objectsStencil!="body")
-		set(factor=objectsStencil&"_Intensity")
-	else()
-		set(factor="Intensity")
-	end()
+	set(objectsIni=objects)
+	Stencil2Objects(Container[ContainerStencil])
+	FillObjects()
+	set(image=objects.body.mask.image)
 
+	set(objects=objectsIni)
+	Stencil2Objects(Objects[ObjectsStencil])
+	FillObjects()
+	set(TempStencilName="Temp2Delete_"&ObjectsStencil)
+	Set(objectsIni[TempStencilName]=Objects.body)
+	rename(objects=objectsIni)
+
+	set(IsContained="Temp2Delete_IsContained")
+	calcstat("Mean", stencil=objects[TempStencilName],attrName=IsContained, image=image)
+	delete(objects[TempStencilName])
 	if(overlap)
-		splitMyObjects(factor&">0")
+		splitMyObjects(IsContained&">0")
 	else()
-		splitMyObjects(factor&">=1")
+		splitMyObjects(IsContained&">=1")
 	end()
-	eval("deleteAttr("&factor&")")
-	eval("deleteAttr("&factor&",objects=remainder|remainder=objects)")
-	if(defined("Objects.intensityTemp"))
-		Eval("RenameAttr("&AttributePrefix&"intensity=intensityTemp)")
-	end()
-	if(defined("remainder.intensityTemp"))
-		rename(tempObjects=objects)
-		Eval("RenameAttr("&AttributePrefix&"intensity=intensityTemp,objects=remainder)")
-		rename(remainder=objects,objects=tempObjects)
-	end()
+	delete(objects[IsContained])
+	delete(remainder[IsContained])
 
 	keep(remainder, objects)
 }
@@ -671,13 +664,10 @@ proc addObjectID(
 	)
 {
 	if(Not(defined("objects.ObjectID")))
-		if(Not(defined("objects.masscentre")))
-			CalcMassCentre()
-			Delete(objects.MassCentreX, objects.MassCentreY)
-		end()
-		CalcStat("Max",AttrName="ObjectID", image=objects.index,stencil=masscentre)
+		CalcStat("Max",AttrName="ObjectID", image=objects.index,stencil=body)
 	end()
 }
+
 proc AssociateObject2Parents(
 	objectlist objects in "Objectlist containing the objects to map",
 	objectlist objects out "Objectlist containing the mapping to their parents. Two new subkeys: \"ParentObjectTpe\"=Name of the parent object, \"ParentObjectID\"=ID of the parent object",
@@ -718,10 +708,13 @@ proc AssociateObject2Parents(
 						set(parent=parent.fullSet)
 					end()
 					containedObjects(parent,objects,objectsStencil="massCentre")
+
+					stencil2objects(stencil=parent.body | parent=objects)
+					fillObjects(objects=parent | parent=objects)
 					CalcStat("Max",AttrName="ParentID", image=parent.body.image, stencil=masscentre)
 					Set(objects.ParentType=create("vector", 13, objects.count, name).vector)
 					combineMemBlocks(oldData, objects,DeleteGeometry=false,KeepAutoRecalc=true|oldData=newData)
-					rename(objects=remainder)
+					rename(objects=remainder) //Remainder objects that have no parents to be indexed later
 				end()
 			end()
 		end()
