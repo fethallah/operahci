@@ -8,4 +8,11 @@
 	</buildSpec>
 	<natures>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>AcapellaStdLib</name>
+			<type>2</type>
+			<location>//Opera3654/C$/Program Files/PerkinElmer/Acapella 2.6/StdLib</location>
+		</link>
+	</linkedResources>
 </projectDescription>
