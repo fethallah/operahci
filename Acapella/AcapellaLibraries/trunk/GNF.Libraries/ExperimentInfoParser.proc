@@ -507,7 +507,10 @@ proc GetWellInfo(
 	end()
 
 	if(defined("sourcedataprop.WellIndex"))
-		set(sourcedataprop.wellID=sourcedataprop.WellIndex)
+		set(wellID=sourcedataprop.WellIndex)
+		regexReplace(wellID,"001$","000")
+		set(sourcedataprop.WellIndex=wellID)
+		set(sourcedataprop.wellID=wellID)
 	else()
 		//TODO: May need something creative here for compatibility
 		Error("Image reader does not provide a WellIndex. Fix reader or add compatibility code here")
