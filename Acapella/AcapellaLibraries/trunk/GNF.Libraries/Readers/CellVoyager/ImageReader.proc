@@ -38,7 +38,7 @@ proc filename_to_wellindex(
 	string wellindex out
 ) [hidden] ImageReader "Enables translating a filename into a well index"
 {
-	Readers::InCell::getEncodedProps(filename)
+	Readers::CellVoyager::getEncodedProps(filename)
 	if(encodedProps.length==0)
 		Error("The file selected: '"&filename&"' does not appear to be a valid InCell file.")
 	end()
@@ -80,7 +80,7 @@ proc wellindex_to_filenames(
 	set(files=sort(files).result)
 	set(filenames_str=basePath)
 	foreach(files, "filename")
-		Readers::InCell::getEncodedProps(filename)
+		Readers::CellVoyager::getEncodedProps(filename)
 		if(encodedProps.length==0)
 			Warning("The file selected: '"&filename&"' does not appear to be a valid InCell file. Skipping the file")
 			Continue()
@@ -137,7 +137,7 @@ proc filenames_to_images(
 	set(tempSourcedata=cnt())
 	set(index=0)
 	foreach(filenames, "filePath")
-		Readers::InCell::getEncodedProps(filePath)
+		Readers::CellVoyager::getEncodedProps(filePath)
 		if(encodedProps.length==0)
 			Warning("The file selected: '"&filePath&"' does not appear to be a valid InCell file. It does not match the pattern. Skipping the file.")
 			Continue()
@@ -218,64 +218,37 @@ proc filenames_to_images(
 }
 
 proc getEncodedProps(string filePath in, vector encodedProps out)[hidden]{
-	// typical format of the filePath: ./YI14_FX00238646_1/A - 11(fld 1 wv DAPI - DAPI z 1).tif
+	// typical format of the filePath:
+	//./<ProjectID>/<AnalysisName>_<AssayName>_<AssayDate[YYYYMMDD]>_<AssayTime[HHMMSS]>/<Assay_Plate[ID|Name]>/<Assay_Plate[ID|Name]>_<WellID>_T<TimeID[0001-9999]>F<FieldID[001-999]>L<TimeLine[01-99]>A<Action=Exposure[01-99]>Z<ZStackIndex[01-99]>C<Channel#[01-99]>.tif
+	//eg: ./MyProjrct/Test_scilia assay_20130313_105517/Greiner_non coated/Greiner_non coated_C08_T0001F001L01A01Z01C02.tif
 	set(filePath=regexreplace(filePath,"\\\\","/").text)
-	Regex(filePath,"(?:^.+?[/]([^/_]+)_([^/_]+)_(\\d+)[/])?(([A-Z]+) - (\\d+)\\((.+?)\\)\\.tiff?$)")
+	Regex(filePath,"^.+?/([^/]+?)/(?:([^/_]+)_)?([^/_]+?)_(\\d{8})_(\\d{6})/([^/]+)/(\\6_([A-Z]{1,2})(\\d{2})_T(\\d{4})F(\\d{3})L(\\d{2})A(\\d{2})Z(\\d{2})C(\\d{2})\\.tif$)")
 
 	Set(encodedProps=cnt())
 	if(matches.length==0)
 		Return()
 	end()
 
-	Set(encodedProps.ExpID=matches[0])
-	Set(encodedProps.Barcode=matches[1])
+	Set(encodedProps.ExpID=matches[4] &"-"& matches[5])
+	Set(encodedProps.Barcode=matches[6])
 	Set(encodedProps.PlateName=encodedProps.Barcode)
-
-	Set(encodedProps.Exp_Num=1*matches[2])
-
+	Set(encodedProps.Exp_Num=1*matches[10])
 	Set(encodedProps.PlateID = sprintf( "text", "%s_%s_%02d",encodedProps.ExpID, encodedProps. Barcode, encodedProps.Exp_Num ).text )
 
-
-	Set(encodedProps.Exp_Num=1*matches[2])
-
-	Set(encodedProps.filename=matches[3])
-	Set(row_str=matches[4])
+	Set(encodedProps.filename=matches[7])
+	Set(row_str=matches[8])
 	Set(encodedProps.Row_str = row_str)
 	Readers::row2num(row_str)
 	Set(encodedProps.Row=1*row_n)
-	Set(encodedProps.Col=1*matches[5])
+	Set(encodedProps.Col=1*matches[9])
 	Set(encodedProps.Column=encodedProps.Col)
 
 	//Get the list of properties of the image
-	Set(imageProps=matches[6])
-
-	Regex(imageProps,"\\bfld\\s+(\\d+)")
-	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
-	if(matches.length>0)
-		Set(encodedProps.Field=1*matches[0])
-	else()
-		Set(encodedProps.Field=1)
-	end()
-
-	Regex(imageProps,"\\bwv\\s+(\\w+)\\s+-\\s+(\\w+)")
-	Set(encodedProps.ChannelEmission=matches[0])
-	Set(encodedProps.ChannelExcitation=matches[1])
-	Set(encodedProps.FilterCombinationRef=encodedProps.channelEmission&"-"&encodedProps.channelExcitation)
-
-	Regex(imageProps,"\\bz\\s+(\\d+)")
-	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
-	if(matches.length>0)
-		Set(encodedProps.Plane=1*matches[0])
-	else()
-		Set(encodedProps.Plane=1)
-	end()
-
-	Regex(imageProps,"\\bt\\s+(\\d+)")
-	//when iif and if are fixed and do not require the different conditions to be evaluated replace with iif
-	if(matches.length>0)
-		Set(encodedProps.Timepoint=1*matches[0])
-	else()
-		Set(encodedProps.Timepoint=1)
-	end()
+	Set(encodedProps.Field=1*matches[11])
+	Set(encodedProps.Exposure=1*matches[13])
+	Set(encodedProps.Channel=1*matches[15])
+	Set(encodedProps.FilterCombinationRef=sprintf( "text", "%02d-%02d",encodedProps.Exposure, encodedProps.Channel ).text)
+	Set(encodedProps.Plane=1*matches[14])
+	Set(encodedProps.Timepoint=1*matches[12])
 
 }
