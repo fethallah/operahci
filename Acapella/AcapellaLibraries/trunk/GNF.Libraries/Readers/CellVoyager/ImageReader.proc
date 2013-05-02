@@ -210,7 +210,7 @@ proc filenames_to_images(
 	Set(sourcedataprop.NumberOfPlanes=uniq(Plane).result.length)
 	Set(sourcedataprop.NumberOfTimepoints=uniq(Timepoint).result.length)
 	Set(sourcedataprop.ProviderName="Yokogawa-CellVoyager")
-	Set(sourcedataprop.WellIndex=filename_to_wellindex(filenames[0]).wellindex))
+	Set(sourcedataprop.WellIndex=filename_to_wellindex(filenames[0]).wellindex)
 	Set(sourcedataprop.WellName=Readers::wellName(sourcedataprop.WellIndex))
 
 	//follow opera convention filename is really filepath, cf ExperimentInfoParser.proc extracting of fileDir
