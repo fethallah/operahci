@@ -211,7 +211,8 @@ proc filenames_to_images(
 	Set(sourcedataprop.NumberOfTimepoints=uniq(Timepoint).result.length)
 	Set(sourcedataprop.ProviderName="GE-InCell")
 	Set(sourcedataprop.WellIndex=filename_to_wellindex(filenames[0]).WellIndex)
-	Set(sourcedataprop.WellName=Readers::wellName(sourcedataprop.WellIndex).WellName)
+	Readers::wellName(sourcedataprop.WellIndex)
+	Set(sourcedataprop.WellName=WellName)
 
 	//follow opera convention filename is really filepath, cf ExperimentInfoParser.proc extracting of fileDir
 	Set(sourcedataprop.SourceFileName=filePaths)
