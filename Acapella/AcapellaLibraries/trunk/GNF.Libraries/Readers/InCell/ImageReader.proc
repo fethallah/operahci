@@ -181,7 +181,7 @@ proc filenames_to_images(
 			set(channel_num=channels.length-1)
 		end()
 		//Print The proper exposures and Camera (max 4 cameras)
-		sprintf(ChannelName,"Exp%1dCam%2d",Chan_num%4+1,int(Chan_num/4)+1)
+		sprintf(ChannelName,"Exp%1dCam%2d",Chan_num~4+1,int(Chan_num/4)+1)
 		push(tempSourcedata.ChannelName,ChannelName)
 		push(tempSourcedata.Name,ChannelName) //Kept for old script compatibility
 
