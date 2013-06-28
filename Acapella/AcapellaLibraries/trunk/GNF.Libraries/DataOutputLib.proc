@@ -293,9 +293,9 @@ proc GZipData(
 	set(archiveRoots=SplitString(getConfiguration("GNF.ini").config.paths.archiveRoot,";:").Split) //make sure archive roots is a vector
 	if(archiveRoots.length>0)
 		set(storageRoot= getConfiguration("GNF.ini").config.paths.storageRoot)
-		set(storageRoot= convertPath2Platform(storageRoot).dirname)
+		set(storageRoot= convertPath2Platform(storageRoot).path)
 		foreach(archiveRoots,"archiveRoot")
-			set(archiveRoot= convertPath2Platform(archiveRoot).dirname)
+			set(archiveRoot= convertPath2Platform(archiveRoot).path)
 			if(at(dirname, archiveRoot)==1 && archiveRoot!="")
 				set(dirname=storageRoot&"/"&substr(path,archiveRoot.length+1,path.length))
 				convertPath2Platform()
