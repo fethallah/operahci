@@ -534,6 +534,7 @@ proc GetWellInfo(
 		end()
 		set(filename=convertPath2Platform(filename).path)
 		pathSplit(filename)
+		set(dirname=convertPath2Platform(dirname).path)
 		set(sourcedataprop.fileDir = dirname)
 		set(sourcedataprop.filename = filename)
 	end()
