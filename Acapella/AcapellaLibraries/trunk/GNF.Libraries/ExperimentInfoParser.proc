@@ -522,7 +522,7 @@ proc GetWellInfo(
 
 
 	if(at(wd,dirname)==0)
-			set(sourcedataprop.filename=filename).path)
+			set(sourcedataprop.filename=filename)
 			set(sourcedataprop.fileDir=dirname)
 	else()
 		EnvInfo()
