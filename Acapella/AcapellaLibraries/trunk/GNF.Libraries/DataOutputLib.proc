@@ -288,7 +288,7 @@ proc GZipData(
 			end()
 		end()
 	end()
-
+	set(dirname=convertPath2Platform(dirname).path)
 	//FIX: Used to handle archived images
 	set(archiveRoots=SplitString(getConfiguration("GNF.ini").config.paths.archiveRoot,";:").Split) //make sure archive roots is a vector
 	if(archiveRoots.length>0)
@@ -297,8 +297,7 @@ proc GZipData(
 		foreach(archiveRoots,"archiveRoot")
 			set(archiveRoot= convertPath2Platform(archiveRoot).path)
 			if(at(dirname, archiveRoot)==1 && archiveRoot!="")
-				set(dirname=storageRoot&"/"&substr(path,archiveRoot.length+1,path.length))
-				convertPath2Platform()
+				sprintf(dirname,"%s/%s",storageRoot,substr(path,archiveRoot.length+1,path.length))
 				break()
 			end()
 		end()
