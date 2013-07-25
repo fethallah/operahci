@@ -26,6 +26,8 @@
 //# or go to: http://www.apache.org/licenses/
 //#############################################################################################
 
+Package(InCell)
+
 //*********************************************************************************************
 //*
 //* InCell Procedure for extracting images information, reading images and getting wellIDs
@@ -211,7 +213,7 @@ proc filenames_to_images(
 	Set(sourcedataprop.NumberOfTimepoints=uniq(Timepoint).result.length)
 	Set(sourcedataprop.ProviderName="GE-InCell")
 	Set(sourcedataprop.WellIndex=filename_to_wellindex(filenames[0]).WellIndex)
-	Readers::wellName(sourcedataprop.WellIndex)
+	Readers::getWellName(sourcedataprop.WellIndex)
 	Set(sourcedataprop.WellName=WellName)
 
 	//follow opera convention filename is really filepath, cf ExperimentInfoParser.proc extracting of fileDir

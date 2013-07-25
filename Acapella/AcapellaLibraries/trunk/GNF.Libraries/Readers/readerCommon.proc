@@ -26,6 +26,8 @@
 //# or go to: http://www.apache.org/licenses/
 //#############################################################################################
 
+package(Readers)
+
 //*********************************************************************************************
 //*
 //* This procedure file contains general methods used to extract info from images
@@ -35,7 +37,7 @@
 proc row2num(
 	string row in "Row string to convert to numeric value",
 	int row_n out "Numeric row value"
-)[hidden] ImageReader "Converts row string to row number (starting at 1)"
+) ImageReader "Converts row string to row number (starting at 1)"
 {
 	set(row_n=0)
 	if(row.length>2)
@@ -53,7 +55,7 @@ proc row2str(
 	int row_n in "Numeric row value to convert",
 	String firstDoubleLetter="A" in "Indicate what first letter should be used for rows >26. Choose between 'A' or 'Z'",
 	int row out "Corresponding row string"
-)[hidden] ImageReader "Converts row number to row letters."
+) ImageReader "Converts row number to row letters."
 {
 	if(firstDoubleLetter!="A" && firstDoubleLetter!="Z")
 		error("The first letter of a row that has an index >26, should be 'A' or 'Z'.")
@@ -70,7 +72,7 @@ proc row2str(
 proc getWellName(
 	int wellIndex in "WellIndex to convert into a well name",
 	int wellName out "Numeric col value"
-)[hidden] ImageReader "Returns the well name from a well Index"
+) ImageReader "Returns the well name from a well Index"
 {
 	// wellindex needs to have 9 digits
 	sprintf(wellindex,"%09s",wellindex)
@@ -87,7 +89,7 @@ proc getWellIndex(
 	string wellName in "WellIndex to convert into a well name",
 	boolean suffix=true in "Adds '000' sufix to the WellIndex",
 	string wellIndex out "WellIndex provided as a ColRow000 value"
-)[hidden] ImageReader "Returns the well name from a well Index"
+) ImageReader "Returns the well name from a well Index"
 {
 	// wellindex needs to be of type A1
 	regex(wellName,"([:alpha:])(\d{1,2})")
