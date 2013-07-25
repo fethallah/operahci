@@ -67,7 +67,7 @@ proc row2str(
 	set(row=row&LETTERS[row_n-1])
 }
 
-proc wellName(
+proc getWellName(
 	int wellIndex in "WellIndex to convert into a well name",
 	int wellName out "Numeric col value"
 )[hidden] ImageReader "Returns the well name from a well Index"
@@ -81,4 +81,21 @@ proc wellName(
 	Set(row=matches[0])
 	Set(col=matches[1])
 	sprintf(wellName,"%03s%03s",row2str(row),col)
+}
+
+proc getWellIndex(
+	string wellName in "WellIndex to convert into a well name",
+	boolean suffix=true in "Adds '000' sufix to the WellIndex",
+	string wellIndex out "WellIndex provided as a ColRow000 value"
+)[hidden] ImageReader "Returns the well name from a well Index"
+{
+	// wellindex needs to be of type A1
+	regex(wellName,"([:alpha:])(\d{1,2})")
+	if(matches.length!=2)
+		error(sprintf(error,"'%s' is not a valid wellName", wellName).error)
+	end()
+
+	set(row_n=row2num(matches[0]).row_n)
+	set(col=matches[1])
+	sprintf(wellindex,"%03d%03d%s",row_n,col,iif(suffix,"000",""))
 }
