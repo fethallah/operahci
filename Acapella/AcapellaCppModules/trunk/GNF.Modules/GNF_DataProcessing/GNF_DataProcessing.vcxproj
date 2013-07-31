@@ -270,7 +270,9 @@
     </BuildLog>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\GNF_Dataprocessing.cpp" />
+    <ClCompile Include="src\moduleExport.cpp" />
+    <ClCompile Include="src\DataProcessing.h" />
+    <ClCompile Include="src\ROITrannscoder.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
