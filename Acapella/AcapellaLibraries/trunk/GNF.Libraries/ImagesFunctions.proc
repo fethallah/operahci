@@ -282,6 +282,8 @@ foreach(0..sourcedataProp.totalF-1, "field")
 							RegexReplace(sourceData.ChannelName[chanIndex],"[0-9]+_","",first_only=true)
 							set(temp.Name=text) //contains the channel name  Chan1_Exp1
 							set(temp.Desc=text) //Initiate the description to be the same as the name
+						elif(key=="Name" && !defined("sourceData.ChannelName")) //fix bug of acapella changing srcData prop after evoshel 1.8
+							set(temp.Name=sourceData.Name[chanIndex])
 						elif(key=="Channel")
 							set(temp.Purpose=vec())//initiate image purpose, typically it is a vector of string contaning: "marker", "nucDetection", "cytoDetection"...
 							set(temp.Chan=sourceData.channel[chanIndex])

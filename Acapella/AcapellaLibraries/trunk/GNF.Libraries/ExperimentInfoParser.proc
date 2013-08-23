@@ -500,6 +500,7 @@ proc GetWellInfo(
 
 ) Experiment Info Parser "This procedure will return info about the current experiment in particular regarding the WellIndex, number of channels etc. and the name fo the file analyzed. This procedure should be launched after loading images via the function Single() well for instance."
 {
+	set(config=getConfiguration("GNF.ini").config)
 	if (defined("sourcedata.barcode"))
 		set(sourcedataprop.barcode=sourcedata.barcode[0])
 	else()
@@ -521,23 +522,21 @@ proc GetWellInfo(
 	pathSplit(filename)
 
 
-	if(at(wd,dirname)==0)
-			set(sourcedataprop.filename=filename)
-			set(sourcedataprop.fileDir=dirname)
-	else()
 		EnvInfo()
-		if(at("rmca:",filename)>0 && !(env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview))
+		set(isInteractive=env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
+		if(at("rmca:",filename)>0 && !isInteractive)
 			Set(filename = RegexReplace(filename,"rmca:","").text)
-			sprintf(filename,"%s/%s",getConfiguration("GNF.ini").config.paths.storageRoot,filename)
-		else()
-			sprintf(filename,"%s/%s",getConfiguration("GNF.ini").config.paths.tmp,filename)
+			sprintf(filename,"%s/%s",config.paths.storageRoot,filename)
+		elsif(isInteractive)
+			pathSplit(filename)
+			sprintf(filename,"%s/acapella/%s",config.paths.tmp, basename)
 		end()
 		set(filename=convertPath2Platform(filename).path)
 		pathSplit(filename)
 		set(dirname=convertPath2Platform(dirname).path)
 		set(sourcedataprop.fileDir = dirname)
 		set(sourcedataprop.filename = filename)
-	end()
+
 
 	if(Not(Defined("sourceData.Name")))
 		Set(sourceData.Name=SourceData.FrameIndex)
