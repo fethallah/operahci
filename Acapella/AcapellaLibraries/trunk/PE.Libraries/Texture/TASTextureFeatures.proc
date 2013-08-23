@@ -19,7 +19,7 @@ proc CalcTASFeatures(
 	string AttrPrefix="" in "Prefix that should be append before the Feature name.",
 	string AttrSuffix="" in "Suffix that should be appened after the Feature name.",
 )Texture "Calculation of a set of Threshold Adjacency Statistics -- texture features -- of previously defined objects. Reference: Hamilton et al. BMC informatics, 2007. 8:110"
-{	
+{
 	if(NormalizationMethod!="Mean"&& bracket<0.01) error("The value of bracket should be >0 regardless of the normalization method selected") end()
 	if(NormalizationMethod=="Mean" && bracket>0.99) error("The value of bracket should be between 0 and 1 when the Normalization method select is \"Mean\"") end()
 
@@ -30,7 +30,7 @@ proc CalcTASFeatures(
 	end()
 	Stencil2Objects(objects[stencilname])
 
-	if(NormalizationMethod=="Mean" || NormalizationMethod=="zScore")	
+	if(NormalizationMethod=="Mean" || NormalizationMethod=="zScore")
 	//blank(image.width, image.height)
 		//convelems(image, type="double",sign = "autodetect")
 		CalcStat("mean", Stencil=body, Image=image, objects=objects, AttrName="Mean")
@@ -44,7 +44,7 @@ proc CalcTASFeatures(
 			carryobjects(objects.body, objects.StdDev | imageStdDev=image)
 			set(image=(imageIni - imageMean)/ imageStdDev)
 			delete(imageIni,ImageMean,imaegStdDev)
-		end()	
+		end()
 	end()
 	TAS30(image, bracket, objects)
 	rename(objects=ObjectsIni)
@@ -59,68 +59,4 @@ proc CalcTASFeatures(
 		Set(NewFeatureName=RegexReplace(NewFeatureName,"@","",first_Only=true).text)
 		Set(objects[NewFeatureName]=features[featureName])
 	end()
-}
-
-//////////// Internal procedure //////////////////////////////////////////////
-
-proc	TAS30(
-	image image explicit in "Image of interest",
-	double bracket=0.2 explicit in "Threshold bracket",
-	objectlist objects = objects in "Objects with body-stencil of interest",
-	table TASFeatures out "Table of threshold adjacency statistics",
-	table TASInfo out "Meaning of texture features",
-	vector maskvec out "The set of threshold masks",
-)[hidden] Texture "Calculation of Threshold Adjacency Statistics of previously defined objects. Calculated texture features are in a separate table."
-{
-
-	set(in_objects=objects)
-	if(!defined("objects.area"))
-		calcArea()
-	end()
-	rename(ratio_image=image)
-
-	set(TASFeatures=tbl())
-	push(lowvec, 1.0-bracket, 1.0-bracket, 1.0)
-	push(highvec, 1.0+bracket, inf, inf)
-	push(labelvec, "TASLowHigh", "TASLowInf", "TASMeanInf")
-
-	foreach(0..2, "i")
-		set(low=lowvec[i])
-		set(high=highvec[i])
-		set(label=labelvec[i])
-		mask(low, image=ratio_image | mask12=mask)
-		if(i==0)
-			mask(high, image=ratio_image | mask2=mask)
-			set(mask12=mask12-mask2)
-		end()
-		push(maskvec, mask12)
-		blank(3,3,2 | kernel=image)
-		convolution(image=mask12, ConvolutionKernel=kernel, ConvolutionKernelFactor=2 | adjac0=image)
-
-		calcstat("sum", AttrName="mask12area", Stencil=body, Image=mask12, objects=objects)
-		set(adjac=adjac0*mask12)
-		set(featurename=label)
-		set(TASFeatures[featurename]=objects.mask12area/objects.area)
-		push(featurenamev, featurename)
-		push(lowv, low)
-		push(highv, high)
-		push(adjacv, "any")
-		push(denomv, "full area")
-
-		mask(1, image=adjac)
-		foreach(2..10, "p")
-			Rename(Mask3=mask)
-			mask(p, image=adjac)
-			set(mask3=mask3-mask)
-			calcstat("sum", AttrName="mask3area", Stencil=body, Image=mask3, objects=objects)
-			set(featurename=label & (p-1))
-			set(TASFeatures[featurename]=objects.mask3area/objects.mask12area)
-			push(featurenamev, featurename)
-			push(lowv, low)
-			push(highv, high)
-			push(adjacv, p-1)
-			push(denomv, "mask area")
-		end()
-	end()
-	set(TASInfo=tbl(feature=featurenamev, low=lowv, high=highv, adjacency=adjacv, normalization=denomv))
 }
