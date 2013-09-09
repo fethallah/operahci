@@ -92,10 +92,10 @@ proc getWellIndex(
 ) ImageReader "Returns the well name from a well Index"
 {
 	// wellindex needs to be of type A1
-	regex(wellName,"([:alpha:])(\d{1,2})")
-	if(matches.length!=2)
-		error(sprintf(error,"'%s' is not a valid wellName", wellName).error)
-	end()
+regex(wellName,"([a-zA-Z]{1,2})(\d{1,2})")
+if(matches.length!=2)
+	error(sprintf(error,"'%s' is not a valid wellName", wellName).error)
+end()
 
 	set(row_n=row2num(matches[0]).row_n)
 	set(col=matches[1])
