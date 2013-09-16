@@ -517,25 +517,12 @@ proc GetWellInfo(
 		Error("Image reader does not provide a WellIndex. Fix reader or add compatibility code here")
 	end()
 
-	set(filename=convertPath2Platform(sourcedata.SourceFileName[0]).path)
-	set(wd=pathSplit("").dirname)
+	set(filename=resolveRMCAImageLocation(sourcedata.SourceFileName[0]).path)
+
 	pathSplit(filename)
-
-
-		EnvInfo()
-		set(isInteractive=env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview)
-		if(at("rmca:",filename)>0 && !isInteractive)
-			Set(filename = RegexReplace(filename,"rmca:","").text)
-			sprintf(filename,"%s/%s",config.paths.storageRoot,filename)
-		elsif(isInteractive)
-			pathSplit(filename)
-			sprintf(filename,"%s/acapella/%s",config.paths.tmp, basename)
-		end()
-		set(filename=convertPath2Platform(filename).path)
-		pathSplit(filename)
-		set(dirname=convertPath2Platform(dirname).path)
-		set(sourcedataprop.fileDir = dirname)
-		set(sourcedataprop.filename = filename)
+	set(dirname=convertPath2Platform(dirname).path)
+	set(sourcedataprop.fileDir = dirname)
+	set(sourcedataprop.filename = filename)
 
 
 	if(Not(Defined("sourceData.Name")))
