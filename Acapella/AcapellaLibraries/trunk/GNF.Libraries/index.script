@@ -1,0 +1,44 @@
+// The default IMacro directory description procedure file.
+// If the data directory does not contain file "index.script", then this file is used.
+
+
+proc filename_to_wellindex( string filename in, string wellindex out) {
+	// Enh 24.08.2007 (Mantis #7701): use full filename for .flex and .pev files.
+	// Change 28.10.2011 (fb #33570): handle multifield .flex files specially; put .flex/.pev sepcial handling expno() function and remove from here
+
+	set(wellindex = expno(filename))
+	if (wellindex == "")
+		pathsplit(filename)
+		set(wellindex = basename)
+	end()
+}
+
+proc wellindex_to_filenames(string wellindex in, string imagetype in, container filenames out, string available_imagetype out) {
+
+    glob( "*" & wellindex & "*", warning=false)
+    create("container")
+    foreach(files)
+        set(is_fullfilename = pathsplit(i).basename==wellindex)
+        if (is_fullfilename || expno(i) == wellindex)
+            set(channel = iif(is_fullfilename, 1, channo(i)))
+            if (channel>=1)
+                if (defined("container.c" & channel))
+                    warning( "wellindex_to_filenames(): extra match ignored for channel " & channel & ": " & i)
+                else()
+                    set(container["c" & channel] = i)
+                end()
+            end()
+        end()
+    end()
+    if (container.size == 0 && files.size == 1)
+        set( s = files[0])
+        set (channel = channo(s))
+        if (expno(s)=="" || channel == 0)
+            // there was exactly one match, but expno deduction did not work (because there was no number in the filename).
+            // assume the filename is for channel 1.
+            set(container.c1 = files[0])
+        end()
+    end()
+    set(filenames = container)
+    set(available_imagetype="") // unknown
+}
