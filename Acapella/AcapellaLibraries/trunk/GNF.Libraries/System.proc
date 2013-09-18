@@ -67,6 +67,8 @@ proc getLocalTempDir(
 	MakeTempFileName()
 	DeleteFile(filename)
 	pathSplit(filename)
+	sprintf(dirname,"%s/%s",dirname,"acapella")
+	set(dirname=convertPath2Platform(dirname).path)
 }
 
 proc convertPath2Platform(
@@ -80,12 +82,12 @@ if(platform=="unix")
 	if(regex(path,"^\\w:").matches.length>0)
 		error(sprintf(e,"The Path you are trying to use: '%s' cannot be converted to unix format. Use UNC style paths").e)
 	end()
-	set(path=regexreplace(path,"\\\\","/").text)
-	set(path=regexreplace(path,"//","/").text) //In linux \ (and // are meaningless)
+	set(path=regexreplace(path,"\\\\+","/").text)
+	set(path=regexreplace(path,"/+","/").text) //In linux \ (and // are meaningless)
 	return()
 elif(platform=="windows")
-	set(path=regexreplace(path,"/","\\\\").text)
-	set(path=regexreplace(path,"\\\\\\\\","\\\\").text)
+	set(path=regexreplace(path,"/+","\\\\").text)
+	set(path=regexreplace(path,"\\\\+","\\\\").text)
 	set(path=regexreplace(path,"^\\\\(?=[^\\\\])","\\\\\\\\").text) //Make sure that UNC starts with '\\' and not '\'
 	return()
 else()
@@ -150,24 +152,36 @@ Foreach(Content,"line")
 	end()
 
 	//Handle Values
-	Regex(line, "^(.+?)=(.*)$")
+	Regex(line, "^(.+?)=(.+)$")
 	if(matches.length>0)
 		set(key=matches[0],value=matches[1])
 		if(Regex(key, "^\\w+$").matches.length==0)
 			Error(sprintf("text","Invalid Ini file: ''%s'. The key: '%s' at line %s, contains an invalid characters.",path, key, lineIndex).text)
 		end()
 
-		SplitString(value,";"|values=split)
-		if(values.length==1)
+		RegexReplace(value,"(?:\s+)|(?:\s+$)",""|value=text) //remove trailing spaces
+		if(value.length==0) continue() end()
+
+		if(at("\"",value,1)==1 && at("\"",value,-1)==value.length)
+			SplitString(value,"\";\""|values=split) //Handle escaping
+			if(values.length>1)
+				RegexReplace(values,"(?:^\")|(?:\"$)",""|values=text)
+				set(_[currentGroup][key]=values)
+				continue()
+			end()
 			RegexReplace(value,"(?:^\")|(?:\"$)",""|value=text)
 			set(_[currentGroup][key]=value)
 		else()
-			set(_[currentGroup][key]=values)
+			SplitString(value,";"|values=split)
+			if(values.length>1)
+				set(_[currentGroup][key]=values) 
+				continue()
+			end()
+			set(_[currentGroup][key]=value)
 		end()
-		continue()
 	end()
-	Error(sprintf("text","Invalid Ini file: '%s'. Unexpected error at line %s.",path, line, lineIndex).text)
-End()
+	//Warning(sprintf("text","Invalid Ini file: '%s'. Unexpected error at line %s.",path, line, lineIndex).text)
+end()
 }
 
 proc resolveRMCAImageLocation(
@@ -177,7 +191,7 @@ proc resolveRMCAImageLocation(
 {
 	set(config=getConfiguration("GNF.ini").config)
 	set(locations=vec(config.paths.storageRoot))
-	append(locations, SplitString(config.paths.archiveRoot,";").split)
+	append(locations, SplitString(config.paths.archiveRoot,":").split)
 
 	if(at("rmca:",path)>0)
 		Set(filename = RegexReplace(path,"rmca:","").text)
@@ -199,7 +213,7 @@ proc getWriteLocation(
 {
 	set(config=getConfiguration("GNF.ini").config)
 	set(locations=vec(config.paths.storageRoot))
-	append(locations, SplitString(config.paths.archiveRoot,";").split)
+	append(locations, SplitString(config.paths.archiveRoot,":").split)
 
 	set(path=convertPath2Platform(path).path)
 	set(storageRoot=convertPath2Platform(config.paths.storageRoot).path)
@@ -209,10 +223,11 @@ proc getWriteLocation(
 	foreach(locations, "location")
 		set(location=convertPath2Platform(location).path)
 		if(at(location,path)>0)
+			set(path=substr(path,length(location)+1,-1))
 			if(isInteractive)
-				Set(path = RegexReplace(path,location,config.paths.tmp).text)
+				sprintf(path, "%s/%s", config.paths.tmp, path)
 			else()
-				Set(path = RegexReplace(path,location,storageRoot).text)
+				sprintf(path, "%s/%s", storageRoot, path)
 			end()
 			break()
 		end()

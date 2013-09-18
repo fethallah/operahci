@@ -343,7 +343,7 @@ proc writeChannelMapping(
 		RegexReplace(text, regExp,"") //Remove the last '|'
 		Push(chanPurp,text)
 	end()
-
+	
 	set(ChannelMapping=tbl(index=chanIndex,Name=chanName,Description=chanDesc,Purpose=chanPurp))
 	pathSplit(getWriteLocation(imagePath).path)
 
