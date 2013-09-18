@@ -313,7 +313,8 @@ proc GZipData(
 		write(data,dirname,"ascii",append=false)
 	else()
 		//FIX Acapella 2.0 gzip compression bug
-		sprintf("cmd","java -jar \"%s\" stdin \"%s\"", getConfiguration("GNF.ini").config.paths.gzipJar, filename)
+		sprintf(gzipJarPath,"%s%s",pathSplit(__file__).dirname,"GZip.jar")
+		sprintf("cmd","java -jar \"%s\" stdin \"%s\"", gzipJarPath, filename)
 		try()
 			Run(cmd, stdin="<data",stderr ="<error")
 		catch_error()
@@ -343,7 +344,7 @@ proc writeChannelMapping(
 		RegexReplace(text, regExp,"") //Remove the last '|'
 		Push(chanPurp,text)
 	end()
-	
+
 	set(ChannelMapping=tbl(index=chanIndex,Name=chanName,Description=chanDesc,Purpose=chanPurp))
 	pathSplit(getWriteLocation(imagePath).path)
 
