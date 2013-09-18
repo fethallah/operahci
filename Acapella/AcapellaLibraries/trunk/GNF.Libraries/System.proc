@@ -174,7 +174,7 @@ Foreach(Content,"line")
 		else()
 			SplitString(value,";"|values=split)
 			if(values.length>1)
-				set(_[currentGroup][key]=values) 
+				set(_[currentGroup][key]=values)
 				continue()
 			end()
 			set(_[currentGroup][key]=value)
@@ -189,11 +189,10 @@ proc resolveRMCAImageLocation(
 	string path out "Location of the image"
 ) [hidden]  "This procedure helps resolves images served by the RMCA platform"
 {
-	set(config=getConfiguration("GNF.ini").config)
-	set(locations=vec(config.paths.storageRoot))
-	append(locations, SplitString(config.paths.archiveRoot,":").split)
-
 	if(at("rmca:",path)>0)
+		set(config=getConfiguration("GNF.ini").config)
+		set(locations=vec(config.paths.storageRoot))
+		append(locations, SplitString(config.paths.archiveRoot,":").split)
 		Set(filename = RegexReplace(path,"rmca:","").text)
 		foreach(locations, "location")
 			sprintf(filename,"%s/%s",location,filename)
@@ -209,10 +208,14 @@ proc resolveRMCAImageLocation(
 proc getWriteLocation(
 	string path in "Current location of the image",
 	string path out "The location where data should be written"
-) FileSystem "Get the location where the data should be written, based on current image location. Data will be writen normally inside the storage location defined in the ini file, or when in interactive mode inside a temp location defined in the ini file."
+) FileSystem "Get the location where the data should be written, based on current image location. Data will be written normally inside the storage location defined in the ini file, or when in interactive mode inside a temp location defined in the ini file."
 {
 	set(config=getConfiguration("GNF.ini").config)
-	set(locations=vec(config.paths.storageRoot))
+	if(!defined("config.paths.storageRoot") || !defined("config.paths.storageRoot"))
+		warning("No primary storage or archive storage defined in your GNF.ini file. Cannot adjust writing path.")
+	end()
+	set(locations=vec())
+	append(locations, config.paths.storageRoot)
 	append(locations, SplitString(config.paths.archiveRoot,":").split)
 
 	set(path=convertPath2Platform(path).path)
