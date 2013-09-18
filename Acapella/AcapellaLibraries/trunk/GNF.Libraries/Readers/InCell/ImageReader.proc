@@ -223,7 +223,7 @@ proc filenames_to_images(
 proc getEncodedProps(string filePath in, vector encodedProps out)[hidden]{
 	// typical format of the filePath: ./YI14_FX00238646_1/A - 11(fld 1 wv DAPI - DAPI z 1).tif
 	set(filePath=regexreplace(filePath,"\\\\","/").text)
-	Regex(filePath,"(?:^.+?[/]([^/_]+)_([^/_]+)_(\\d+)[/])?(([A-Z]+) - (\\d+)\\((.+?)\\)\\.tiff?$)")
+	Regex(filePath,"(?:^.+?[/]([^/_]+)_([^/_]+)_(\\d+)[/])?(([[:alpha:]]+) - (\\d+)\\((.+?)\\)\\.tiff?$)")
 
 	Set(encodedProps=cnt())
 	if(matches.length==0)

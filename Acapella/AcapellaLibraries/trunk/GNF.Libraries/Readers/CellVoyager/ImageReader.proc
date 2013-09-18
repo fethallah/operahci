@@ -225,7 +225,7 @@ proc getEncodedProps(string filePath in, vector encodedProps out)[hidden]{
 	//./<ProjectID>/<AnalysisName>_<AssayName>_<AssayDate[YYYYMMDD]>_<AssayTime[HHMMSS]>/<Assay_Plate[ID|Name]>/<Assay_Plate[ID|Name]>_<WellID>_T<TimeID[0001-9999]>F<FieldID[001-999]>L<TimeLine[01-99]>A<Action=Exposure[01-99]>Z<ZStackIndex[01-99]>C<Channel#[01-99]>.tif
 	//eg: ./MyProjrct/Test_scilia assay_20130313_105517/Greiner_non coated/Greiner_non coated_C08_T0001F001L01A01Z01C02.tif
 	set(filePath=regexreplace(filePath,"\\\\","/").text)
-	Regex(filePath,"^.+?/([^/]+?)/(?:([^/_]+)_)?([^/_]+?)_(\\d{8})_(\\d{6})/([^/]+)/(\\6_([A-Z]{1,2})(\\d{2})_T(\\d{4})F(\\d{3})L(\\d{2})A(\\d{2})Z(\\d{2})C(\\d{2})\\.tif$)")
+	Regex(filePath,"^.+?/([^/]+?)/(?:([^/_]+)_)?([^/_]+?)_(\\d{8})_(\\d{6})/([^/]+)/(\\6_([[:alpha:]]{1,2})(\\d{2})_T(\\d{4})F(\\d{3})L(\\d{2})A(\\d{2})Z(\\d{2})C(\\d{2})\\.tif$)")
 
 	Set(encodedProps=cnt())
 	if(matches.length==0)
