@@ -359,12 +359,16 @@ proc writeChannelMapping(
 	set(filename=dirname&"ChannelMapping")
 	try()
 		writeTable(ChannelMapping, tempFilename)
+	Catch_Error()
+		Warning(sprintf(value,"Could not write the channel Mapping in: '%s'. You may not have set the GNF.ini file correctly for your environment. %s(%s): '%s'",dirname, catch_message, catch_last_module,catch_last_line).value)
+	end()
+	try()
 		RenameFile(tempFilename,filename, force=true)
 		if(fileinfo(tempFilename).fileinfo.exists)
 			DeleteFile(tempFilename)
 		end()
-	Catch_Error()
-		Warning(sprintf(value,"Could not write the channel Mapping in: '%s'. You may not have set the GNF.ini file correctly for your environment. %s(%s): '%s'",dirname, catch_message, catch_last_module,catch_last_line).value)
+	catch_error()
+		//Nothing to do file already was handled by another job/thread etc.
 	end()
 }
 
