@@ -517,7 +517,7 @@ proc getWellInfo(
 		Error("Image reader does not provide a WellIndex. Fix reader or add compatibility code here")
 	end()
 
-	if(defined()"sourceData.MeasurementID"))
+	if(defined("sourceData.MeasurementID"))
 		set(sourceDataProp.MeasurementID=sourceData.MeasurementID[0])
 		set(sourceDataProp.MeasurementName=PathSplit(sourceData.MeasurementID[0]).basename)
 	end()
