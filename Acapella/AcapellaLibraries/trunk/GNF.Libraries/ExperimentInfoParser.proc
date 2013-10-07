@@ -494,7 +494,7 @@ proc getExpInfo(
 	end()
 }
 
-proc GetWellInfo(
+proc getWellInfo(
 	table SourceData inout "Container gerenated by the single well procedure in Evoshell >2.0",
 	container sourcedataprop inout "Container gerenated by the single well procedure in Evoshell >2.0. New parameters are added to it"
 
@@ -516,6 +516,9 @@ proc GetWellInfo(
 		//TODO: May need something creative here for compatibility
 		Error("Image reader does not provide a WellIndex. Fix reader or add compatibility code here")
 	end()
+
+	set(sourceDataProp.MeasurementID=sourceData.MeasurementID[0])
+	set(sourceDataProp.MeasurementName=PathSplit(sourceData.MeasurementID[0]).basename)
 
 	set(filename=resolveRMCAImageLocation(sourcedata.SourceFileName[0]).path)
 

@@ -259,7 +259,7 @@ proc ImagesInit(
 ) Image Manipulation "This procedure returns an organized structure containing the images. Use it as a replacement of the singlewell procedure. It will not work for time-series"
 {
 singlewell(compact=true)
-GetWellInfo()
+getWellInfo()
 set(images=vec())
 foreach(0..sourcedataProp.totalF-1, "field")
 	set(fieldIndex=field*sourcedataProp.totalZ*sourcedataProp.totalC)
@@ -269,7 +269,7 @@ foreach(0..sourcedataProp.totalF-1, "field")
 		set(infocus=true)
 		set(cTemp=vec())
 		foreach(0..sourcedataProp.totalC-1,"chan")
-			 set(chanIndex=stackIndex+chan)
+			set(chanIndex=stackIndex+chan)
 			if(defined("image")&infocus)
 				set(image=sourceData.sourceImage[chanIndex])
 				if(image.max > minIntensity) //only keep the images above a given threshold

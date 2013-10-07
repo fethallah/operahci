@@ -43,7 +43,7 @@ PlateID
 filename^*
 row_str
 Row^*
-Col
+Col^
 Column^*
 Field^*
 Channel^*
@@ -57,6 +57,10 @@ Channel^*
 ChannelID^*
 ChannelName^*
 Name^*
+
+//Verify if added
+MeasurmentID (contains the name of the measurment, usually equal to barcode/MeasurmentName)
+
 
 //################################################################################
 //##
@@ -75,3 +79,11 @@ ProviderName^*
 WellIndex^*
 WellName^*
 SourceFileName^*
+
+//Verify if added
+total
+totalC
+totalF
+totalT
+totalZ
+wellID
