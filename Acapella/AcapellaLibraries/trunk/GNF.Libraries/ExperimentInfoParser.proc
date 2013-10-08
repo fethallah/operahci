@@ -517,10 +517,6 @@ proc getWellInfo(
 		Error("Image reader does not provide a WellIndex. Fix reader or add compatibility code here")
 	end()
 
-	if(defined("sourceData.MeasurementID"))
-		set(sourceDataProp.MeasurementID=sourceData.MeasurementID[0])
-		set(sourceDataProp.MeasurementName=PathSplit(sourceData.MeasurementID[0]).basename)
-	end()
 
 	set(filename=resolveRMCAImageLocation(sourcedata.SourceFileName[0]).path)
 
@@ -529,6 +525,16 @@ proc getWellInfo(
 	set(sourcedataprop.fileDir = dirname)
 	set(sourcedataprop.filename = filename)
 
+	if(defined("sourceData.MeasurementID"))
+		set(sourceDataProp.MeasurementID=sourceData.MeasurementID[0])
+		set(sourceDataProp.MeasurementName=PathSplit(sourceData.MeasurementID[0]).basename)
+	else()
+		set(sourceDataProp.MeasurementName=pathSplit(sourcedataprop.fileDir).basename)
+		set(sourceDataProp.MeasurementID=sourcedataprop.Barcode&"/"&sourceDataProp.MeasurementName)
+	end()
+	if(defined("sourceData.MeasurementDate"))
+		set(sourceDataProp.MeasurementDate=sourceData.MeasurementDate[0])
+	end()
 
 	if(Not(Defined("sourceData.Name")))
 		Set(sourceData.Name=SourceData.FrameIndex)
