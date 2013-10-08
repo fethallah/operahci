@@ -521,8 +521,9 @@ proc getWellInfo(
 	set(filename=resolveRMCAImageLocation(sourcedata.SourceFileName[0]).path)
 
 	pathSplit(filename)
+	set(dirname=regexreplace(dirname, "/$","").text) //FIX bug in path Split which results in a trailing '/' at the end of dirname
 	set(dirname=convertPath2Platform(dirname).path)
-	set(sourcedataprop.fileDir = dirname)
+	set(sourcedataprop.filedir = dirname)
 	set(sourcedataprop.filename = filename)
 
 	if(defined("sourceData.MeasurementID"))
