@@ -158,11 +158,12 @@ string NucleiDetectionAlgorithm out "Name of the nuclei detection algorithm used
 		end()
 	end()
 	set(original=reference)
-	Remap(0,1,Nan,1,image=Reference|Reference=image)
+	Rename(image=reference)
 	if(lowBitAnalysis)
-		convert(1,image=reference|reference=image)
-		Remap(0,Reference.factor+1,0,1,image=Reference|Reference=image)
+		convert(1)
 	end()
+	Remap(0,image.factor,Nan,image.factor)
+	Rename(reference=image)
 	Nuclei_detection_Select_inner(reference,ShowIllustrations=ShowIllustrations) // Detects nuclei
 	StopNucleiDetectionAnyX_IfSCANmode() // Additional illustrations for SCAN/SET mode, stops the script
 	rename(objects = Nuclei)

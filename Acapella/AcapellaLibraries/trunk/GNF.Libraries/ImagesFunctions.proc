@@ -432,3 +432,26 @@ foreach(0..n,"index")
 	pop(images,pos=indexToRemove)
 end()
 }
+
+
+proc GridLineStatistics(
+	image image inout,
+	integer gridSizeWidth=32 in "Width of the grid",
+	integer gridSizeHeight=32 in "Height of the grid",
+	string method="min" in "Method used  in the filter cf. calcstat for supported methods",
+	double QuantileFraction=0.5 in "For the quantile calculation all pixels are sorted according to their intensity. The quantile is the intensity of that pixel, which is brighter than the QuantileFraction number of pixels. The statistic \"median\" is the shorthand for \"quantile\" at 0.5."
+) {
+	Set(image_ini=image)
+	set(width_ini=image.width,height_ini=image.height)
+	set(ratioX=round(width_inI/gridSizeWidth))
+	set(ratioY=round(width_inI/gridSizeHeight))
+	Blank(width_ini/ratioX,height_ini/ratioY, 0)
+	CompAny("image+x+y*image.width+1"|image=result)
+	ConvElems(item=image,type="integer", size=2, sign="unsigned"|image=result)
+	Resize(ratioX,ratioY)
+	crop(0,0,width_ini,height_ini)
+	Stencil2Objects(Stencil=image)
+	CalcStat(Measure=method,QuantileFraction=QuantileFraction,image=image_ini)
+	CarryObjects(Objects.body,objects.min)
+}
+

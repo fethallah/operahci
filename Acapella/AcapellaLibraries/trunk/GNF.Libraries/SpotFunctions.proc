@@ -143,7 +143,7 @@ proc SpotDetection_inner(
 		Error("The algorithm selected for the spot detection is invalid. Supported algorithms are \"A\",\"B\",\"C\",\"D\".")
 	end()
 
-	Remap(0,1,Nan,1,image=SpotImage|SpotImage=image)
+	Remap(0,SpotImage.factor,Nan,SpotImage.factor,image=SpotImage|SpotImage=image)
 	if (ShowIllustrations)
 		spot_illustrations_1()
 	end()
@@ -257,13 +257,14 @@ proc SpotAccurateRepresentation_inner(
 	Image image in "Image containing the intensity information to modify the spots.",
 	boolean highBckGnd=false in "Optional. Indicate whether the spot to detect is surrounded by some background.",
 	boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected.",
-	bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+	bool lowBitAnalysis=false in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
 	memblock spots out "New spot object containing two new attributes accurateSpots and accurateSpots_border",
 
 	double SpotMinIntensity= 0 in "Controls the spot that remain selected. Higher values reduce the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
-	double SpotMinArea=10 in "Provides Cutt-off for spots to keep. Keep only spots which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
-	double minSpotsRoundness=0.1 in "Provides Cutt-off for spots to keep. Keep only spots have a roundness above the provdide value. With higher values fewer spots are retained.Adjust with \"Accurate spot Borders\" preview. Allowed range: 0..oo.",
+	double SpotMinArea=0 in "Provides Cutt-off for spots to keep. Keep only spots which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
+	double minSpotsRoundness=-0.1 in "Provides Cutt-off for spots to keep. Keep only spots have a roundness above the provdide value. With higher values fewer spots are retained.Adjust with \"Accurate spot Borders\" preview. Allowed range: -0.1..oo.",
 	double spotsIndividualThresholdAdjustment=0.3 in "Controls the spot shape around the spot center. Higher values decrease spot size.Adjust with \"Accurate spot Borders\" preview. Allowed range: 0..1.",
+	string ScanParameter="none" in "Controls the parameters to scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied)."
 
 )
 [hidden] object recognition "Refine the spots to better fit the image"
@@ -291,13 +292,12 @@ proc SpotAccurateRepresentation_inner(
 	if(lowBitAnalysis)
 		convert(1)
 	end()
-	cytoplasm_detection_A_inner(nuclei=objects,Cytoplasm=image,CytoplasmIndividualThresholdAdjustment=SpotsIndividualThresholdAdjustment)
-	CalcAttr(Roundness, objects=WholeCells)
-	rename(WholeCells=objects)
-
-	setAttr(accurateSpots,wholeCells.body,objects=spots)
-	setAttr(accurateSpots_roundness,wholeCells.roundness)
-	CalcBorder(accurateSpots)
+	cytoplasm_detection_A_inner(nuclei=objects,Cytoplasm=image,CytoplasmIndividualThresholdAdjustment=SpotsIndividualThresholdAdjustment|objects=WholeCells)
+	CalcAttr(Roundness)
+	Set(spots.accurateSpots=objects.body)
+	Set(spots.accurateSpots_border=objects.border)
+	set(spots.accurateSpots_roundness=objects.roundness)
+	rename(objects=spots)
 	CalcArea(accurateSpots,AutoRecalc=false)
 	objectFilter(accurateSpots_area>SpotMinArea)
 	CalcIntensity(accurateSpots, Image=imageIni,AutoRecalc=false)
@@ -306,7 +306,7 @@ proc SpotAccurateRepresentation_inner(
 
 
 	if(showIllustrations)
-		ImageView(objects.accurateSpots_border, label="Accurate spot Borders",title="Adjust per Spot Threshold Adjustment and Spot Individual Threshold Adjustmen",image=image, gamma=2.0, )
+		ImageView(objects.accurateSpots_border.mask, label="Accurate spot Borders",title="Adjust per Spot Threshold Adjustment and Spot Individual Threshold Adjustmen",image=image, gamma=2.0, )
 	end()
 	Rename(spots=objects)
 	keep(spots)
@@ -315,7 +315,7 @@ proc SpotAccurateRepresentation_inner(
 proc VacuoleDetection(
 	Image image in "Image containing the intensity information about the vacuoles. The vacuoles should appear dark in a light background (fluorescence is excluded from them).",
 	boolean showIllustrations=true in "Optional. Used to indicate if you want to see the vacuoles detected.",
-	bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+	bool lowBitAnalysis=false in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
 	objectlist WholeCells inout "Object list containing Cells for which vacuoles should be localized."
 	objectlist Vacuoles out "New object list containing the info about the vacuoles",
 )
@@ -389,7 +389,7 @@ object recognition, cell compartment "Detects the vacuole from a cytoplasmic ima
 	addContainedObjectsInfo(Vacuoles, outputStencil="Vacuoles")
 	Rename(WholeCells=objects)
 	if(showIllustrations)
-		ImageView(vacuoles.border, label="Vacuole Borders",title="Adjust per Vacuole Threshold Adjustment,  Vacuole Individual Threshold Adjustmen, Minimum vacuole Area, Minimum vacuole Roundness",image=image, gamma=3.0, )
+		ImageView(vacuoles.border.mask, label="Vacuole Borders",title="Adjust per Vacuole Threshold Adjustment,  Vacuole Individual Threshold Adjustmen, Minimum vacuole Area, Minimum vacuole Roundness",image=image, gamma=3.0, )
 	end()
 	keep(WholeCells, Vacuoles)
 }
@@ -507,7 +507,7 @@ object recognition, cell compartment "Detects the microNuclei in the image, usin
 	addContainedObjectsInfo(microNuclei, outputStencil="microNuclei")
 	Rename(WholeCells=objects)
 	if(showIllustrations)
-		ImageView(microNuclei.border, label="microNuclei Borders",title="Adjust per microNuclei Threshold Adjustment,  microNuclei Individual Threshold Adjustment, Minimum microNuclei Area, Minimum microNuclei Roundness",image=image, gamma=2.0, )
+		ImageView(microNuclei.border.mask, label="microNuclei Borders",title="Adjust per microNuclei Threshold Adjustment,  microNuclei Individual Threshold Adjustment, Minimum microNuclei Area, Minimum microNuclei Roundness",image=image, gamma=2.0, )
 	end()
 	keep(Nuclei, WholeCells, MicroNuclei)
 }
@@ -518,7 +518,7 @@ proc ParasiteDetection(
 	memblock parasites out "New spot object containing two new attributes accurateSpots and accurateSpots_border",
 	boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected.",
 	string ScanParameter="None" in "Name of parameter scanned for detection optimization.",
-	bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image)."
+	bool lowBitAnalysis=false in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image)."
 )
 object recognition, parasite "Detects the centers for the parasites present in the image provided."
 {
@@ -536,7 +536,7 @@ proc ParasiteDetection_parameters(
 
 	input(SpotMinimumDistance,3.0 , "ParasiteMinimumDistance: Parasite Detection","d", "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite. Allowed range: 1..100, step 1.")
 	input(SpotPeakRadius, 1.0, "ParasitePeakRadius: Parasite Detection","d", "Radius of the disk, where the Parasite peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Allowed range: 0..10, step 1.")
-	input(SpotReferenceRadius, 5.0,  "ParasiteReferenceRadius: Parasite Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Parasite center.  Allowed range: 1..8, step 1.")
+	input(SpotReferenceRadius, 5.0,  "ParasiteReferenceRadius: Parasite Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Parasite center.  Allowed range: 1..20, step 1.")
 	input(SpotMinimumContrast,0.5, "ParasiteMinimumContrast: Parasite Detection", "d","Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa. Allowed range: 0..1, step 0.05.")
 	input(SpotMinimumToCellIntensity, 10.0, "ParasiteMinimumToCellIntensity: Parasite Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..500, step 0.1.")
 
@@ -558,7 +558,7 @@ proc ParasiteDetection_inner
 	Image image in "Image containing the intensity informationabout the parasites.",
 	objectList Parasites out "Objectlist containing the parasites body and borders",
 	boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected.",
-	bool lowBitAnalysis=yes in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
+	bool lowBitAnalysis=false in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image).",
 
 	string Algorithm="B" in "Algorithm method used to detect the parasites.",
 	double SpotMinimumDistance=3 in "Minimum allowed distance between two Parasite centers. Unit image pixel. Typical range 2.0 .. 5.0. Adjust by Illustration ParasiteSelection and Parasite.",
@@ -578,56 +578,37 @@ proc ParasiteDetection_inner
 [hidden] object recognition, parasite "Detects the centers for the parasites present in the image provided."
 {
 	set(imageIni=image)
+	//cut(SpotMinIntensity/3)
 	if(lowBitAnalysis)
 		convert(1)
 	end()
-	cut(SpotMinIntensity/3)
-	Remap(0,1,Nan,1)
+	Remap(0,image.factor,Nan,image.factor)
 	SpotDetection_inner(image)
-	if(showIllustrations)
-		set(objects=SpotCandidates)
-		set(label="ParasiteCentersSelection1")
-		set(title=label&" - Adjust per 'ParasiteMinimumDistance', 'ParasitePeakRadius', 'ParasiteReferenceRadius', Parasite#: "&objects.count)
-		ImageView(objects.border, label=label,title=title,image=imageIni, gamma=2.0)
-		delete(objects)
-	end()
 	delete(SpotCandidates)
 
-	if(showIllustrations)
-		set(objects=Spots)
-		set(label="ParasiteCentersSelection2")
-		set(title=label&" - Adjust per 'ParasiteMinimumContrast' and  'ParasiteMinimumToCellIntensity', Parasite#: "&objects.count)
-		ImageView(objects.border, label=label,title=title,image=imageIni, gamma=2.0)
-		delete(objects)
-	end()
-
 	if(accuratParasiteDetection)
-		Mask(SpotMinIntensity/1.5)
-		Mask2Stencil()
-		Centers2objects(spots.spotCenters,SpotMinimumDistance*3,image=image,MinArea=SpotMinArea,stencil=stencil)
-		FillObjects()
-
-		//Filters any objects that was not detected using the spot detection first
-		CalcStat("sum",image=spots.spotCenters.mask.image,AttrName="spotsNumber")
-		objectFilter(spotsNumber>0)
+		spotAccurateRepresentation_inner(Spots,image,highBckGnd=false,SpotMinArea=0,SpotMinIntensity=0 ,showIllustrations=false)
+		Stencil2Objects(Spots.accurateSpots)
+		delete(Spots)
 	else()
 		rename(objects=Spots)
-		set(spotsNumber=create("vector", 0, objects.count, 1).vector)
-		stencil2objects(objects.body, CalcArea=False)
-		set(objects.spotsNumber=spotsNumber)
 	end()
+	set(spotsNumber=create("vector", 0, objects.count, 1).vector)
+	stencil2objects(objects.body, CalcArea=False)
+	set(objects.spotsNumber=spotsNumber)
 
 	if(showIllustrations)
 		set(label="ParasiteOutline1")
 		set(title=label&" - Initial detection, Parsite#: "&objects.count)
-		ImageView(objects.border, label=label,title=title,image=imageIni, gamma=2.0)
+		set(description="Parasites initially detected after spot analysis. Adjust using previous spot Illustrations.")
+		ImageView(objects.border.mask, label=label,title=title,image=imageIni, gamma=2.0, description=description)
 	end()
 
-	CalcIntensity(image=imageIni,AutoRecalc=false)
+	CalcStat("max",AttrName="intensity_max",image=imageIni,AutoRecalc=false)
 	if(showIllustrations)
 		set(label="ParasiteOutline2G")
 		set(title=label & " - Adjust per 'Min/Max Parasite Intensity', Parsite#: "&objects.count)
-		set(data=objects.intensity)
+		set(data=objects.intensity_max)
 		set(value=SpotMaxIntensity)
 		GraphView(data, label=label,title=title, presto_options="graph.yaxis.title Intensity")
 		GraphView(tabulate(value,objects.count).result, label=label, append=true, presto_options="set[0].line.color red")
@@ -635,13 +616,14 @@ proc ParasiteDetection_inner
 		GraphView(tabulate(value,objects.count).result, label=label, append=true, presto_options="set[0].line.color green")
 	end()
 
-	objectFilter(intensity>SpotMinIntensity)
+	objectFilter(intensity_max>SpotMinIntensity)
 	if(SpotMaxIntensity!=0)
-		objectFilter(intensity<SpotMaxIntensity)
+		objectFilter(intensity_max<SpotMaxIntensity)
 	end()
 	if(showIllustrations)
 		set(label="ParasiteOutline2V")
-		ImageView(objects.border, label=label,title=title,image=imageIni, gamma=2.0)
+		set(description="Parasites after intensity-based filtering.")
+		ImageView(objects.border.mask, label=label,title=title,image=imageIni, gamma=2.0, description=description)
 	end()
 
 	calcarea()
@@ -662,7 +644,8 @@ proc ParasiteDetection_inner
 	end()
 	if(showIllustrations)
 		set(label="ParasiteOutline3V")
-		ImageView(objects.border, label=label,title=title,image=imageIni, gamma=2.0)
+		set(description="Parasites after size-based filtering.")
+		ImageView(objects.border.mask, label=label,title=title,image=imageIni, gamma=2.0, description=description)
 	end()
 	set(spotsNumber=objects.spotsNumber)
 	stencil2objects(objects.body, CalcArea=False)
@@ -745,7 +728,7 @@ foreach(scanVec)
 			set(label=_[ScanParameter])
 			set(title="Whole Parasite with: "&ScanParameter&"="&_[ScanParameter])
 		end()
-		imageview(WholeCells.border, label=label, title=title, image=reference, gamma=1.0)
+		imageview(WholeCells.border.mask, label=label, title=title, image=reference, gamma=1.0)
 	end()
 
 	Rename(wholeParasite=WholeCells)
