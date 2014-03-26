@@ -225,7 +225,7 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 				Set(objects=imageData.WholeCells)
 			end()
 			Set(SearchRegion=iif(Region=="Cytoplasm","Cytoplasm","Body"))
-			Spot_Detection_Select(images[spotsChanNum].image,ShowOutputParameters=false,WholeCells=objects)
+			SpotDetection(images[spotsChanNum].image,ShowOutputParameters=false,WholeCells=objects)
 			CalcStat("Sum",AttrName="NumberOfSpots",image=spots.spotCenters.mask.image)
 
 			if(Region=="Nuclei"&& ! Defined("imageData.WholeCells"))
@@ -291,20 +291,6 @@ proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	end()
 	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
 	pack(data,wholeWellData,singleCellData)
-}
-
-
-
-proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
-	unpack(data)
-	delete(data)
-	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
-	end()
-	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,path=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
-	end()
-	outputMemblockData( wholeWellData)
 }
 
 //#######################

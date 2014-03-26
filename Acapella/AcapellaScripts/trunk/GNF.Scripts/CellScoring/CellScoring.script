@@ -1,5 +1,5 @@
 //#############################################################################################
-//# Acapella Script and proc edures Collection: A collection of Acapella based scripts
+//# Acapella Script and procedures Collection: A collection of Acapella based scripts
 //# and libraries.
 //#
 //# Please acknowledge the author(s)/contributor(s) for making use of these scripts and library.
@@ -279,19 +279,6 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	pack(data,wholeWellData,singleCellData)
 }
 
-
-proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
-	unpack(data)
-	delete(data)
-	if(Defined("singleCellData.Features"))
-		GZipData(singleCellData.Features,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
-	end()
-	if(Defined("singleCellData.ROI"))
-		GZipData(singleCellData.ROI,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
-	end()
-	outputMemblockData( wholeWellData)
-}
-
 //#######################
 // Program Start
 //#######################
@@ -308,5 +295,5 @@ if(param.showIllustrations&&param.fieldSelected!=0)
 end()
 
 Analysis()
-//writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellID)
+writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
 dataOutput(data,sourcedataprop,param.OutputStatType)

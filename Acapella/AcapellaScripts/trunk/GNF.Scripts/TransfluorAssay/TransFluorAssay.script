@@ -203,7 +203,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		Rename(WholeCells=objects)
 		Foreach(0..images.length-1, "markerChanNum")
 			Set(temp=WholeCells)
-			Spot_Detection_Select(images[markerChanNum].image,ShowOutputParameters=false)
+			SpotDetection(images[markerChanNum].image,ShowOutputParameters=false)
 			Rename(WholeCells=temp)
 
 			//Generate image containing only SpotIntensity
@@ -279,7 +279,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 				Foreach(imageData.keys,"keyName")
 					Set(objects=ImageData[keyName])
 						if(objects.class=="objectlist"||objects.class=="compositObjectlist")
-							try() //Skip objects that do not have a real setncil stencil and for which a center of mass can be determined.
+							try() //Skip objects that do not have a real stencil and for which a center of mass can be determined.
 								getFeaturesTable(objects,ObjectType=keyname)
 							Catch_Error()
 							end()

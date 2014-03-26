@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--example from: http://home.subnet.at/peter/2006/04/automatically-adding-version-information-into-a-java-manifest-file-with-ant/-->
+
+<project name="MSRWriter" default="makejar" basedir=".">
+
+	<!--
+		This initializes the ${DSTAMP} and ${TSTAMP} ant properties.
+		-->
+	<tstamp />
+
+	<!-- This file contains informations about the build and is
+		loaded automatically -->
+	<propertyfile file="build.properties">
+		<entry key="build.number"
+		       type="int"
+		       default="0001"
+		       operation="+"
+		       pattern="0000"
+		/>
+		<entry key="build.date"
+		       type="date"
+		       value="now"
+		       pattern="yyyymmdd-HHmm"
+		/>
+	</propertyfile>
+
+	<property file="build.properties" />
+
+	<!-- set global properties for this build -->
+	<property name="src" location="src" />
+	<property name="bin" location="bin" />
+	<property name="jar" location="jar" />
+	<property name="base.dir"
+	          location="deployment"
+	/>
+	<property name="base.name" location="${base.dir}/${ant.project.name}" />
+	<property name="main.class"
+	          value="org.nitd.tools.${ant.project.name}"
+	/>
+
+
+
+
+
+	<path id="build-classpath">
+		<pathelement location="${bin}" />
+	</path>
+
+	<patternset id="all-classes">
+		<include name="${bin}" />
+	</patternset>
+
+	<patternset id="all-src">
+		<include name="${src}/*.*" />
+	</patternset>
+
+	<patternset id="other">
+		<include name="build.xml" />
+		<include name="build.properties" />
+	</patternset>
+
+	<target name="makejar" description="Create the Jar file">
+		<!--depends="compile" -->
+		<mkdir dir="${base.dir}" />
+
+		<manifest file="MANIFEST.MF">
+			<attribute name="Class-Path" value="${classPath}" />
+			<attribute name="Main-Class" value="${main.class}" />
+
+			<attribute name="Implementation-Title"
+			           value="${implementation.title}"
+			/>
+			<attribute name="Programed-By" value="${programer.name}" />
+
+			<attribute name="Implementation-Vendor"
+			           value="${implementation.vendor}"
+			/>
+			<attribute name="Implementation-VendorURL"
+			           value="${implementation.vendor.url}"
+			/>
+			<attribute name="Built-By" value="${user.name}" />
+			<attribute name="Version" value="${app.version}" />
+			<attribute name="Implementation-Version"
+			           value="${app.version}.${build.number}"
+			/>
+			<attribute name="Built-Date" value="${build.date}" />
+		</manifest>
+		<echo>Building jar file...</echo>
+		<jar jarfile="${base.name}.jar" manifest="manifest.mf">
+			<fileset dir="${bin}/"/>
+			<fileset dir=".">
+				<patternset refid="other" />
+			</fileset>
+			<dirset dir="${src}"/>
+		</jar>
+		<delete file="MANIFEST.MF" />
+	</target >
+
+</project>
