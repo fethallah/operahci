@@ -208,45 +208,6 @@ foreach(0..images.length-1,"field")
 end()
 }
 
-proc decimateImages(
-	//INPUT
-	memblock expinfo inout "Memblock containing the experimental info, obtained from the getExpInfo() procedure",
-	memblock images inout "Memblock containing the images organized via the ImagesInit() procedure",
-	String dimension2Decimate="field" in "String indicating which dimension to decimate, either \"field\" or \"stack\"",
-	Integer toKeep=1 in "Integer indicating the index of the dimension to keep"
-) Image Manipulation "This procedure will keep only the selected image amongst all of the stacks of fields."
-{
-set(toKeep=toKeep-1)
-if(dimension2Decimate!="field" &&dimension2Decimate!="stack" )
-	error("the only value accepted for dimension2Decimate are \"field\" and \"stack\"")
-end()
-set(dim=iif(dimension2Decimate=="field","F","Z"))
-if(toKeep<0)
-	error("The data to keep can only point to a stack or field that is above 0")
-end()
-if(toKeep>expInfo["total"&dim]-1)
-	error("The data to keep can only point to a stack or field that exist (ie. bellow the total number of fields or stacks present)")
-end()
-foreach(0..expInfo["total"&dim]-1,dimension2Decimate)
-foreach(0..expInfo["total"&iif(dimension2Decimate=="field","Z","F")]-1, iif(dimension2Decimate=="field","stack","field"))
-		if(defined("images.F"&toKeep&".Z"&stack))
-		if(dimension2Decimate!="field"&stack==0)
-			set(images["F"&field].Z0=images["F"&field]["Z"&toKeep])
-		else()
-			if(dimension2Decimate=="field"&field==0)
-				set(images.F0["Z"&stack]=images["F"&toKeep]["Z"&stack])
-			else()
-				delete(images["F"&field]["Z"&stack])
-			end()
-		end()
-		end()
-end()
-end()
-
-set(expInfo["total"&dim]=1) //reset the number of fields or stacks
-keep(expInfo,Images)
-}
-
 //Group all of the images into one folder with the strcutue images[field][channel][z-section]
 proc ImagesInit(
 	//INPUT
@@ -301,13 +262,9 @@ foreach(0..sourcedataProp.totalF-1, "field")
 				Break()
 			end()
 		end()
-		if(infocus) //keep only full Z-Sections
-			push(zTemp,ctemp)
-		end()
+		push(zTemp,ctemp)
 	end()
-	if(zTemp.length>0)
-		push(images,zTemp)
-	end()
+	push(images,zTemp)
 end()
 delete(sourcedata.SourceImage)
 }
