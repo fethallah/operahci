@@ -133,8 +133,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	set(nucChanMin=chanInfo.min[findElem("nucDetection",chanInfo.purpose).pos])
 	set(imageData=cnt())
 	if(images[nucChanNum].image.max>nucChanMin)
-		bckGndSubstraction(-1)
-
+		bckGndSubstraction(-1,images=images)
 		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
 
 		set(nucImage=images[nucChanNum].image)
@@ -224,7 +223,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 		assembleCompositObject(Positive,objects=WholeCells|WholeCells=compositObject)
 
 		Stencil2Objects(Nuclei.body, CalcArea=false)
-		calcFeatures(images=vec(images[nucChanNum]),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells), CalcMorphologyFeatures=true|Nuclei=objects)
+		getFeatures(images=vec(images[nucChanNum]),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells)|Nuclei=objects)
 		keep(bckGndObjects,Nuclei,WholeCells)
 		pack(imageData,*)
 	end()
@@ -237,7 +236,12 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	if(images.length>0)
 	foreach(0..images.length-1, "field")
 	foreach(0..images[field].length-1, "stack")
+		if(images[field][stack].length==0)
+			continue()
+		end() 
+
 		imageAnalysis(images[field][stack],param)
+
 		if(imageData.length>0)
 			set(numFieldsInFocus=numFieldsInFocus+1)
 			if(param.getROI)

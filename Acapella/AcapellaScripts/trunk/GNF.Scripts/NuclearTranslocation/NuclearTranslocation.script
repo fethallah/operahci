@@ -260,7 +260,12 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	if(images.length>0)
 	foreach(0..images.length-1, "field")
 	foreach(0..images[field].length-1, "stack")
+		if(images[field][stack].length==0)
+			continue()
+		end() 
+
 		imageAnalysis(images[field][stack],param)
+
 		if(imageData.length>0)
 			set(numFieldsInFocus=numFieldsInFocus+1)
 			if(param.getROI)

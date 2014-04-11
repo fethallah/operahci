@@ -177,12 +177,11 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 
 			Cytoplasm_Detection_Select(reference=image)
 			//normalizeObjects(NucleiNormalization,image=nucImage,objects=nuclei)
-
 			Stencil2Objects(nuclei.body, CalcArea=false)
 			CalcMassCentre()
 			rename(nuclei=objects,objects=wholeCells)
 
-			Stencil2Objects(objects.body)
+			Stencil2Objects(objects.body, CalcArea=false)
 			SetAttr(centers,objects.body&&nuclei.body.mask.image)
 			SetAttr(cytoplasm,objects.body&& !nuclei.body.mask.image)
 			CalcStat("sum",AttrName="NumberOfNuclei",image=Nuclei.masscentre.mask.image)
@@ -194,12 +193,12 @@ proc imageAnalysis(memblock images in, memblock param in, memblock sourceDataPro
 				RingRegion_inner(-1*MembraneSize,MembraneSize,stencil="body",RegionName="PlasmaMembrane",ShowRegionBorder=false,VisualImage=cytoImage,WholeCells=objects|objects=wholeCells)
 				SetAttr(cytoplasm,!(NuclearEnveloppe.mask || PlasmaMembrane.mask)&&cytoplasm)
 			end()
-			RenameAttr(Nuclei=centers)
+			Stencil2Objects(objects.centers, CalcArea=false|Nuclei=Objects)
+			DeleteAttr(centers)
 			getFeatures()
-			Rename(WholeCells=objects)
+			Rename(WholeCells=objects,objects=Nuclei)
 
-			Stencil2Objects(wholeCells.Nuclei, CalcArea=false)
-			CalcFeatures(images=vec(images[nucChanNum]),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells))
+			getFeatures(images=vec(images[nucChanNum]),parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells))
 			Rename(Nuclei=objects)
 			Set(imageData.bckGndObjects=bckGndObjects,imageData.Nuclei=Nuclei,imageData.WholeCells=WholeCells)
 		else()
@@ -251,7 +250,12 @@ proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	if(images.length>0)
 	foreach(0..images.length-1, "field")
 	foreach(0..images[field].length-1, "stack")
+		if(images[field][stack].length==0)
+			continue()
+		end() 
+
 		imageAnalysis(images[field][stack],param)
+
 		if(imageData.length>0)
 			set(numFieldsInFocus=numFieldsInFocus+1)
 			if(param.getROI)

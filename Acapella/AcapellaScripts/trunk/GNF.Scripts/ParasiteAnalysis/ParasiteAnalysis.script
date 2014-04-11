@@ -157,6 +157,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 //verify that it is not an empty field
 	if(images[0].image.max>0)
 		bckGndSubstraction(-1,images=images)
+		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
 		Set(imageData.bckGndObjects=bckGndObjects)
 		set(image=images[paraNucChanNum].image)
 		ParasiteDetection(image, lowBitAnalysis=true)
@@ -181,7 +182,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 
 			//Filtering/Normalizing of nuclei. Then select corresponding cells
 			rename(objects=nuclei)
-			ObjectFilter(intensity>bckGndObjects.Body_Hoechst_MeanIntensity.mean+2*bckGndObjects.Body_Hoechst_StdDevIntensity.mean)
+			ObjectFilter(intensity>minNucIntensity)
 			DeleteAttr(intensity)
 			rename(nuclei=objects)
 
@@ -190,20 +191,19 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				Rename(objects=WholeCells)
 				CalcIntensity(image=Nuclei.body.mask.image)
 				ObjectFilter(intensity>0)
-				DeleteAttr(intensity)
-				RenameAttr(Nuclei=centers)
-				CalcFeatures(images=images)
-				Rename(WholeCells=Objects)
-				Stencil2Objects(wholeCells.Nuclei, CalcArea=false)
-				CalcFeatures(images=images,parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells))
+				Stencil2Objects(objects.centers, CalcArea=false|Nuclei=objects)
+				DeleteAttr(centers,CytoplasmAndCenters,intensity)
+				getFeatures(objects=objects,images=images)
+				Rename(WholeCells=objects,objects=Nuclei)
+				getFeatures(objects=objects,images=images,parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells))
 				Rename(Nuclei=objects)
 
-				getFeatures(objects=Parasites,parentNames=vec("Nuclei","WholeCells"),parentObjects=cnt(Nuclei=Nuclei,WholeCells=WholeCells)|Parasites=objects)
+				getFeatures(objects=Parasites,images=images,parentNames=vec("Nuclei","WholeCells"),parentObjects=cnt(Nuclei=Nuclei,WholeCells=WholeCells)|Parasites=objects)
 
 				Set(imageData.Nuclei=Nuclei, imageData.WholeCells=WholeCells)
 			else()
 				Stencil2Objects(nuclei.body, CalcArea=false)
-				CalcFeatures(images=images)
+				getFeatures(objects=objects,images=images)
 				Rename(Nuclei=objects)
 
 				getFeatures(objects=Parasites,images=images,parentNames=vec("Nuclei"),parentObjects=cnt(Nuclei=Nuclei)|Parasites=objects)
@@ -255,7 +255,12 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	if(images.length>0)
 	foreach(0..images.length-1, "field")
 	foreach(0..images[field].length-1, "stack")
+		if(images[field][stack].length==0)
+			continue()
+		end() 
+
 		imageAnalysis(images[field][stack],param)
+
 		if(imageData.length>0)
 			set(numFieldsInFocus=numFieldsInFocus+1)
 			if(param.getROI)
