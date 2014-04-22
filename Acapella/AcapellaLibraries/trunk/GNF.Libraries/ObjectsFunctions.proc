@@ -594,7 +594,21 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 		Rename(table=ROItable)
 	end()
 	if((Not(defined("objects.border")) && Not(defined("objects.body")))|| objects.size==0)
-		AppendTable(other=tbl(TimePoint=vec(),StackNum=vec(),FieldNum=vec(),ObjectType=vec(),ObjectID=vec(),BoundingBoxMinX=vec(),BoundingBoxMinY=vec(),BoundingBoxMaxX=vec(),BoundingBoxMaxY=vec(),IniX=vec(),IniY=vec(), ChainCode=vec())|ROItable=table)
+		AppendTable(
+			other=tbl(
+				TimePoint=vec(),
+				StackNum=vec(),
+				FieldNum=vec(),
+				ObjectType=vec(),
+				ObjectID=vec(),
+				BoundingBoxMinX=vec(),
+				BoundingBoxMinY=vec(),
+				BoundingBoxMaxX=vec(),
+				BoundingBoxMaxY=vec(),
+				IniX=vec(),
+				IniY=vec(),
+				ChainCode=vec()
+			) |ROItable=table)
 		Return()
 	end()
 	if(Not(defined("objects.border")))
@@ -603,9 +617,9 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 	addObjectID()
 	set(length=objects.count)
 	set(ROItable=ExtractROI(objects.border,chainCodeAsString=true).table)
-	set(ROItable.TimePoint=create("vector", 0, length, time).vector)
-	set(ROItable.StackNum=create("vector", 0, length, stack).vector)
-	set(ROItable.FieldNum=create("vector", 0, length, field).vector)
+	set(ROItable.TimePoint= create("vector", 0,  length, time+ 1).vector)
+	set(ROItable.StackNum = create("vector", 0,  length, stack+1).vector)
+	set(ROItable.FieldNum = create("vector", 0,  length, field+1).vector)
 	set(ROItable.ObjectType=create("vector", 13, length, ObjectType).vector)
 	set(ROItable.ObjectID=Objects.ObjectID)
 	AppendTable(other=ROItable|ROItable=table)
@@ -648,7 +662,17 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 
 	addObjectID()
 
-	Set(index=tbl(TimePoint=create("vector", 0, length, time).vector,StackNum=create("vector", 0, length, stack).vector,FieldNum=create("vector", 0, length, field).vector,ObjectType=create("vector", 13, length, ObjectType).vector,ObjectID=objects.ObjectID,ParentType=objects.parentType,ParentID=objects.ParentID))
+	Set(index=tbl(
+			TimePoint= create("vector", 0,  length, time+ 1).vector,
+			StackNum = create("vector", 0,  length, stack+1).vector,
+			FieldNum = create("vector", 0,  length, field+1).vector,
+			ObjectType=create("vector", 13, length, ObjectType).vector,
+			ObjectID=objects.ObjectID,
+			ParentType=objects.parentType,
+			ParentID=objects.ParentID
+		)
+	)
+
 	deleteAttr(parentType)
 	deleteAttr(ParentID)
 	Set(ObjectFeatureTable=Objectlist2Table().table)

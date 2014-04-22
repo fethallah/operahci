@@ -45,7 +45,7 @@ proc dataOperaOutput(
 proc getSelectedAlgorithm(
 	string fileDir in "Path to the location of the file containing the list of nuclear detection algorithms set by \"saveSelectedAlgorithm()\"",
 	string selectedAlgorithm  out "String containing the algorithm to use to use if any. If no algorithms set yet, returns \"\"",
-	int numberRun=4 in "number of time the algortim \"saveSelectedAlgorithm()\" must be run before the name of nuclear detection algoritm can be returned",
+	int numberRun=4 in "number of time the algortim \"saveSelectedAlgorithm()\" must be run before the name of nuclear detection algorithm can be returned",
 )input-output "obtains the nuclei algorithm to use for the plate if it is available"
 {
 	set(selectedAlgorithm ="")
