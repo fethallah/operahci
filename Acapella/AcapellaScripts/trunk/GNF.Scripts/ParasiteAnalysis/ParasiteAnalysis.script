@@ -216,18 +216,20 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 			if(showIllustrations)
 					set(image=images[nucChanNum].image)
 					if(cytoChanNum>=0)
-						set(cellBorder=WholeCells.Cytoplasm_Border.mask)
+						set(nucleiBorder=WholeCells.Centers_Border.mask)
+						set(cellBorder=WholeCells.Border.mask)
 						if(nucChanNum != cytoChanNum)
 							set(imageCyto=images[cytoChanNum].image)
 						else()
 							set(imageCyto=blank(image.width,image.height).image)
 						end()
 					else()
-						set(cellBorder=Nuclei.Border.mask)
+						set(nucleiBorder=Nuclei.Border.mask)
+						set(cellBorder=mask(blank(image.width,image.height).image).mask)
 					end()
 				RGBy(tbl(Image=vec(image,imageCyto,  images[paraNucChanNum].image),Gamma=vec(0.8,1.2,1.0), Color=vec("red","green","cyan")))
 				delete(imageCyto)
-				MixOverlays(SourceTable=tbl(overlay=vec(parasites.InsideCell.Border.mask,parasites.OutsideCell.Border.mask, cellBorder),color=vec("lime","red","#C87800")),schema="HSV")
+				MixOverlays(SourceTable=tbl(overlay=vec(parasites.InsideCell.Border.mask,parasites.OutsideCell.Border.mask, cellBorder,nucleiBorder),color=vec("lime","red","#C87800","purple")),schema="HSV")
 				or(parasites.InsideCell.Border.mask,image=parasites.OutsideCell.Border.mask|mask=image)
 				or(mask=mask,image=cellBorder.image|mask=image)
 				MergeOverlays(overlay, image=image,mask=mask)
@@ -257,7 +259,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	foreach(0..images[field].length-1, "stack")
 		if(images[field][stack].length==0)
 			continue()
-		end() 
+		end()
 
 		imageAnalysis(images[field][stack],param)
 
@@ -304,6 +306,7 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
 	pack(data,wholeWellData,singleCellData)
 }
+
 
 //#######################
 // Program Start
