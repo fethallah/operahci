@@ -475,7 +475,20 @@ foreach(objects.keys)
 end()
 }
 
+proc addMassCentre(
+	objectlist objects inout "Object for which distance should be calculated."
+)[hidden] "Adds the object centre of mass "
 
+{
+
+	if(!defined("objects.masscentre") && !(defined("objects.xCentre") && defined("objects.yCentre")))
+		CalcMassCentre()
+		Delete(objects.MassCentreX, objects.MassCentreY)
+	end()
+
+	set(Objects.xCentre=objects.MassCentre.x.target)
+	set(Objects.yCentre=objects.MassCentre.y.target)
+}
 proc ObjectsDistances(
 	objectlist objects in "Object for which distance should be calculated.",
 	vector distances out "Data containing the vector of distances between each points, or if default is used, the distance to nearest points.",
@@ -661,6 +674,7 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 	end()
 
 	addObjectID()
+	addMassCentre()
 
 	Set(index=tbl(
 			TimePoint= create("vector", 0,  length, time+ 1).vector,

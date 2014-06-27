@@ -217,15 +217,8 @@ proc outputMemblockData(
 			if(keyName=="ObjectID"||keyName=="xCentre"||keyName=="yCentre"||keyName=="MassCentreX"||keyName=="MassCentreY"||keyName=="ParentID"||keyName=="ParentType")
 				continue()
 			end()
-			Set(keyNameDisplay=unquote(keyName,"Name").text)
-			Set(keyNameDisplay=unquote("@"&keyNameDisplay,"Name").text)
-			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Full_Length","FullLength").text)
-			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Half_Width","HalfWidth").text)
-			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"ratio_(.+?)_To_","\1/").text)
-			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"(.+)_(.+?)(_PearsonR_)","\1/\2\3").text)
-			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"Percent_","%").text)
 
-			Set(keyNameDisplay=RegexReplace(keyNameDisplay,"_","-",first_only=false).text)
+			Set(keyNameDisplay=colNameAlter(keyName).text)
 			outputMemblockData(data[keyName],dataName&keyNameDisplay,statValue,numFieldsInFocus)
 		end()
 		return()
@@ -245,13 +238,7 @@ data output "Saves a table in a text file. The column names are output in the fi
 		if(typeinfo.elemclass == "memblock")
 			delete(table[i])
 		else()
-			Set(ColName=unquote(i,"Name").text)
-			Set(ColName=unquote("@"&ColName,"Name").text)
-			set(ColName=RegexReplace(i,"\t"," ").text)
-			set(ColName=RegexReplace(ColName,"ratio_(.+?)_To_","\1/").text)
-			set(ColName=RegexReplace(ColName,"(.+)_(.+?)(_PearsonR_)","\1/\2\3").text)
-			Set(colName=RegexReplace(colName,"Percent_","%").text)
-			set(ColName=RegexReplace(i,"_","-").text)
+			set(colName=colNameAlter(i).text)
 			set(text=text & colName & "\t")
 		end()
 	end()
@@ -261,6 +248,19 @@ data output "Saves a table in a text file. The column names are output in the fi
 	write(table, "<text", "ascii", append=yes, precision=12)
 	regexreplace(text,"\t$","")
 	write(Text,filename,"ascii")
+}
+
+proc colNameAlter(
+	String text inout "name of the column which should be altered"
+)
+{
+	unquote(text,"Name")
+	unquote("@"&text,"Name")
+	RegexReplace(text,"\s+"," ")
+	RegexReplace(text,"ratio_(.+?)_To_","\1/")
+	RegexReplace(text,"(.+)_(.+?)(_PearsonR_)","\1/\2\3")
+	RegexReplace(text,"Percent_","%")
+	RegexReplace(text,"_","-")
 }
 
 proc GZipData(
@@ -370,5 +370,5 @@ proc dataOutput(container data in, Container sourcedataprop in, String statValue
 	if(Defined("singleCellData.ROI"))
 		GZipData(singleCellData.ROI,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
 	end()
-	outputMemblockData( wholeWellData)
+	outputMemblockData(wholeWellData)
 }

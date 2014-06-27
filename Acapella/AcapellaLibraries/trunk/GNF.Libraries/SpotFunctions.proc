@@ -69,7 +69,6 @@ proc SpotDetection_parameters(
 	input(SpotMinimumToCellIntensity, 1.0, "SpotMinimumToCellIntensity: Spot Detection","d","Minimum allowed intensity ratio between Spot Peak Intensnity and the Average Intensity of the cell/object to which the spot is belongs. Has smaller influence on the outputs than the main selection parameter SpotMinimumContrast. Adjust parameter by illustrations SpotSelection and Spots. If the parameter value is lowered the number of classified spots increases and vice versa. Allowed range: 0..20, step 0.01.")
 
 	input(ScanParameter, "None", "Parameter SCAN: Spot Detection", "s", "Controls the parameters to scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. Possible values: \"None\", \"SpotMinimumDistance\",\"SpotPeakRadius\",\"SpotReferenceRadius\",\"SpotMinimumContrast\",\"SpotMinimumToCellIntensity\",\"Algorithm\"")
-
 	//ensures that you use the actual parameters with RMCA or Linux
 	EnvInfo()
 	Set(ScanParameter=iif(env_interactive && env_supports_graphview && env_supports_htmlview && env_supports_imageview && env_supports_tableview,ScanParameter,"None"))
@@ -126,7 +125,8 @@ proc SpotDetection_inner(
 
 
 	set(AlgorithmVec=vec("A","B","C","D"))
-	if(ScanParameter=="none")
+	set(ScaNParameterList=vec("None", "SpotMinimumDistance","SpotPeakRadius","SpotReferenceRadius","SpotMinimumContrast","SpotMinimumToCellIntensity","Algorithm"))
+	if(ScanParameter=="None" || FindElem(ScanParameter, ScaNParameterList).pos==-1)
 		set(scanning=false, scanVec=vec(0))
 	else()
 		set(ShowOutputParameters=true)
@@ -240,10 +240,11 @@ proc SpotAccurateRepresentation_parameters(
 {
 	input(SpotMinIntensity, 0, "Min Spot Intensity: Accurate Spot Detection", "i", "Spot: Controls the spot that remain selected. Higher values reduce the number of spots retained. Adjust with \"Accurate spot Borders\" preview.")
 	input(SpotMinArea,20,"Minimum spot Area: Accurate Spot Detection","i","Spot: Keep only spots which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Accurate spot Borders\" preview.")
-	input(minSpotsRoundness,0.1,"Minimum spot Roundness: Accurate Spot Detection","i","Spot: Keep only spots have a roundness above the provdide value. With higher values fewer spots are retained. Allowed range: 0..oo.")
-	input(spotsIndividualThresholdAdjustment, 0.3, "Spot Individual Threshold Adjustment: Accurate Spot Detection", "d", "Spot: Controls the spot shape around the spot center. Higher values decrease spot size.Accurate spot Borders. Allowed range: 0..1.")
+	input(minSpotsRoundness,0.1,"Minimum spot Roundness: Accurate Spot Detection","i","Spot: Keep only spots have a roundness above the provide value. With higher values fewer spots are retained. Allowed range: 0..2, step 0.01.")
+	input(spotIndividualThresholdAdjustment, 0.3, "Spot Individual Threshold Adjustment: Accurate Spot Detection", "d", "Spot: Controls the spot shape around the spot center. Higher values decrease spot size.Accurate spot Borders. Allowed range: 0..1, step 0.01.")
 
-	input(ScanParameter, "None", "Parameter SCAN: Accurate Spot Detection", "s", "Controls the parameters to scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. Possible values: \"None\", \"SpotMinIntensity\",\"SpotMinArea\",\"minSpotsRoundness\",\"spotsIndividualThresholdAdjustment\"")
+	input(ScanParameter, "None", "Parameter SCAN: Accurate Spot Detection", "s", "Controls the parameters to scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best spot recognition. Possible values: \"None\",\"spotIndividualThresholdAdjustment\",\"highBckGnd\", \"SpotMinIntensity\",\"SpotMinArea\",\"minSpotsRoundness\"")
+	input(highBckGnd, false, "High Background: Parasite Detection", "b", "Indicate whether the spot to detect is surrounded by a high background.")
 
 	//ensures that you use the actual parameters with RMCA or Linux
 	EnvInfo()
@@ -263,52 +264,72 @@ proc SpotAccurateRepresentation_inner(
 	double SpotMinIntensity= 0 in "Controls the spot that remain selected. Higher values reduce the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
 	double SpotMinArea=0 in "Provides Cutt-off for spots to keep. Keep only spots which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"Accurate spot Borders\" preview.",
 	double minSpotsRoundness=-0.1 in "Provides Cutt-off for spots to keep. Keep only spots have a roundness above the provdide value. With higher values fewer spots are retained.Adjust with \"Accurate spot Borders\" preview. Allowed range: -0.1..oo.",
-	double spotsIndividualThresholdAdjustment=0.3 in "Controls the spot shape around the spot center. Higher values decrease spot size.Adjust with \"Accurate spot Borders\" preview. Allowed range: 0..1.",
+	double spotIndividualThresholdAdjustment=0.3 in "Controls the spot shape around the spot center. Higher values decrease spot size.Adjust with \"Accurate spot Borders\" preview. Allowed range: 0..1.",
 	string ScanParameter="none" in "Controls the parameters to scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied)."
 
 )
 [hidden] object recognition "Refine the spots to better fit the image"
 {
-
-	if(ScanParameter=="none")
+	set(ScaNParameterList=vec("None", "spotIndividualThresholdAdjustment","highBckGnd", "SpotMinIntensity","SpotMinArea","minSpotsRoundness"))
+	if(ScanParameter=="None" || FindElem(ScanParameter, ScaNParameterList).pos==-1)
 		set(scanning=false, scanVec=vec(0))
 	else()
 		set(ShowOutputParameters=true)
 		set(SpotMinIntensityVec=tabulate("x*2+1",10).result)
 		set(SpotMinAreaVec=tabulate("x",11).result)
 		set(minSpotsRoundnessVec=tabulate("(x+1)",10).result)
-		set(spotsIndividualThresholdAdjustmentVec=tabulate("x*0.1",11).result)
-		set(SpotMinimumToCellIntensityVec=RoundValues(tabulate("0.05*1.8^x",11).result,0).values)
+		set(spotIndividualThresholdAdjustmentVec=tabulate("x*0.1",11).result)
+		set(highBckGndVec=vec(false,true))
 		set(scanning=true, scanVec=_[ScanParameter&"Vec"])
 	end()
 
 
-
 	set(imageIni=image)
-	Stencil2Objects(spots.spotCenters)
-	if(highBckGnd)
-		set(image=Bright_Mask(image, Radius=SpotMinArea*2).result)
+	Stencil2Objects(spots.spotCenters|centers=objects)
+
+	foreach(scanVec)
+		if(scanning)
+			set(_[ScanParameter]=i)
+		end()
+		if(highBckGnd)
+			set(kernelSize=round(image.width/20))
+			set(kernelSize=iif( SpotMinArea>kernelSize,SpotMinArea, kernelSize))
+			set(image=Bright_Mask(image, Radius=kernelSize).result)
+		end()
+		if(lowBitAnalysis)
+			convert(1)
+		end()
+		set(CytoplasmIndividualThresholdAdjustment=spotIndividualThresholdAdjustment)
+		cytoplasm_detection_A_inner(nuclei=centers,Cytoplasm=image|objects=WholeCells)
+		CalcAttr(Roundness)
+		Set(spots.accurateSpots=objects.body)
+		Set(spots.accurateSpots_border=objects.border)
+		set(spots.accurateSpots_roundness=objects.roundness)
+		rename(objects=spots)
+		CalcArea(accurateSpots,AutoRecalc=false)
+		objectFilter(accurateSpots_area>SpotMinArea)
+		CalcIntensity(accurateSpots, Image=imageIni,AutoRecalc=false)
+		objectFilter(accurateSpots_intensity>SpotMinIntensity)
+		objectFilter(accurateSpots_Roundness>minSpotsRoundness)
+		if(scanning)
+			set(NamePrefix=ScanParameter&"="&i&" - ")
+			if(showIllustrations)
+				set(label="AccurateSpots:"&i)
+				set(title=NamePrefix&"Number spots: " & objects.count)
+				ImageView(objects.accurateSpots_border.mask, label=label,title=title,image=imageIni, gamma=2.6, )
+			end()
+		end()
+		rename(spots=objects)
 	end()
-	if(lowBitAnalysis)
-		convert(1)
+
+	if(scanning)
+		stop()
 	end()
-	cytoplasm_detection_A_inner(nuclei=objects,Cytoplasm=image,CytoplasmIndividualThresholdAdjustment=SpotsIndividualThresholdAdjustment|objects=WholeCells)
-	CalcAttr(Roundness)
-	Set(spots.accurateSpots=objects.body)
-	Set(spots.accurateSpots_border=objects.border)
-	set(spots.accurateSpots_roundness=objects.roundness)
-	rename(objects=spots)
-	CalcArea(accurateSpots,AutoRecalc=false)
-	objectFilter(accurateSpots_area>SpotMinArea)
-	CalcIntensity(accurateSpots, Image=imageIni,AutoRecalc=false)
-	objectFilter(accurateSpots_intensity>SpotMinIntensity)
-	objectFilter(accurateSpots_Roundness>minSpotsRoundness)
 
 
 	if(showIllustrations)
-		ImageView(objects.accurateSpots_border.mask, label="Accurate spot Borders",title="Adjust per Spot Threshold Adjustment and Spot Individual Threshold Adjustmen",image=image, gamma=2.0, )
+		ImageView(spots.accurateSpots_border.mask, label="Accurate Spot Borders",title="Adjust per Spot Threshold Adjustment and Spot Individual Threshold Adjustment",image=image, gamma=2.6, )
 	end()
-	Rename(spots=objects)
 	keep(spots)
 }
 
@@ -329,7 +350,7 @@ object recognition, cell compartment "Detects the vacuole from a cytoplasmic ima
 	input(SpotMinimumToCellIntensity, 4.0, "VacuoleMinimumToCellIntensity: Vacuole Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Vacuole belongs and  the Vacuole Intensnity. Has smaller influence on the outputs than the main selection parameter VacuoleMinimumContrast. Adjust parameter by illustrations VacuoleSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..oo.")
 
 	input(minSpotsRoundness,1.3,"Vacuole Roundness: Vacuole Detection","i","Allows to keep only spots that are compatible with being a vacule. Range: >=0. Adjust with \"Vacuoles Borders\" preview.")
-	input(spotsIndividualThresholdAdjustment, 0.4, "Vacuole Individual Threshold Adjustment: Vacuole Detection", "d", "Controls the spot shape around the vacuole center. Higher values decrease vacuole size. Adjust with \"Vacuoles Borders\" preview. Allowed range: 0..1.")
+	input(spotIndividualThresholdAdjustment, 0.4, "Vacuole Individual Threshold Adjustment: Vacuole Detection", "d", "Controls the spot shape around the vacuole center. Higher values decrease vacuole size. Adjust with \"Vacuoles Borders\" preview. Allowed range: 0..1.")
 
 	set(imageIni=image)
 	gamma(3)
@@ -409,12 +430,12 @@ object recognition, cell compartment "Detects the microNuclei in the image, usin
 	input(SpotPeakRadius, 2.0, "microNucleiPeakRadius: microNuclei Detection","d", "Radius of the disk, where the micronuclei peak intensity is calculated. Default value 0 means that peak intensity corresponds to the intensity of the maximum point, value 1 means that peak intensity is found as average intensity over the region with radius 1 pixel around the maximum point, i.e. over the region with area 5 pixels. Typically 0 or 1.")
 
 	//input(micronucleiRelativeSize, 0.2, "Relative size of a micronucleus/nucleus: ",type="d", description="Ratio between the nuclei size and the micronuclei for it to be kept")
-	input(SpotReferenceRadius, 5.0,  "microNucleiReferenceRadius: microNuclei Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around micronuclei center. Typical range  2.0 .. 5.0.")
+	input(SpotReferenceRadius, 5.0,  "microNucleiReferenceRadius: microNuclei Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around micronuclei center. Typical range  2.0 .. 5.0. Allowed range: 1..500, step 1.")
 	input(SpotMinimumContrast,0.1, "microNucleiMinimumContrast: microNuclei Detection", "d","Minimum allowed contrast between micronuclei peak intensity and the reference intensity. The main micronuclei selection parameter. Adjust parameter by illustrations microNucleiSelection and microNuclei. If the parameter value is lowered the number of classified microNuclei increases and vice versa. Allowed range: 0..1.")
 	input(SpotMinimumToCellIntensity, 0.2, "microNucleiMinimumToNucleintensity: microNuclei Detection","d","Minimum allowed intensity ratio between the Average Nuclei Intensity associated with the Spot. Adjust parameter by illustrations microNucleiSelection Borders. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..4, step 0.01.")
 
 	input(minSpotsRoundness,1.0,"microNuclei Roundness: microNuclei Detection","i","Allows to keep only spots that are compatible with being a vacule. Range: >=0. Adjust with \"microNuclei Borders\" preview.. Allowed range: 0..4.")
-	input(spotsIndividualThresholdAdjustment, 0.8, "microNuclei Individual Threshold Adjustment: microNuclei Detection", "d", "Controls the spot shape around the micronuclei center. Higher values decrease micronuclei size. Adjust with \"micronuclei Borders\" preview. Allowed range: 0..1.")
+	input(spotIndividualThresholdAdjustment, 0.8, "microNuclei Individual Threshold Adjustment: microNuclei Detection", "d", "Controls the spot shape around the micronuclei center. Higher values decrease micronuclei size. Adjust with \"micronuclei Borders\" preview. Allowed range: 0..1.")
 	input(minRelativeSize, 5, "min nuclei/microNuclei relative size: microNuclei Detection", "d", "Indicates the relative size between the smallest microNuclei and the smallest nuclei. Lower value decreases the number of nuclei and increases the number of microNuclei")
 
 	set(SpotMinArea=SpotReferenceRadius^2/2)
@@ -518,6 +539,7 @@ proc ParasiteDetection(
 	memblock parasites out "New spot object containing two new attributes accurateSpots and accurateSpots_border",
 	boolean showIllustrations=true in "Optional. Used to indicate if you want to see the accurateSpots detected.",
 	string ScanParameter="None" in "Name of parameter scanned for detection optimization.",
+	boolean highBckGnd=false in "Optional. Indicate whether the spot to detect is surrounded by some background.",
 	bool lowBitAnalysis=false in "YES- downscale the provided image to 8bit before performing the analysis to speed up the proc ess. Return intensities based on the reference image provide (ie. 16bit if refeerence is 16bit image)."
 )
 object recognition, parasite "Detects the centers for the parasites present in the image provided."
@@ -539,13 +561,16 @@ proc ParasiteDetection_parameters(
 	input(SpotReferenceRadius, 5.0,  "ParasiteReferenceRadius: Parasite Detection", "d", "Radius of Reference Region around the intensity maximum, i.e. around Parasite center.  Allowed range: 1..20, step 1.")
 	input(SpotMinimumContrast,0.5, "ParasiteMinimumContrast: Parasite Detection", "d","Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa. Allowed range: 0..1, step 0.05.")
 	input(SpotMinimumToCellIntensity, 10.0, "ParasiteMinimumToCellIntensity: Parasite Detection","d","Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..500, step 0.1.")
+	input(SpotIndividualThresholdAdjustment, 0.3, "ParasiteIndividualThresholdAdjustment: Parasite Detection", "d", "Controls the spot shape around the spot center. Higher values decrease spot size. Accurate spot Borders. Allowed range: 0..1, step 0.01.")
 
-	input(ScanParameter, "None", "Parameter SCAN: Parasite Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition. Possible values: \"None\", \"Algorithm\", \"SpotMinimumDistance\",\"SpotPeakRadius\",\"SpotReferenceRadius\",\"SpotMinimumContrast\",\"SpotMinimumToCellIntensity\".")
-
+	input(ScanParameter, "None", "Parameter SCAN: Parasite Detection", "s", "Controls the parameter scan. Use  the default value \"None\" for the standard evaluation (parameter scan is not applied). If you would like to adjust a parameter, please select it from \"Parameter SCAN\" menu and click to Run. The procedure scans the parameter over the whole range and depicts the corresponding detection results. Inspect the results for the different parameter values and try to select one, which provides the best cytoplasmic recognition. Possible values: \"None\", \"Algorithm\", \"ParasiteMinimumDistance\",\"ParasitePeakRadius\",\"ParasiteReferenceRadius\",\"ParasiteMinimumContrast\",\"ParasiteMinimumToCellIntensity\",\"ParasiteIndividualThresholdAdjustment\",\"highBckGnd\".")
+	RegexReplace(ScanParameter,"Parasite","Spot",first_only=true|ScanParameter=text)
+	input(highBckGnd, false, "High Background: Parasite Detection", "b", "Indicate whether the spot to detect is surrounded by a high background.")
 	input(accuratParasiteDetection, true, "Accurate Detection: Parasite Detection", "b", "Indicate if you want to run the accurate spot detection. This only works well if parasites are not do dense and not adjacents.")
 
-	input(SpotMinIntensity, 100, "Min Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
-	input(SpotMaxIntensity,   0, "Max Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. A Value of 0 means no filtering. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
+	input(SpotMinRoundness, 0, "Min Parasite Roundness: Parasite Detection", "d", "Parasite: Controls the value for the minimum roundness to be considered as parasite. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..2, step 0.01, step 1.")
+	input(SpotMinIntensity, 100, "Min Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as a parasite. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
+	input(SpotMaxIntensity,   0, "Max Parasite Intensity: Parasite Detection", "i", "Parasite: Controls the value for the minimum intenity to be considered as a parasite. A Value of 0 means no filtering. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
 	input(SpotMinArea,10,"Minimum Parasite Area: Parasite Detection","i","Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
 	input(SpotMaxArea,0, "Maximum Parasite Area: Parasite Detection","i","Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. A Value of 0 means no filtering. Adjust with \"ParasiteOutline3\" preview. Allowed range: 0..3000, step 1.")
 
@@ -566,12 +591,15 @@ proc ParasiteDetection_inner
 	double SpotReferenceRadius=5 in "Radius of Reference Region around the intensity maximum, i.e. around Parasite center. Typical range  2.0 .. 5.0.",
 	double SpotMinimumContrast=0.5 in "Minimum allowed contrast between Parasite peak intensity and the reference intensity. The main Parasite selection parameter. Range from 0..1. Adjust parameter by illustrations ParasiteSelection and Parasite. If the parameter value is lowered the number of classified Parasite increases and vice versa.",
 	double SpotMinimumToCellIntensity=10 in "Minimum allowed intensity ratio between the Average Intensity of the cell/object to which the Parasite belongs and  the Parasite Intensnity. Has smaller influence on the outputs than the main selection parameter ParasiteMinimumContrast. Adjust parameter by illustrations ParasiteSelection and Vacuoles. If the parameter value is lowered the number of classified Vacuoles increases and vice versa. Allowed range: 0..oo.",
+	double spotIndividualThresholdAdjustment=0.3 in "Controls the spot shape around the spot center. Higher values decrease spot size.Adjust with \"Accurate spot Borders\" preview. Allowed range: 0..1.",
 
+	boolean highBckGnd=false in "Optional. Indicate whether the spot to detect is surrounded by some background.",
 	boolean accuratParasiteDetection=true in "Indicate if you want to run the accurate spot detection. This only works well if parasites are not do dense and not adjacents.",
 
-	double SpotMinIntensity=100 in "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. Adjust with \"ParasiteOutline2\" preview.",
-	double SpotMaxIntensity=0 in "Parasite: Controls the value for the minimum intenity to be considered as part of the parasite. Adjust with \"ParasiteOutline2\" preview.",
-	double SpotMinArea=10 in "Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"ParasiteOutline3\" preview.",
+	double SpotMinRoundness=0 in "Parasite: Controls the value for the minimum roundness to be considered a parasite. Adjust with \"ParasiteOutline2\" preview.",
+	double SpotMinIntensity=100 in "Parasite: Controls the value for the minimum intenity to be considered as a parasite. Adjust with \"ParasiteOutline3\" preview.",
+	double SpotMaxIntensity=0 in "Parasite: Controls the value for the minimum intenity to be considered as a parasite. Adjust with \"ParasiteOutline3\" preview.",
+	double SpotMinArea=10 in "Parasite: Keep only parasites which are larger than the value provided. Lower values increases the number of spots retained. Adjust with \"ParasiteOutline4\" preview.",
 	double SpotMaxArea=0 in "Parasite: Keep only parasites which are smaller than the value provided. Lower values decrease the number of spots retained.  Adjust with \"ParasiteOutline4\" preview. a value of '0' does not filter anything",
 	string ScanParameter="None" in "Name of parameter scanned for detection optimization."
 )
@@ -587,7 +615,7 @@ proc ParasiteDetection_inner
 	delete(SpotCandidates)
 
 	if(accuratParasiteDetection)
-		spotAccurateRepresentation_inner(Spots,image,highBckGnd=false,SpotMinArea=0,SpotMinIntensity=0 ,showIllustrations=false)
+		spotAccurateRepresentation_inner(Spots,image,SpotMinArea=0,SpotMinIntensity=0)
 		Stencil2Objects(Spots.accurateSpots)
 		delete(Spots)
 	else()
@@ -598,15 +626,32 @@ proc ParasiteDetection_inner
 	set(objects.spotsNumber=spotsNumber)
 
 	if(showIllustrations)
-		set(label="ParasiteOutline1")
+		set(label="ParasiteOutline1V")
 		set(title=label&" - Initial detection, Parsite#: "&objects.count)
 		set(description="Parasites initially detected after spot analysis. Adjust using previous spot Illustrations.")
 		ImageView(objects.border.mask, label=label,title=title,image=imageIni, gamma=2.0, description=description)
 	end()
 
-	CalcStat("max",AttrName="intensity_max",image=imageIni,AutoRecalc=false)
+	CalcAttr("roundness",AutoRecalc=false)
 	if(showIllustrations)
 		set(label="ParasiteOutline2G")
+		set(title=label & " - Adjust per 'Min Parasite Roundness', Parsite#: "&objects.count)
+		set(data=objects.roundness)
+		set(value=SpotMinRoundness)
+		GraphView(data, label=label,title=title, presto_options="graph.yaxis.title Roundness")
+		GraphView(tabulate(value,objects.count).result, label=label, append=true, presto_options="set[0].line.color red")
+	end()
+
+	objectFilter(roundness>SpotMinRoundness)
+	if(showIllustrations)
+		set(label="ParasiteOutline2V")
+		set(description="Parasites after roundness-based filtering.")
+		ImageView(objects.border.mask, label=label,title=title,image=imageIni, gamma=2.0, description=description)
+	end()
+
+	CalcStat("max",AttrName="intensity_max",image=imageIni,AutoRecalc=false)
+	if(showIllustrations)
+		set(label="ParasiteOutline3G")
 		set(title=label & " - Adjust per 'Min/Max Parasite Intensity', Parsite#: "&objects.count)
 		set(data=objects.intensity_max)
 		set(value=SpotMaxIntensity)
@@ -621,14 +666,14 @@ proc ParasiteDetection_inner
 		objectFilter(intensity_max<SpotMaxIntensity)
 	end()
 	if(showIllustrations)
-		set(label="ParasiteOutline2V")
+		set(label="ParasiteOutline3V")
 		set(description="Parasites after intensity-based filtering.")
 		ImageView(objects.border.mask, label=label,title=title,image=imageIni, gamma=2.0, description=description)
 	end()
 
 	calcarea()
 	if(showIllustrations)
-		set(label="ParasiteOutline3G")
+		set(label="ParasiteOutline4G")
 		set(title=label & " - Adjust per 'Min/Max Parasite Area', Parsite#: " & objects.count)
 		set(data=objects.area)
 		set(value=SpotMaxArea)
@@ -643,7 +688,7 @@ proc ParasiteDetection_inner
 		objectFilter(area<SpotMaxArea)
 	end()
 	if(showIllustrations)
-		set(label="ParasiteOutline3V")
+		set(label="ParasiteOutline4V")
 		set(description="Parasites after size-based filtering.")
 		ImageView(objects.border.mask, label=label,title=title,image=imageIni, gamma=2.0, description=description)
 	end()

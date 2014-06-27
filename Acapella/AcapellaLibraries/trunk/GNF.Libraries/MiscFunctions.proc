@@ -42,12 +42,16 @@ boolean patialMatch=true in "Indicates whether the match should be partial (true
 ) data processing "Finds the index of the selected  occurrence  for the specified item in a vector that at least partially matches the item."
 {
 set(Pos=-1)
+if(vector.length==0)
+	Warning("The vector you are searching is empty!")
+	Return()
+end()
 if(startPos>vector.length-1||-1*startPos>vector.length-1)
 	Warning("The index selected in startPos exceeds the length of the vector!")
 	Return()
 end()
 if(occurence<1)
-	Warning("The Occurence should be superior to 1!")
+	Warning("The occurrence should be superior to 1!")
 	Return()
 end()
 if(vector.length<1)

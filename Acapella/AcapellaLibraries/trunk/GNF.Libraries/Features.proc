@@ -227,6 +227,9 @@ proc CalcFeatures(
 						set(Objects[AttributeName]=temp.PearsonsR)
 					end()
 				end()
+				if(images[i].purpose.length==0)
+					continue()
+				end()
 				if(CalcTextureFeatures && searchElem("marker",images[i].purpose,0).pos>=0) //only get Texture features for marker channels
 
 					if(CalcTASFeatures)
@@ -295,13 +298,6 @@ proc CalcFeatures(
 		RenameAttr(Perimeter=border_area)
 	end()
 
-	if(!defined("objects.masscentre") && !(defined("objects.xCentre") && defined("objects.yCentre")))
-		CalcMassCentre()
-		Delete(objects.MassCentreX, objects.MassCentreY)
-	end()
-
-	set(Objects.xCentre=objects.MassCentre.x.target)
-	set(Objects.yCentre=objects.MassCentre.y.target)
 	SetAttr(NearestObjectDistance, objectsDistances().distances)
 	if(Not(defined("objects.roundness")))
 		CalcAttr(Roundness)
