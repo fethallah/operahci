@@ -157,7 +157,6 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 //verify that it is not an empty field
 	if(images[0].image.max>0)
 		bckGndSubstraction(-1,images=images)
-		set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
 		Set(imageData.bckGndObjects=bckGndObjects)
 		set(image=images[paraNucChanNum].image)
 		ParasiteDetection(image, lowBitAnalysis=true)
@@ -169,6 +168,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 
 		//Detect Nuclei and Cytoplasm if requested
 		if(nucChanNum>=0)
+			set(minNucIntensity=stdDevToSubstract*bckGndObjects["Body_"&images[nucChanNum].desc&"_StdDevIntensity"].mean+1)
 			set(image=images[nucChanNum].image)
 			convert(bpp=1,image=image)
 			Nuclei_Detection(image)
@@ -192,7 +192,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 				CalcIntensity(image=Nuclei.body.mask.image)
 				ObjectFilter(intensity>0)
 				Stencil2Objects(objects.centers, CalcArea=false|Nuclei=objects)
-				DeleteAttr(centers,CytoplasmAndCenters,intensity)
+				DeleteAttr(centers,CytoplasmAndCenters,intensity,area)
 				getFeatures(objects=objects,images=images)
 				Rename(WholeCells=objects,objects=Nuclei)
 				getFeatures(objects=objects,images=images,parentNames=vec("WholeCells"),parentObjects=cnt(WholeCells=WholeCells))

@@ -82,6 +82,9 @@ Proc paramInit(memblock param out){
 	input(showIllustrations, false, "Show Illustrations", type="b", description="Indicate if you want to see the illustration for the objects detected.")
 	input(fieldSelected, 1, "Field To Analyze", type="i", description="If show illustration is selected, only analyze the selected field. use \"0\" to analyze every fields.")
 
+	set(getROI=false)
+	set(getSingleCellFeatures=false)
+
 	Pack(param,*)
 	keep(param)
 }
@@ -155,29 +158,60 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 	end()
 	set(imageData.WholeWell=WholeWell)
 }
+
 Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inout, container data out){
 
-	set(data=create("container").container)
+	set(wholeWellData=cnt())
 	set(numFieldsInFocus=0)
+	Set(FeaturesTable=Tbl(),ROITable=Tbl())
 	if(images.length>0)
 	foreach(0..images.length-1, "field")
 	foreach(0..images[field].length-1, "stack")
 		if(images[field][stack].length==0)
 			continue()
-		end() 
+		end()
 
 		imageAnalysis(images[field][stack],param)
 
 		if(imageData.length>0)
 			set(numFieldsInFocus=numFieldsInFocus+1)
-			combineMemBlocks(data, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
-			rename(data=newData)
+			if(param.getROI)
+				if(defined("imageData.Nuclei"))
+					getROITable(imageData.Nuclei,ObjectType="Nuclei")
+				end()
+				if(defined("imageData.WholeCells"))
+					getROITable(imageData.WholeCells,ObjectType="WholeCells")
+				end()
+			end()
+			if(param.getSingleCellFeatures)
+				Foreach(imageData.keys,"keyName")
+					Set(objects=ImageData[keyName])
+						if(objects.class=="objectlist"||objects.class=="compositObjectlist")
+							try() //Skip objects that do not have a real setncil stencil and for which a center of mass can be determined.
+								getFeaturesTable(objects,ObjectType=keyname)
+							Catch_Error()
+							end()
+						end()
+				end()
+			end()
+
+			combineMemBlocks(wholeWellData, imageData,DeleteGeometry=true,KeepAutoRecalc=false)
+			rename(wholeWellData=newData)
 		end()
 		delete(imageData)
 	end()
 	end()
 	end()
-	set(data.numFieldsInFocus=numFieldsInFocus)
+
+	Set(singleCellData=Cnt())
+	if(param.getSingleCellFeatures)
+		Set(singleCellData.Features=FeaturesTable)
+	end()
+	if(param.getROI)
+		Set(singleCellData.ROI=ROITable)
+	end()
+	set(wholeWellData.numFieldsInFocus=numFieldsInFocus)
+	pack(data,wholeWellData,singleCellData)
 }
 
 //#######################
