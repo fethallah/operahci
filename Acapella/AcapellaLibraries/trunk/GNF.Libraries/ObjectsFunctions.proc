@@ -586,7 +586,7 @@ set(objects.ROI=ROIarray)
 }
 
 proc getROITable(
-objectlist objects in "Object list contaning an attribute border to export",
+container objects in "Object list contaning an attribute border to export",
 Table ROITable=none inout "Table containing a list of ROI formated as polygons that were already calculated for other fields. If a table is provided new data will be append to it. This tables also maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number.",
 int time=0 in "timeSeries number for the object provided(index is 0 based)",
 int stack=0 in "z stack number for the object provided(index is 0 based)",
@@ -639,7 +639,7 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 }
 
 proc getFeaturesTable(
-Memblock objects in "Object list contaning the features to export",
+container objects in "Object list contaning the features to export",
 Table FeaturesTable out "Table containing the features list mapped to each objects. This tables maps each objects to an ObjectID, an ObjectType, a field number, a stack number and a time point number, a ParentObjectType and a ParentObjectID.",
 //Objectlist objects out "Object list contaning the newly calculated features",
 Container parentObjects=none in "Container with the differnt objectLists to use as parents from objects. Ex, for spots, a container containing nuclei and/or whole Cells, would allow to classify spots to the correct parent. If nothing is provided the object is associated to \"WholeWell\". Use Pack(parentObjects,...) to generate this. Ex: pack(parentObjects,Nuclei,WholeCells).",
