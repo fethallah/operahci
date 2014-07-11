@@ -629,12 +629,24 @@ String ObjectType="" in "Type of the objects. Can be left blank or provided as w
 	end()
 	addObjectID()
 	set(length=objects.count)
-	set(ROItable=ExtractROI(objects.border,chainCodeAsString=true).table)
-	set(ROItable.TimePoint= create("vector", 0,  length, time+ 1).vector)
-	set(ROItable.StackNum = create("vector", 0,  length, stack+1).vector)
-	set(ROItable.FieldNum = create("vector", 0,  length, field+1).vector)
-	set(ROItable.ObjectType=create("vector", 13, length, ObjectType).vector)
-	set(ROItable.ObjectID=Objects.ObjectID)
+	set(ROItableTemp=ExtractROI(objects.border,chainCodeAsString=true).table)
+
+	set(ROItable=tbl(
+			TimePoint=create("vector", 0,  length, time+ 1).vector,
+			StackNum=create("vector", 0,  length, stack+1).vector,
+			FieldNum=create("vector", 0,  length, field+1).vector,
+			ObjectType=create("vector", 13, length, ObjectType).vector,
+			ObjectID=Objects.ObjectID,
+			BoundingBoxMinX=ROItableTemp.BoundingBoxMinX,
+			BoundingBoxMinY=ROItableTemp.BoundingBoxMinY,
+			BoundingBoxMaxX=ROItableTemp.BoundingBoxMaxX,
+			BoundingBoxMaxY=ROItableTemp.BoundingBoxMaxY,
+			IniX=ROItableTemp.IniX,
+			IniY=ROItableTemp.IniY,
+			ChainCode=ROItableTemp.ChainCode
+		)
+	)
+	delete(ROItableTemp)
 	AppendTable(other=ROItable|ROItable=table)
 }
 
