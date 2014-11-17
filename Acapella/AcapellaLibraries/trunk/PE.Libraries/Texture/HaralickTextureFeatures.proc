@@ -21,7 +21,8 @@ proc CalcHaralickFeatures(
 	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
 	string AttrSuffix="" in "Suffix that should be appened after the Feature name.",
 	vector featurenames out "Names of calculated Haralick texture features",
-	image NormalizedImage out "Object-wise normalized image"),
+	image NormalizedImage out "Object-wise normalized image")
+
 Texture "Calculation of a set of Haralick texture features of previously defined objects. Numerical values of features are independent of the image intensity scale. The results are averages over different orientations."
 {
 	set(objects_in=objects)

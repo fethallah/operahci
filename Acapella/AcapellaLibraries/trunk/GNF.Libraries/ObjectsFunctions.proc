@@ -757,11 +757,14 @@ proc AssociateObject2Parents(
 						compositObjectVerifier(parent)
 						set(parent=parent.fullSet)
 					end()
-					containedObjects(parent,objects,objectsStencil="massCentre")
+					containedObjects(parent,objects,objectsStencil="body") //Use Masscentre
 
 					stencil2objects(stencil=parent.body | parent=objects)
 					fillObjects(objects=parent | parent=objects)
-					CalcStat("Max",AttrName="ParentID", image=parent.body.image, stencil=masscentre)
+					CalcStat("Max",AttrName="PID_tmp1", image=parent.body.image, stencil=masscentre)
+					CalcStat("Max",AttrName="PID_tmp2", image=parent.body.image, stencil=body)
+					set(objects.ParentID=iif(objects.PID_tmp1!=0,objects.PID_tmp1,objects.PID_tmp2))
+					delete(objects.PID_tmp1, objects.PID_tmp2)
 					Set(objects.ParentType=create("vector", 13, objects.count, name).vector)
 					combineMemBlocks(oldData, objects,DeleteGeometry=false,KeepAutoRecalc=true|oldData=newData)
 					rename(objects=remainder) //Remainder objects that have no parents to be indexed later

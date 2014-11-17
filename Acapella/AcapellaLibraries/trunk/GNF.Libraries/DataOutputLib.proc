@@ -254,8 +254,11 @@ proc colNameAlter(
 	String text inout "name of the column which should be altered"
 )
 {
-	unquote(text,"Name")
-	unquote("@"&text,"Name")
+	if(Substr(text,1,1)=="@")
+		unquote(text,"Name")
+	else()
+		unquote("@"&text,"Name")
+	end()
 	RegexReplace(text,"\s+"," ")
 	RegexReplace(text,"ratio_(.+?)_To_","\1/")
 	RegexReplace(text,"(.+)_(.+?)(_PearsonR_)","\1/\2\3")

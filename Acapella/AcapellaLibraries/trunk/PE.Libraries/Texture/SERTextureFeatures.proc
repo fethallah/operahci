@@ -1,6 +1,7 @@
 //////////// CalcSERFeatures() (and related procedures)
 //////////// Development version 30.07.2009 by Peet Kask
 // ODe 2009-09-19: Replaced [internal] bei [hidden] and CalcIntensity by CalcStat for Acap 2.0
+
 package(Texture)
 
 
@@ -9,9 +10,9 @@ proc CalcSERFeatures(
 	double scale explicit in "Scale of texture filtering (0...100)",
 	string stencilname="body" explicit in "Name of the region of interest",
 	string normalizationmode="regional" explicit in "Select between unnormalized, kernel, regional, and external modes. With external mode, norm-attribute must be given.",
-	objectlist objects inout "List of objects for which texture features are calculated. In output, calculated features appear as additional attributes.",
 	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
 	string AttrSuffix="" in "Suffix that should be appened after the Feature name.",
+	objectlist objects inout "List of objects for which texture features are calculated. In output, calculated features appear as additional attributes.",
 	vector SERNames out "List of calculated feature-names",
 	vector SERIllustrations out "Masked, normalized and scaled SER-filtered images"
 ) Texture "Calculation of Spot-Edge-Ridge texture features. Calculated features appear as additional attributes of the objectlist."

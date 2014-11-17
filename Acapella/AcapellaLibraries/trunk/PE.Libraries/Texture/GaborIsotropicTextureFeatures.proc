@@ -17,10 +17,9 @@ proc CalcGaborFeatures(
 	string stencilname="body" explicit in "Name of the stencil of interest",
 	string normalizationmode="regional" explicit in "Regional - denominator is mean intensity in the region; external - denominator is a precalculated norm-attribute; kernel - denominatior is Gaussian filtered image; unnormalized is also an option",
 	objectlist objects inout "Objectlist that contains the region of interest. In output, Gabor features are added as new attributes",
-	string AttrPrefix="" in "Prefix that should be appened before the Feature name.",
+	string AttrPrefix="" in "Prefix that should be appened before the Feature name",
 	table GaborInfo out "Table with information about the calculated features",
-	vector GaborIllustrations out "Masked, normalized and scaled Gabor-filtered images"),
-
+	vector GaborIllustrations out "Masked, normalized and scaled Gabor-filtered images")
 Texture "Calculation of Gabor texture features corresponding to circular Gaussian envelope (spatial aspect ratio=1). Internally, Texture::GaborFilter-module is applied. The calculated features correspond to min and max values of Gabor amplitudes at different orientations."
 {
 	//Preparations for calculating Gabor features

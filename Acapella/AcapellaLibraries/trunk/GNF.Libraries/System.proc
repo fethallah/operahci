@@ -102,9 +102,10 @@ container ini out "Container representing the INI file that you read."
 System "Reads an INI file into an object so that each Groups (eg. [MyGroup1\MyGroup2\MyGroup3]) represents one branch into the ini container returned. The values are placed into the structure created. If you provide a ';'delimited sets of value for one key eg. 'MyValues=3;2;3;6;4' a vector o values will be entered in the selected group. Notion of Super groups is also introduce to further group set of objects. Super groups are provided by a line containing a line with the following template: '{A_Super_Group_Label}'."
 {
 rename(path=path)
-if(!fileInfo(path).fileinfo.is_readable)
-	Error(sprintf(e,"The configuration file: '%s' is missing", path).e)
-end()
+
+//if(!fileInfo(path).fileinfo.is_readable)
+//	Error(sprintf(e,"The configuration file: '%s' is missing", path).e)
+//end()
 ReadFile(path)
 SplitString(content,"\n",Trim=true|Content=Split)
 set(ini=cnt(),lineIndex=0, currentGroup="ini", superGroup="")
