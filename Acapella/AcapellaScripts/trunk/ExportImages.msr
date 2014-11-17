@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Script code_version="1" date="07.10.2013  10:35:07"><MacroScript>//*************************************************************************
+//  File Name:			SaveImagesLocal.script
+//
+//  Authors:			Ghislain Bonamy
+//
+//  Purpose:  	Save images as any file type in local folder.
+//
+//  Details:   	Because Opera files are saved as stacked, tiff-like flex files,
+//		with scaled intensity values, it is difficult to use these images
+//		in other image analysis software.  This script saves Opera images to
+//		local files and allows adjustable file types (tiff, png, etc.) in a
+//		16 bit, non-scaled format.
+//
+//
+//
+//*************************************************************************
+
+
+
+input(fileType, "tiff", "File Type","s","Select your file type. Allowed values:\"tiff\", \"png\".")
+input(saveDir, "//nrsgri-s1101/hci$/temp", "Save in", "s", "Path were dta will be stored.")
+input(splitFile,false,"Split Files","b","Indicate wether you wish to split the files for the analysis or not.")
+input(autoContrast,false,"Auto contrast","b","Indicate whether you wish to auto-contrast your image.")
+input(saveAs8bpp,false,"Save 8 Bit","b","Indicate whether you wish to save your image as 8 bit.")
+
+imagesInit()
+
+
+if(splitFile)
+	set(saveDir=savedir&amp;"/"&amp;sourceDataProp.barcode&amp;"/"&amp;sourceDataProp.MeasurementName)
+	set(wellID=sourceDataProp.wellID)
+else()
+	set(wellID=sourceDataProp.barcode&amp;"-"&amp;sourceDataProp.MeasurementName&amp;"_"&amp;sourceDataProp.wellID)
+end()
+set(saveDir=convertPath2Platform(saveDir).path)
+mkdir2(saveDir)
+try()
+	mkdir(saveDir)
+Catch_Error()
+end()
+foreach(0..images.length-1, "field")
+	foreach(0..images[field].length-1, "stack")
+		foreach(0..images[field][stack].length-1, "chan")
+			set(image=images[field][stack][chan].image)
+			if(autoContrast)
+				autoContrast(image,bot=5,top=99.5)
+			end()
+			if(saveAs8bpp)
+				Convert(8,image=image)
+				Set(image.factor=1)
+			end()
+			set(path=saveDir&amp;"/"&amp;wellID &amp; "_F"&amp;field&amp;"_Z" &amp;stack&amp;"_C" &amp;chan&amp;"."&amp;fileType)
+			writeimage(path, image=image, palette= "truecolor", imageformat=fileType, factorsufix=true)
+		end()
+	end()
+end()
+output("path","Path")
+</MacroScript></Script>

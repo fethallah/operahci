@@ -210,7 +210,7 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 
 				Set(imageData.Nuclei=Nuclei)
 			end()
-			//get the set of objects associted with the well
+			//get the set of objects associated with the well
 			SplitMyObjects("parentType!=\"WholeWell\"",objects=Parasites)
 			assembleCompositObject(cnt("InsideCell"=objects,"OutsideCell"=remainder),objects=Parasites|Parasites=compositObject)
 			if(showIllustrations)
@@ -225,7 +225,8 @@ Proc imageAnalysis(memblock images in, memblock param in, container imageData ou
 						end()
 					else()
 						set(nucleiBorder=Nuclei.Border.mask)
-						set(cellBorder=mask(blank(image.width,image.height).image).mask)
+						set(imageCyto=blank(image.width,image.height).image)
+						set(cellBorder=mask(image=blank(image.width,image.height).image).mask)
 					end()
 				RGBy(tbl(Image=vec(image,imageCyto,  images[paraNucChanNum].image),Gamma=vec(0.8,1.2,1.0), Color=vec("red","green","cyan")))
 				delete(imageCyto)
@@ -307,6 +308,18 @@ Proc Analysis(memblock images in,memblock param in, memblock sourceDataProp inou
 	pack(data,wholeWellData,singleCellData)
 }
 
+//TODO; Remove when RMCA infrastructure fixes the bug of calling this procedure. 'Opera:Error Unable to replace the parameter(s) [ComPort=...]'
+proc dataOutput(container data in, Container sourcedataprop in, String statValue="median" in){
+	unpack(data)
+	delete(data)
+	if(Defined("singleCellData.Features"))
+		GZipData(singleCellData.Features,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="feat",label="")
+	end()
+	if(Defined("singleCellData.ROI"))
+		GZipData(singleCellData.ROI,dirname=sourcedataprop.fileDir,name=sourcedataprop.WellIndex,extension="roi",label="")
+	end()
+	outputMemblockData( wholeWellData)
+}
 
 //#######################
 // Program Start
@@ -323,5 +336,6 @@ if(param.showIllustrations&&param.fieldSelected!=0)
 end()
 
 Analysis()
-writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
+//TODO: Add Back when RMCA infrastructure fixes the bug of calling this procedure. 'Opera:Error Unable to replace the parameter(s) [ComPort=...]'
+//writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
 dataOutput(data,sourcedataprop,param.OutputStatType)

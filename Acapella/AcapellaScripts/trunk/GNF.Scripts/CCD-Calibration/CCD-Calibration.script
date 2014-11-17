@@ -133,12 +133,9 @@ proc dataOutput(int data in, memblock images in){
 //#######################
 // Program Start
 //#######################
+
 ImagesInit()
-
-
-
 Analysis()
-
 writeChannelMapping(images, sourcedataprop.fileDir,sourcedataprop.WellIndex)
 dataOutput()
 wellMontage()

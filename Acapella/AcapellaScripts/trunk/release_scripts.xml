@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--example from: http://home.subnet.at/peter/2006/04/automatically-adding-version-information-into-a-java-manifest-file-with-ant/-->
+
+<project name="AcapellaScripts" default="release" basedir=".">
+
+	<!--
+		This initializes the ${DSTAMP} and ${TSTAMP} ant properties.
+		-->
+	<tstamp />
+
+	<!-- This file contains informations about the build and is
+		loaded automatically -->
+	<property name="prop.file" value="release_scripts.properties" />
+	<propertyfile file="${prop.file}">
+		<entry key="build.number" type="int" default="0001" operation="+" pattern="0000" />
+		<entry key="build.date" type="date" value="now" pattern="yyyymmdd-HHmm" />
+	</propertyfile>
+
+	<ant antfile="build.xml" />
+
+	<property file="${prop.file}" />
+	<target name="release" description="Build the MSR file and deploys in proper directory">
+
+		<!--depends="compile" -->
+		<mkdir dir="${dest.path}" />
+		<echo>Creating Script files ...</echo>
+		<java jar="${basedir}/deployment/MSRWriter.jar" fork="yes">
+			<arg value="-c" />
+			<arg value="'${programer.name} (${implementation.vendor})'" />
+			<arg value="-o" />
+			<arg value="${dest.path}" />
+			<arg value="${basedir}" />
+		</java>
+		<echo>Done Building files</echo>
+
+	</target >
+
+</project>
